@@ -1,0 +1,166 @@
+
+version: 2
+
+# YAML allows the definition of reusable definitions via anchors & references.
+# See: http://blog.daemonl.com/2016/02/yaml.html for an explanation.
+sbt-build: &sbt-build-deploy
+  docker:
+    - image: guizmaii/scala-sbt-gke:8u151-2.12.4-1.1.1-8.9
+  steps:
+    - run: mkdir -p /root/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > /root/.ssh/config
+    - checkout
+    - setup_remote_docker:
+        docker_layer_caching: true
+        version: 17.09.0-ce
+    - restore_cache:
+        key: sbt-deps-{{ checksum "build.sbt" }}
+    - run: export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/dev-walletd.json
+    - run: sbt -Xms512m -Xmx2g -XX:+UseConcMarkSweepGC -XX:ReservedCodeCacheSize=256m -XX:+CMSClassUnloadingEnabled -Djava.awt.headless=true -no-colors -batch "$SBT_COMMAND"
+    - run: echo $GOOGLE_AUTH | base64 --decode --ignore-garbage > ${HOME}/gcp-key.json
+    - run: gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+    - run: gcloud --quiet config set project ${PROJECT_NAME}
+    - run: gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE_US}
+    - run: gcloud --quiet container clusters get-credentials ${GOOGLE_CLUSTER_NAME_PROD}
+    - run: docker tag eu.gcr.io/${PROJECT_NAME}/${CIRCLE_PROJECT_REPONAME}:$(echo $CIRCLE_SHA1 | cut -c1-7) eu.gcr.io/${PROJECT_NAME}/${CIRCLE_PROJECT_REPONAME}:latest
+    - run: gcloud docker -- push eu.gcr.io/${PROJECT_NAME}/${CIRCLE_PROJECT_REPONAME}:$(echo $CIRCLE_SHA1 | cut -c1-7)
+    - run: gcloud docker -- push eu.gcr.io/${PROJECT_NAME}/${CIRCLE_PROJECT_REPONAME}:latest
+    - save_cache:
+        key: sbt-deps-{{ checksum "build.sbt" }}
+        paths:
+          - ~/.m2
+          - ~/.ivy2
+          - ~/.sbt
+
+sbt-build: &sbt-build
+  docker:
+    - image: guizmaii/scala-sbt-gke:8u151-2.12.4-1.1.1-8.9
+  steps:
+    - run: mkdir -p /root/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > /root/.ssh/config
+    - checkout
+    - setup_remote_docker:
+        docker_layer_caching: true
+        version: 17.09.0-ce
+    - restore_cache:
+        key: sbt-deps-{{ checksum "build.sbt" }}
+    - run: sbt -Xms512m -Xmx2g -XX:+UseConcMarkSweepGC -XX:ReservedCodeCacheSize=256m -XX:+CMSClassUnloadingEnabled -Djava.awt.headless=true -no-colors -batch "$SBT_COMMAND"
+    - save_cache:
+        key: sbt-deps-{{ checksum "build.sbt" }}
+        paths:
+          - ~/.m2
+          - ~/.ivy2
+          - ~/.sbt
+    - store_artifacts:
+        path: api/target/scala-2.12/api/
+        destination: scaladoc/api
+    - store_artifacts:
+        path: core/target/scala-2.12/api/
+        destination: scaladoc/core
+    - store_artifacts:
+        path: target/scala-2.12/api/
+        destination: scaladoc/main
+    - store_artifacts:
+        path: api/target/test-reports/
+        destination: test-reports/api
+    - store_artifacts:
+        path: core/target/test-reports/
+        destination: test-reports/core
+    - store_artifacts:
+        path: target/test-reports/
+        destination: test-reports/main
+    - store_artifacts:
+        path: target/scala-2.12/scoverage-report/
+        destination: coverage-report
+    - store_artifacts:
+        path: target/scala-2.12/scoverage-data/
+        destination: coverage-data
+    - store_test_results:
+        path: target/test-reports/
+    - store_test_results:
+        path: api/target/test-reports/
+    - store_test_results:
+        path: core/target/test-reports/
+
+
+
+jobs:
+
+  test:
+    <<: *sbt-build
+    resource_class: large
+    environment:
+      SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
+
+  integration-test:
+    <<: *sbt-build
+    resource_class: large
+    environment:
+      SBT_COMMAND: "it:test"
+
+  publish:
+    <<: *sbt-build-deploy
+    docker:
+      - image: guizmaii/scala-sbt-gke:node_8.9
+    environment:
+      SBT_COMMAND: "; docker:publishLocal"
+
+  deployImageStaging:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run: echo $GOOGLE_AUTH | base64 --decode --ignore-garbage > ${HOME}/gcp-key.json
+      - run: gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run: gcloud --quiet config set project ${PROJECT_NAME}
+      - run: gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE_US}
+      - run: gcloud --quiet container clusters get-credentials ${GOOGLE_CLUSTER_NAME_PROD}
+      - run: kubectl set image deployment/walletd-deployment walletd-main=eu.gcr.io/${PROJECT_NAME}/${CIRCLE_PROJECT_REPONAME}:$(echo $CIRCLE_SHA1 | cut -c1-7) -n=staging
+
+  deployImageProduction:
+    docker:
+      - image: google/cloud-sdk
+    steps:
+      - run: echo $GOOGLE_AUTH | base64 --decode --ignore-garbage > ${HOME}/gcp-key.json
+      - run: gcloud auth activate-service-account --key-file ${HOME}/gcp-key.json
+      - run: gcloud --quiet config set project ${PROJECT_NAME}
+      - run: gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE_US}
+      - run: gcloud --quiet container clusters get-credentials ${GOOGLE_CLUSTER_NAME_PROD}
+      - run: kubectl set image deployment/walletd-deployment walletd-main=eu.gcr.io/${PROJECT_NAME}/${CIRCLE_PROJECT_REPONAME}:$(echo $CIRCLE_SHA1 | cut -c1-7) -n=walletd
+
+workflows:
+  version: 2
+
+  ci:
+    jobs:
+      - test:
+          filters:
+            branches:
+              ignore: master
+              ignore: develop
+      - integration-test:
+          filters:
+            branches:
+              ignore: master
+              ignore: develop
+
+  cd:
+    jobs:
+      - test
+      - integration-test
+      - publish:
+          filters:
+            branches:
+              only: develop
+          requires:
+            - test
+            - integration-test
+      - deployImageStaging:
+          requires:
+            - publish
+
+  release:
+    jobs:
+      - publish:
+          filters:
+            branches:
+              only: master
+
+
