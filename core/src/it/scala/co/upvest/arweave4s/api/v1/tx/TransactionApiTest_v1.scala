@@ -55,5 +55,4 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
       "submitting an valid transaction" in {}
     }
   }
-
 }

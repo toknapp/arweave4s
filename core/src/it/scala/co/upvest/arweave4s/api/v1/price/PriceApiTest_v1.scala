@@ -42,9 +42,7 @@ class PriceApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
         (price1 > 0) shouldBe true
 
         price1 / 2 shouldBe price0
-
       }
     }
   }
-
 }

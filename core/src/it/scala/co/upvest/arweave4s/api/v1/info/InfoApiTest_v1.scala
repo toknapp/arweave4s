@@ -29,5 +29,4 @@ class InfoApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
       }
     }
   }
-
 }
