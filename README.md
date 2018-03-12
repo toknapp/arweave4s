@@ -1,7 +1,7 @@
 
 
 
-[![Build Status](https://circleci.com/gh/circleci/circleci-docs.svg?style=shield)](https://circleci.com/gh/circleci/circleci-docs)
+[![BuildStatus](https://circleci.com/gh/toknapp/arweave4s.svg?style=svg)](https://circleci.com/gh/toknapp/arweave4s)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/toknapp/arweave4s/develop/COPYING)
 
 ## Arweave4s
