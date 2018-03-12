@@ -12,9 +12,6 @@ Arweave4s is a lightweight modular http client for the Arweave blockchain (https
 
 ### Scaladoc
 
-arweave4s is provided to you as free software under the
-[MIT license](COPYING).
-
 
 ### Contact
 
@@ -25,4 +22,5 @@ By questions, comments or suggestions feel free to get in touch by creating an P
 
 Copyright 2018 Ivan Morozov, Gustav Behm, Tokn GmbH (https://upvest.co)
 
+Arrweave4s is provided to you as free software under the MIT license.
 The MIT software license is attached in the [COPYING](COPYING) file.
