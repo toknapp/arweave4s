@@ -11,7 +11,9 @@ case class Block(nonce: String,
                  hash: Block.Hash,
                  indepHash: Block.Hash,
                  txs: Seq[Transaction],
-                 hashList: Seq[Block.Hash],
+                 hashList: Seq[Block.Hash], // TODO: these are most likely
+                                            // hashes of the uploaded data in
+                                            // the block => separate the types
                  walletList: Seq[WalletResponse],
                  rewardAddr: String)
 

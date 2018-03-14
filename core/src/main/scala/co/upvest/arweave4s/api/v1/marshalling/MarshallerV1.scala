@@ -51,7 +51,7 @@ trait MarshallerV1 {
     override def apply(c: HCursor): Result[Transaction.Signed] =
       for {
         id       <- c.downField("id").as[Transaction.Id]
-        lastTx   <- c.downField("last_tx").as[Option[Transaction.Id]]
+        lastTx   <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
         owner    <- c.downField("owner").as[Owner]
         target   <- c.downField("target").as[Address]
         quantity <- c.downField("quantity").as[Winston]
@@ -68,7 +68,7 @@ trait MarshallerV1 {
       for {
         addr    <- c.downField("wallet").as[Address]
         quant   <- c.downField("quantity").as[Winston]
-        last_tx <- c.downField("last_tx").as[Option[Transaction.Id]]
+        last_tx <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
       } yield WalletResponse(addr, quant, last_tx)
   }
 
