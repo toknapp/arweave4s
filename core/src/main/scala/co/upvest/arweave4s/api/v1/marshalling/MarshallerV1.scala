@@ -4,7 +4,7 @@ import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.utils.CryptoUtils
 import io.circe.Decoder.Result
-import io.circe.{Decoder, HCursor}
+import io.circe.{Decoder, HCursor, DecodingFailure}
 
 trait MarshallerV1 {
 
@@ -41,27 +41,59 @@ trait MarshallerV1 {
   implicit lazy val ownerDecoder: Decoder[Owner] =
     (c: HCursor) => c.as[String].map(Owner.fromEncoded)
 
+  implicit lazy val dataDecoder: Decoder[Data] =
+    (c: HCursor) => c.as[String].map(Data.fromEncoded)
+
   implicit lazy val blockIdDecoder: Decoder[Block.Id] =
     (c: HCursor) => c.as[String].map(Block.Id.fromEncoded)
 
   implicit lazy val transactionIdDecoder: Decoder[Transaction.Id] =
     (c: HCursor) => c.as[String].map(Transaction.Id.fromEncoded)
 
-  implicit lazy val transactionDecoder = new Decoder[Transaction.Signed] {
-    override def apply(c: HCursor): Result[Transaction.Signed] =
+  implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
+    override def apply(c: HCursor): Result[Transaction.Data] =
       for {
         id       <- c.downField("id").as[Transaction.Id]
         lastTx   <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
         owner    <- c.downField("owner").as[Owner]
-        target   <- c.downField("target").as[Address]
-        quantity <- c.downField("quantity").as[Winston]
-        tpe      <- c.downField("type").as[String].map(Transaction.Type.apply)
-        // Would be good to use laziness here.
-        data      <- c.downField("data").as[String].map(_.getBytes).map(Data)
+        data      <- c.downField("data").as[Data]
         reward    <- c.downField("reward").as[Winston]
-        signature <- c.downField("signature").as[Signature]
-      } yield Transaction.Signed(id, lastTx, owner, target, quantity, tpe, data, signature, reward)
+      } yield Transaction.Data(id, lastTx, owner, data, reward)
   }
+
+  implicit lazy val transferTransactionDecoder =
+    new Decoder[Transaction.Transfer] {
+      override def apply(c: HCursor): Result[Transaction.Transfer] =
+        for {
+          id       <- c.downField("id").as[Transaction.Id]
+          lastTx   <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
+          owner    <- c.downField("owner").as[Owner]
+          target   <- c.downField("target").as[Address]
+          quantity <- c.downField("quantity").as[Winston]
+          reward    <- c.downField("reward").as[Winston]
+        } yield Transaction.Transfer(id, lastTx, owner, target, quantity, reward)
+    }
+
+  implicit lazy val transactionDecoder = new Decoder[Transaction] {
+    override def apply(c: HCursor): Result[Transaction] =
+      c.downField("type").as[String] flatMap { s =>
+        Transaction.Type(s) toRight DecodingFailure(
+          message = s"unknown transaction type $s",
+          ops = Nil
+        )
+      } flatMap {
+        case t: Transaction.Type.Transfer.type =>
+          transferTransactionDecoder(c)
+        case d: Transaction.Type.Data.type =>
+          dataTransactionDecoder(c)
+      }
+  }
+
+  implicit def signedDecoder[T: Decoder]: Decoder[Signed[T]] = (c: HCursor) =>
+    for {
+      sig <- c.downField("signature").as[Signature]
+      t <- c.as[T]
+    } yield Signed[T](t, sig)
 
   implicit lazy val walletDecoder = new Decoder[WalletResponse] {
     override def apply(c: HCursor): Result[WalletResponse] =
@@ -83,7 +115,7 @@ trait MarshallerV1 {
         height        <- c.downField("height").as[BigInt]
         hash          <- c.downField("hash").as[Block.Hash]
         indep_hash    <- c.downField("indep_hash").as[Block.Hash]
-        txs           <- c.downField("txs").as[Seq[Transaction.Signed]]
+        txs           <- c.downField("txs").as[Seq[Signed[Transaction]]]
         hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
         wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
         reward_addr   <- c.downField("reward_addr").as[String]

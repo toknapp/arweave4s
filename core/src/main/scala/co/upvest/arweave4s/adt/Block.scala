@@ -10,7 +10,7 @@ case class Block(nonce: String,
                  height: BigInt,
                  hash: Block.Hash,
                  indepHash: Block.Hash,
-                 txs: Seq[Transaction],
+                 txs: Seq[Signed[Transaction]],
                  hashList: Seq[Block.Hash], // TODO: these are most likely
                                             // hashes of the uploaded data in
                                             // the block => separate the types

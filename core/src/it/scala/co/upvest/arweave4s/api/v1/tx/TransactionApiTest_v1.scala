@@ -1,6 +1,6 @@
 package co.upvest.arweave4s.api.v1.tx
 
-import co.upvest.arweave4s.adt.Transaction.Signed
+import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
 import com.softwaremill.sttp.HttpURLConnectionBackend
 import org.scalatest.{Matchers, WordSpec}
@@ -32,20 +32,20 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
         json.isRight shouldBe true
         // Should be a valid JSON list
         // should be a valid list of peers
-        json.flatMap(_.as[Signed]).isRight shouldBe true
+        json.flatMap(_.as[Signed[Transaction]]).isRight shouldBe true
       }
 
       "return tx fields by filter" in {
         val response = tx.getTxViaId(TestHost, transactionId.toString).send()
         val json     = parse(response.body.right.get)
         val transaction = json
-          .flatMap(_.as[Signed])
+          .flatMap(_.as[Signed[Transaction]])
           .getOrElse(throw new IllegalStateException("Could not fetch tx"))
 
         val filteredResponse = tx.getFilteredTxViaId(TestHost, transactionId.toString, "id").send()
         val id = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
 
-        id shouldBe transaction.id
+        id shouldBe transaction.t.id
       }
 
       "return tx data body as HTML" in {

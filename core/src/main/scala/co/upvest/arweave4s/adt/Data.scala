@@ -2,6 +2,9 @@ package co.upvest.arweave4s.adt
 
 import co.upvest.arweave4s.utils.CryptoUtils
 
-case class Data(bytes: Array[Byte]) {
-  override def toString: String = CryptoUtils.base64UrlEncode(bytes)
+class Data(val bytes: Array[Byte]) extends Base64EncodedBytes
+
+object Data {
+  def fromEncoded(s: String): Data =
+    new Data(CryptoUtils.base64UrlDecode(s))
 }
