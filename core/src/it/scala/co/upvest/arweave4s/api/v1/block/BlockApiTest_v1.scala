@@ -12,7 +12,7 @@ class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
 
   "v1 of the block API, on simple backend " when {
     implicit val backend = HttpURLConnectionBackend()
-    val validBlock       = Block.Id.fromEncoded("l5rg-UfwB65SAr-E5vy5rkXIIHW8uqEq64KnTJiVvLg")
+    val validBlock       = Block.Hash.fromEncoded("FFra_neUDV9UOQ3zcksROeLsEHIodRdw118I0uuvUCc")
     val validBlockheight = BigInt(634)
     "asked for block to BlockId" should {
       "return a valid block" in {

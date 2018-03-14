@@ -23,9 +23,7 @@ trait MarshallerV1 {
     (c: HCursor) => c.as[String].map(Peer.apply)
 
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
-    (c: HCursor) => c.as[String]
-      .map(CryptoUtils.base64UrlDecode)
-      .map(new Block.Hash(_))
+    (c: HCursor) => c.as[String].map(Block.Hash.fromEncoded)
 
   implicit lazy val addressDecoder: Decoder[Address] =
     (c: HCursor) => c.as[String]
@@ -43,9 +41,6 @@ trait MarshallerV1 {
 
   implicit lazy val dataDecoder: Decoder[Data] =
     (c: HCursor) => c.as[String].map(Data.fromEncoded)
-
-  implicit lazy val blockIdDecoder: Decoder[Block.Id] =
-    (c: HCursor) => c.as[String].map(Block.Id.fromEncoded)
 
   implicit lazy val transactionIdDecoder: Decoder[Transaction.Id] =
     (c: HCursor) => c.as[String].map(Transaction.Id.fromEncoded)
@@ -108,7 +103,7 @@ trait MarshallerV1 {
     override def apply(c: HCursor): Result[Block] =
       for {
         nonce         <- c.downField("nonce").as[String]
-        prev_block    <- c.downField("previous_block").as[Block.Id]
+        prev_block    <- c.downField("previous_block").as[Block.Hash]
         timestamp     <- c.downField("timestamp").as[Long]
         last_retarget <- c.downField("last_retarget").as[Long]
         diff          <- c.downField("diff").as[Int]
@@ -128,7 +123,7 @@ trait MarshallerV1 {
           diff = diff,
           height = height,
           hash = hash,
-          indepHash = indep_hash,
+          indep_hash = indep_hash,
           txs = txs,
           hashList = hash_list,
           walletList = wallet_list,
