@@ -15,7 +15,9 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
 
     implicit val backend = HttpURLConnectionBackend()
 
-    val transactionId = Id.fromB64urlEncoded("FDqgPohAc15sR0nZjtSo45fa1bzA6kcrigVtw4vSGIM")
+    val transactionId =
+      Transaction.Id.fromEncoded("FDqgPohAc15sR0nZjtSo45fa1bzA6kcrigVtw4vSGIM")
+
     "asked for a full Tx to TxId" should {
       "return a valid Transaction" in {
 
@@ -41,7 +43,7 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
           .getOrElse(throw new IllegalStateException("Could not fetch tx"))
 
         val filteredResponse = tx.getFilteredTxViaId(TestHost, transactionId.toString, "id").send()
-        val id               = Id.fromB64urlEncoded(filteredResponse.body.right.get)
+        val id = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
 
         id shouldBe transaction.id
       }

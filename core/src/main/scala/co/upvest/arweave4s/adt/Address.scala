@@ -2,20 +2,16 @@ package co.upvest.arweave4s.adt
 
 import java.security.interfaces.RSAKey
 
-import co.upvest.arweave4s.utils.CryptoUtils
+import co.upvest.arweave4s.utils.{CryptoUtils, UnsignedBigInt}
 
-case class Address(bytes: Array[Byte]) {
-  override def toString(): String = Id(bytes).toString
-}
+class Address(val bytes: Array[Byte]) extends Base64EncodedBytes
 
 object Address {
+  def fromEncoded(s: String): Address =
+    new Address(CryptoUtils.base64UrlDecode(s))
 
-  def apply(base64urlEncoded: String): Address = Address(
-    CryptoUtils.base64UrlDecode(base64urlEncoded)
-  )
-  // NB. drop 1 to discard the 2s complement bit
   def ofModulus(n: BigInt) =
-    Address(CryptoUtils.sha256(n.toByteArray drop 1))
+    new Address(CryptoUtils.sha256(UnsignedBigInt.toBigEndianBytes(n)))
 
   def ofOwner(o: Owner): Address = ofModulus(o.n)
   def ofKey(k: RSAKey): Address  = ofModulus(k.getModulus)

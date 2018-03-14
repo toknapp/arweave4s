@@ -1,12 +1,13 @@
 package co.upvest.arweave4s.adt
 
-import co.upvest.arweave4s.utils.CryptoUtils
+import co.upvest.arweave4s.utils.{CryptoUtils, UnsignedBigInt}
 
 case class Owner(n: BigInt) {
-  lazy val bytes                  = n.toByteArray drop 1
+  lazy val bytes = UnsignedBigInt.toBigEndianBytes(n)
   override def toString(): String = CryptoUtils.base64UrlEncode(bytes)
 }
 
 case object Owner {
-  def fromB64UrlEncoded(s: String) = Owner(BigInt.apply(CryptoUtils.base64UrlDecode(s)))
+  def fromEncoded(s: String) =
+    Owner(BigInt.apply(CryptoUtils.base64UrlDecode(s)))
 }

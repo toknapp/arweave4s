@@ -3,6 +3,7 @@ package co.upvest.arweave4s.adt
 import java.security.SecureRandom
 
 import co.upvest.arweave4s.adt.Transaction.Type.Type
+import co.upvest.arweave4s.utils.CryptoUtils
 import org.spongycastle.crypto.digests.SHA256Digest
 import org.spongycastle.crypto.engines.RSAEngine
 import org.spongycastle.crypto.params.{ParametersWithRandom, RSAPrivateCrtKeyParameters}
@@ -11,8 +12,8 @@ import org.spongycastle.crypto.signers.PSSSigner
 // Since we want to be as much interoperable with JVM as possible. We gonna to use an abstract class here.
 // see this discussion for more: https://stackoverflow.com/questions/1991042/what-is-the-advantage-of-using-abstract-classes-instead-of-traits
 
-sealed abstract class Transaction(id: Id,
-                                  lastTx: Option[Id],
+sealed abstract class Transaction(id: Transaction.Id,
+                                  lastTx: Option[Transaction.Id],
                                   owner: Owner,
                                   target: Address,
                                   quantity: Winston,
@@ -48,6 +49,20 @@ sealed abstract class Transaction(id: Id,
 }
 
 object Transaction {
+
+  class Id(val bytes: Array[Byte]) extends Base64EncodedBytes
+
+  object Id {
+    final val Length = 32
+
+    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()) = {
+      val repr = new Array[Byte](size)
+      sr.nextBytes(repr)
+      new Id(repr)
+    }
+
+    def fromEncoded(s: String): Id = new Id(CryptoUtils.base64UrlDecode(s))
+  }
 
   object Type {
 
