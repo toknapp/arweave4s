@@ -25,6 +25,9 @@ trait MarshallerV1 {
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
     (c: HCursor) => c.as[String].map(Block.Hash.fromEncoded)
 
+  implicit lazy val blockIndepHashDecoder: Decoder[Block.IndepHash] =
+    (c: HCursor) => c.as[String].map(Block.IndepHash.fromEncoded)
+
   implicit lazy val addressDecoder: Decoder[Address] =
     (c: HCursor) => c.as[String]
       .map(CryptoUtils.base64UrlDecode)
@@ -109,7 +112,7 @@ trait MarshallerV1 {
         diff          <- c.downField("diff").as[Int]
         height        <- c.downField("height").as[BigInt]
         hash          <- c.downField("hash").as[Block.Hash]
-        indep_hash    <- c.downField("indep_hash").as[Block.Hash]
+        indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]
         txs           <- c.downField("txs").as[Seq[Signed[Transaction]]]
         hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
         wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]

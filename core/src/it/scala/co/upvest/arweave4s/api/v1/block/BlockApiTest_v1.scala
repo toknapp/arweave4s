@@ -2,9 +2,10 @@ package co.upvest.arweave4s.api.v1.block
 
 import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec, Inside}
 
-class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
+class BlockApiTest_v1 extends WordSpec
+  with Matchers with MarshallerV1 with Inside {
 
   import io.circe.parser._
   import co.upvest.arweave4s.adt._
@@ -12,54 +13,61 @@ class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
 
   "v1 of the block API, on simple backend " when {
     implicit val backend = HttpURLConnectionBackend()
-    val validBlock       = Block.Hash.fromEncoded("FFra_neUDV9UOQ3zcksROeLsEHIodRdw118I0uuvUCc")
+    val validBlock = Block.IndepHash.fromEncoded(
+      "FFra_neUDV9UOQ3zcksROeLsEHIodRdw118I0uuvUCc"
+    )
     val validBlockheight = BigInt(634)
     "asked for block to BlockId" should {
       "return a valid block" in {
 
-        val response = block.getBlockViaId(TestHost, validBlock.toString).send()
-        // Server should respond OK
-        response.statusText shouldBe "OK"
-        // Server should respond with Content
-        response.body.isRight shouldBe true
+        val response = block.getBlockViaId(TestHost, validBlock).send()
+        response.code shouldBe 200
 
-        val json = parse(response.body.right.get)
-        // Should be a valid JSON
-        json.isRight shouldBe true
-        // Should be a valid JSON list
-        // should be a valid list of peers
-        json.flatMap(_.as[Block]).isRight shouldBe true
+        inside(response.body) {
+          case Right(body) =>
+            inside(parse(body) flatMap { _.as[Block] }) {
+              case Right(b) => b.indep_hash shouldBe validBlock
+            }
+        }
+      }
+
+      "return an valid response if block hash is empty" in {
+        pending
+
+        val invalidBlockId = new Block.IndepHash(Array.empty)
+        val response = block.getBlockViaId(TestHost, invalidBlockId).send()
+        response.code shouldBe 404
       }
 
       "return an valid response if block does not exist" in {
-
-        val response = block.getBlockViaId(TestHost, "invalidblock").send()
-        // Server should respond OK
-        assert(response.statusText == "Not Found")
+        val invalidBlockId = Block.IndepHash.fromEncoded(
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
+        val response = block.getBlockViaId(TestHost, invalidBlockId).send()
+        response.code shouldBe 404
       }
 
       "return an valid response by block height" in {
+        val response = block.getBlockViaHeight(
+          TestHost,
+          validBlockheight
+        ).send()
 
-        val response = block.getBlockViaHeight(TestHost, validBlockheight).send()
-        // Server should respond OK
-        response.statusText shouldBe "OK"
+        response.code shouldBe 200
 
-        // Server should respond with Content
-        response.body.isRight shouldBe true
-
-        val json = parse(response.body.right.get)
-        // Should be a valid JSON
-        json.isRight shouldBe true
-        // Should be a valid JSON list
-        // should be a valid list of peers
-        json.flatMap(_.as[Block]).isRight shouldBe true
+        inside(response.body) {
+          case Right(body) =>
+            inside(parse(body) flatMap { _.as[Block] }) {
+              case Right(b) => b.height shouldBe validBlockheight
+            }
+        }
       }
 
       "return an valid response if block does not exist by height" in {
-
-        val response = block.getBlockViaHeight(TestHost, BigInt("101010101010101010")).send()
-        // Server should respond OK
-        assert(response.statusText == "Not Found")
+        block.getBlockViaHeight(
+          TestHost,
+          BigInt("101010101010101010")
+        ).send().code shouldBe 404
       }
     }
   }
