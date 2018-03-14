@@ -21,7 +21,7 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
     "asked for a full Tx to TxId" should {
       "return a valid Transaction" in {
 
-        val response = tx.getTxViaId(TestHost, transactionId.toString).send()
+        val response = tx.getTxViaId(TestHost, transactionId).send()
         // Server should respond OK
         response.statusText shouldBe "OK"
         // Server should respond with Content
@@ -36,20 +36,20 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
       }
 
       "return tx fields by filter" in {
-        val response = tx.getTxViaId(TestHost, transactionId.toString).send()
+        val response = tx.getTxViaId(TestHost, transactionId).send()
         val json     = parse(response.body.right.get)
         val transaction = json
           .flatMap(_.as[Signed[Transaction]])
           .getOrElse(throw new IllegalStateException("Could not fetch tx"))
 
-        val filteredResponse = tx.getFilteredTxViaId(TestHost, transactionId.toString, "id").send()
+        val filteredResponse = tx.getFilteredTxViaId(TestHost, transactionId, "id").send()
         val id = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
 
         id shouldBe transaction.t.id
       }
 
       "return tx data body as HTML" in {
-        val response = tx.getBodyAsHtml(TestHost, transactionId.toString).send()
+        val response = tx.getBodyAsHtml(TestHost, transactionId).send()
         response.statusText shouldBe "OK"
         // Should be tests with an transaction with non empty data.
       }
