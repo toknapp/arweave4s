@@ -13,7 +13,7 @@ class WalletApiTest_v1 extends WordSpec
 
   "v1 of the wallet API, on simple backend " when {
     implicit val backend = HttpURLConnectionBackend()
-    val validAddress =
+    val Some(validAddress) =
       Address.fromEncoded("0MMYwTxRbXpK0PZvm3XgDABpmfGRUEfah0nF6QcfcPg")
 
     "asked for a wallet" should {
@@ -32,21 +32,19 @@ class WalletApiTest_v1 extends WordSpec
       }
 
       "return a valid transaction via address" in {
-        val response = wallet.getLastTxViaAddress(
-          TestHost,
+        val Some(address) =
           Address.fromEncoded("lDYPXHUth-DmJkoaj1hoyyjnY0YAzrgR2lbqSbg6G6Q")
-        ).send()
-        // Server should respond OK
-        response.statusText shouldBe "OK"
-        // Server should respond with Content
-        response.body.isRight shouldBe true
+        val response = wallet.getLastTxViaAddress(TestHost, address).send()
 
-        val actualTx = Transaction.Id.fromEncoded(response.body.right.get)
-        val expectedTx = Transaction.Id.fromEncoded(
-          "pYBnnXu6Bdd5EcsyrjNfdE07s8fj_AG7qsEiZW58H_o"
-        )
+        response.code shouldBe 200
 
-        actualTx shouldBe expectedTx
+        inside(response.body) { case Right(body) =>
+          val Some(actualTx) = Transaction.Id.fromEncoded(body)
+          val Some(expectedTx) = Transaction.Id.fromEncoded(
+            "pYBnnXu6Bdd5EcsyrjNfdE07s8fj_AG7qsEiZW58H_o"
+          )
+          actualTx shouldBe expectedTx
+        }
       }
     }
   }

@@ -13,10 +13,11 @@ class BlockApiTest_v1 extends WordSpec
 
   "v1 of the block API, on simple backend " when {
     implicit val backend = HttpURLConnectionBackend()
-    val validBlock = Block.IndepHash.fromEncoded(
-      "FFra_neUDV9UOQ3zcksROeLsEHIodRdw118I0uuvUCc"
+    val Some(validBlock) = Block.IndepHash.fromEncoded(
+      "cOplqTqwO-JiUUfiJcl-KbD_9qpt3TPVdojgz-QB5h0"
     )
-    val validBlockheight = BigInt(634)
+    val validBlockheight = BigInt(100)
+
     "asked for block to BlockId" should {
       "return a valid block" in {
 
@@ -40,7 +41,7 @@ class BlockApiTest_v1 extends WordSpec
       }
 
       "return an valid response if block does not exist" in {
-        val invalidBlockId = Block.IndepHash.fromEncoded(
+        val Some(invalidBlockId) = Block.IndepHash.fromEncoded(
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         )
         val response = block.getBlockViaId(TestHost, invalidBlockId).send()
