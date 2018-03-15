@@ -1,9 +1,16 @@
 package co.upvest.arweave4s.adt
 
 import java.math.BigInteger
-import java.security.{KeyPairGenerator, SecureRandom}
+import java.security.{KeyPairGenerator, SecureRandom, KeyFactory}
 import java.security.interfaces.{RSAPrivateCrtKey, RSAPublicKey}
-import java.security.spec.RSAKeyGenParameterSpec
+import java.security.spec.{RSAKeyGenParameterSpec, RSAPublicKeySpec, RSAPrivateCrtKeySpec}
+
+import co.upvest.arweave4s.utils.{CryptoUtils, UnsignedBigInt, CirceComplaints}
+import io.circe.parser._
+import io.circe.{Decoder, HCursor, DecodingFailure}
+
+import scala.io.Source
+import scala.util.Try
 
 case class Wallet(pub: RSAPublicKey, priv: RSAPrivateCrtKey) {
   require(pub.getPublicExponent == Wallet.PublicExponentUsedByArweave)
@@ -30,6 +37,52 @@ object Wallet {
     )
   }
 
+  def load(s: Source): Option[Wallet] =
+    for {
+      json <- parse(s.mkString).toOption
+      w <- json.as[Wallet].toOption
+    } yield w
+
+  def loadFile(filename: String) = for {
+    s <- Try { Source.fromFile(filename) }.toOption
+    w <- load(s)
+  } yield w
+
   implicit def walletToPublicKey(w: Wallet): RSAPublicKey = w.pub
   implicit def walletToPrivateKey(w: Wallet): RSAPrivateCrtKey = w.priv
+
+  implicit lazy val keyfileToWalletDecoder: Decoder[Wallet] = { (c: HCursor) =>
+    import CirceComplaints._
+    implicit val keyParamDecoder: Decoder[BigInteger] = (c: HCursor) =>
+      for {
+        s <- c.as[String]
+        bs <- CryptoUtils.base64UrlDecode(s).orComplain
+        bi <- UnsignedBigInt.ofBigEndianBytes(bs).orComplain
+      } yield bi.bigInteger
+
+    for {
+      _ <- c.downField("kty").as[String] flatMap {
+        case "RSA" => Right(())
+        case _ => Left(DecodingFailure("unknown kty", Nil))
+      }
+      e <- c.downField("e").as[BigInteger]
+      n <- c.downField("n").as[BigInteger]
+      d <- c.downField("d").as[BigInteger]
+      p <- c.downField("p").as[BigInteger]
+      q <- c.downField("q").as[BigInteger]
+      dp <- c.downField("dp").as[BigInteger]
+      dq <- c.downField("dq").as[BigInteger]
+      qi <- c.downField("qi").as[BigInteger]
+    } yield {
+      val kf = KeyFactory.getInstance("RSA")
+      Wallet(
+        kf.generatePublic(
+          new RSAPublicKeySpec(n, e)
+        ).asInstanceOf[RSAPublicKey],
+        kf.generatePrivate(
+          new RSAPrivateCrtKeySpec(n, e, d, p, q, dp, dq, qi)
+        ).asInstanceOf[RSAPrivateCrtKey]
+      )
+    }
+  }
 }

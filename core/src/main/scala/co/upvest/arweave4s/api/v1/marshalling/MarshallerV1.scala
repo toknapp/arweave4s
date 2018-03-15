@@ -2,10 +2,12 @@ package co.upvest.arweave4s.api.v1.marshalling
 
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
+import co.upvest.arweave4s.utils.CirceComplaints
 import io.circe.Decoder.Result
 import io.circe.{Decoder, HCursor, DecodingFailure}
 
 trait MarshallerV1 {
+  import CirceComplaints._
 
   implicit lazy val infoDecoder: Decoder[Info] = new Decoder[Info] {
     override def apply(c: HCursor): Result[Info] =
@@ -20,12 +22,6 @@ trait MarshallerV1 {
 
   implicit lazy val peersDecoder: Decoder[Peer] =
     (c: HCursor) => c.as[String].map(Peer.apply)
-
-  implicit class DecoderComplainer[T](d: Decoder.Result[Option[T]]) {
-    def orComplain: Decoder.Result[T] = d map {
-      _ toRight DecodingFailure("invalid encoding", Nil)
-    } joinRight
-  }
 
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
     (c: HCursor) => (c.as[String] map Block.Hash.fromEncoded) orComplain
