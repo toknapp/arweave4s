@@ -3,9 +3,10 @@ package co.upvest.arweave4s.api.v1.tx
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec, Inside}
 
-class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
+class TransactionApiTest_v1 extends WordSpec
+  with Matchers with MarshallerV1 with Inside {
 
   import co.upvest.arweave4s.adt._
   import co.upvest.arweave4s.api.ApiTestUtil._
@@ -22,17 +23,14 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
       "return a valid Transaction" in {
 
         val response = tx.getTxViaId(TestHost, transactionId).send()
-        // Server should respond OK
-        response.statusText shouldBe "OK"
-        // Server should respond with Content
-        response.body.isRight shouldBe true
+        response.code shouldBe 200
 
-        val json = parse(response.body.right.get)
-        // Should be a valid JSON
-        json.isRight shouldBe true
-        // Should be a valid JSON list
-        // should be a valid list of peers
-        json.flatMap(_.as[Signed[Transaction]]).isRight shouldBe true
+        inside(response.body) { case Right(body) =>
+          inside(parse(body) flatMap {_.as[Signed[Transaction]]}) {
+            case Right(stx) =>
+              stx.verify(stx.t.owner) shouldBe true
+          }
+        }
       }
 
       "return tx fields by filter" in {

@@ -4,7 +4,7 @@ import java.security.SecureRandom
 
 import co.upvest.arweave4s.utils.CryptoUtils
 
-trait Transaction {
+trait Transaction extends Signable {
   def id: Transaction.Id
   def lastTx: Option[Transaction.Id]
   def owner: Owner
@@ -71,16 +71,16 @@ object Transaction {
     lastTx: Option[Id],
     owner: Owner,
     data: Base64EncodedBytes,
-    reward: Winston) extends Transaction with Signable {
+    reward: Winston) extends Transaction {
       val tpe: Type = Type.Data
-      val signingData = Array.concat(
+      lazy val signingData = Array.concat(
         owner.bytes,
         Array.empty,
         id.bytes,
         data.bytes,
         Array.empty,
         reward.toString.getBytes,
-        lastTx map { _.bytes } getOrElse Array.empty[Byte]
+        lastTx map { _.bytes } getOrElse Array.empty
       )
     }
 
@@ -90,16 +90,16 @@ object Transaction {
     owner: Owner,
     target: Address,
     quantity: Winston,
-    reward: Winston) extends Transaction with Signable {
+    reward: Winston) extends Transaction {
       val tpe: Type = Type.Transfer
-      val signingData = Array.concat(
+      lazy val signingData = Array.concat(
         owner.bytes,
         target.bytes,
         id.bytes,
         Array.empty,
         quantity.toString.getBytes,
         reward.toString.getBytes,
-        lastTx map { _.bytes } getOrElse Array.empty[Byte]
+        lastTx map { _.bytes } getOrElse Array.empty
       )
     }
 

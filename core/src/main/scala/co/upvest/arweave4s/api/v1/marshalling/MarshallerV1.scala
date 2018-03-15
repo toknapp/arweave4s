@@ -2,7 +2,6 @@ package co.upvest.arweave4s.api.v1.marshalling
 
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
-import co.upvest.arweave4s.utils.CryptoUtils
 import io.circe.Decoder.Result
 import io.circe.{Decoder, HCursor, DecodingFailure}
 
@@ -29,15 +28,13 @@ trait MarshallerV1 {
     (c: HCursor) => c.as[String].map(Block.IndepHash.fromEncoded)
 
   implicit lazy val addressDecoder: Decoder[Address] =
-    (c: HCursor) => c.as[String]
-      .map(CryptoUtils.base64UrlDecode)
-      .map(new Address(_))
+    (c: HCursor) => c.as[String].map(Address.fromEncoded)
 
   implicit lazy val winstonDecoder: Decoder[Winston] =
     (c: HCursor) => c.as[BigInt].map(Winston)
 
   implicit lazy val signatureDecoder: Decoder[Signature] =
-    (c: HCursor) => c.as[String].map(_.getBytes).map(Signature)
+    (c: HCursor) => c.as[String].map(Signature.fromEncoded)
 
   implicit lazy val ownerDecoder: Decoder[Owner] =
     (c: HCursor) => c.as[String].map(Owner.fromEncoded)
@@ -87,7 +84,7 @@ trait MarshallerV1 {
       }
   }
 
-  implicit def signedDecoder[T: Decoder]: Decoder[Signed[T]] = (c: HCursor) =>
+  implicit def signedDecoder[T <: Signable : Decoder]: Decoder[Signed[T]] = (c: HCursor) =>
     for {
       sig <- c.downField("signature").as[Signature]
       t <- c.as[T]

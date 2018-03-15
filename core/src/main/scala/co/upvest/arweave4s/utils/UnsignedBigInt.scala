@@ -4,7 +4,8 @@ import java.math.BigInteger
 
 object UnsignedBigInt {
   def ofBigEndianBytes(bs: Array[Byte]): BigInt =
-    new BigInteger(0.toByte +: bs)
+    new BigInt(new BigInteger(0.toByte +: bs))
 
-  def toBigEndianBytes(bi: BigInt): Array[Byte] = bi.toByteArray
+  def toBigEndianBytes(bi: BigInt): Array[Byte] =
+    bi.toByteArray dropWhile (_ == 0)
 }

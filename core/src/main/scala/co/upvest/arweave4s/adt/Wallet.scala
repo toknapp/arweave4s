@@ -29,4 +29,7 @@ object Wallet {
       kp.getPrivate.asInstanceOf[RSAPrivateCrtKey]
     )
   }
+
+  implicit def walletToPublicKey(w: Wallet): RSAPublicKey = w.pub
+  implicit def walletToPrivateKey(w: Wallet): RSAPrivateCrtKey = w.priv
 }
