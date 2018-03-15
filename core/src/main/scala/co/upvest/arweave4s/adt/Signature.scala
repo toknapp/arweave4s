@@ -2,6 +2,9 @@ package co.upvest.arweave4s.adt
 
 import co.upvest.arweave4s.utils.CryptoUtils
 
-case class Signature(sig: Array[Byte]) {
-  override def toString: String = CryptoUtils.base64UrlEncode(sig)
+class Signature(val bytes: Array[Byte]) extends Base64EncodedBytes
+
+object Signature {
+  def fromEncoded(s: String): Option[Signature] =
+    CryptoUtils.base64UrlDecode(s) map { new Signature(_) }
 }
