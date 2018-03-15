@@ -38,7 +38,6 @@ class UnsignedBigIntSpec extends WordSpec
     }
 
     "toBigEndianBytes(0)" in {
-      pending
       UnsignedBigInt.toBigEndianBytes(BigInt(0)).loneElement shouldBe 0.toByte
     }
   }
