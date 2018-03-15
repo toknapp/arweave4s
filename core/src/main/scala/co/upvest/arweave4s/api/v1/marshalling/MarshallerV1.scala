@@ -21,29 +21,35 @@ trait MarshallerV1 {
   implicit lazy val peersDecoder: Decoder[Peer] =
     (c: HCursor) => c.as[String].map(Peer.apply)
 
+  implicit class DecoderComplainer[T](d: Decoder.Result[Option[T]]) {
+    def orComplain: Decoder.Result[T] = d map {
+      _ toRight DecodingFailure("invalid encoding", Nil)
+    } joinRight
+  }
+
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
-    (c: HCursor) => c.as[String].map(Block.Hash.fromEncoded)
+    (c: HCursor) => (c.as[String] map Block.Hash.fromEncoded) orComplain
 
   implicit lazy val blockIndepHashDecoder: Decoder[Block.IndepHash] =
-    (c: HCursor) => c.as[String].map(Block.IndepHash.fromEncoded)
+    (c: HCursor) => c.as[String] map Block.IndepHash.fromEncoded orComplain
 
   implicit lazy val addressDecoder: Decoder[Address] =
-    (c: HCursor) => c.as[String].map(Address.fromEncoded)
+    (c: HCursor) => c.as[String] map Address.fromEncoded orComplain
 
   implicit lazy val winstonDecoder: Decoder[Winston] =
-    (c: HCursor) => c.as[BigInt].map(Winston)
+    (c: HCursor) => c.as[BigInt] map Winston
 
   implicit lazy val signatureDecoder: Decoder[Signature] =
-    (c: HCursor) => c.as[String].map(Signature.fromEncoded)
+    (c: HCursor) => c.as[String] map Signature.fromEncoded orComplain
 
   implicit lazy val ownerDecoder: Decoder[Owner] =
-    (c: HCursor) => c.as[String].map(Owner.fromEncoded)
+    (c: HCursor) => c.as[String] map Owner.fromEncoded orComplain
 
   implicit lazy val dataDecoder: Decoder[Data] =
-    (c: HCursor) => c.as[String].map(Data.fromEncoded)
+    (c: HCursor) => c.as[String] map Data.fromEncoded orComplain
 
   implicit lazy val transactionIdDecoder: Decoder[Transaction.Id] =
-    (c: HCursor) => c.as[String].map(Transaction.Id.fromEncoded)
+    (c: HCursor) => c.as[String] map Transaction.Id.fromEncoded orComplain
 
   implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
     override def apply(c: HCursor): Result[Transaction.Data] =

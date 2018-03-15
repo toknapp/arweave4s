@@ -16,8 +16,11 @@ case class Owner(n: BigInt) {
 }
 
 case object Owner {
-  def fromEncoded(s: String) =
-    Owner(UnsignedBigInt.ofBigEndianBytes(CryptoUtils.base64UrlDecode(s)))
+  def fromEncoded(s: String): Option[Owner] =
+    for {
+      bs <- CryptoUtils.base64UrlDecode(s)
+      bi <- UnsignedBigInt.ofBigEndianBytes(bs)
+    } yield Owner(bi)
 
   implicit def ownerToPublicKey(o: Owner): RSAPublicKey = o.publicKey
 }

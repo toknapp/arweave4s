@@ -8,36 +8,33 @@ class UnsignedBigIntSpec extends WordSpec
   with Matchers with Checkers with LoneElement {
   "UnsignedBigInt" should {
     "encode in big endian" in {
-      val bytes = UnsignedBigInt.toBigEndianBytes(
-        new BigInt(new java.math.BigInteger("256")))
+      val bytes = UnsignedBigInt.toBigEndianBytes(BigInt("256"))
       val expected = 1.toByte :: 0.toByte :: Nil
       bytes should contain theSameElementsInOrderAs expected
     }
 
     "decode from big endian bytes" in {
       val bytes = 1.toByte :: 0.toByte :: Nil
-      val actual = UnsignedBigInt.ofBigEndianBytes(bytes.toArray)
-      val expected = BigInt(256)
-      actual shouldBe expected
+      UnsignedBigInt.ofBigEndianBytes(bytes.toArray) shouldBe Some(BigInt(256))
     }
 
     "inverse 1" in {
       check { (bi: BigInt) => bi >= 0 ==>
         (UnsignedBigInt.ofBigEndianBytes(
-          UnsignedBigInt.toBigEndianBytes(bi)) == bi)
+          UnsignedBigInt.toBigEndianBytes(bi)).get == bi)
       }
     }
 
     "inverse 2" in {
       check { (bs: Array[Byte]) => bs.length > 0 ==>
         (UnsignedBigInt.toBigEndianBytes(
-          UnsignedBigInt.ofBigEndianBytes(bs)
+          UnsignedBigInt.ofBigEndianBytes(bs).get
         ) sameElements bs.dropWhile(_ == 0.toByte))
       }
     }
 
     "ofBigEndianBytes(Nil)" in {
-      pending // TODO: wrap ofBigEndianBytes in Option?
+      UnsignedBigInt.ofBigEndianBytes(Array.empty) shouldBe None
     }
 
     "toBigEndianBytes(0)" in {

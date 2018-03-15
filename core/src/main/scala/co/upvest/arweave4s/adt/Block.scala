@@ -21,15 +21,15 @@ object Block {
   class Hash(val bytes: Array[Byte]) extends Base64EncodedBytes
 
   object Hash {
-    def fromEncoded(s: String) =
-      new Hash(CryptoUtils.base64UrlDecode(s))
+    def fromEncoded(s: String): Option[Hash] =
+      CryptoUtils.base64UrlDecode(s) map { new Hash(_) }
   }
 
   class IndepHash(val bytes: Array[Byte]) extends Base64EncodedBytes
 
   object IndepHash {
-    def fromEncoded(s: String) =
-      new IndepHash(CryptoUtils.base64UrlDecode(s))
+    def fromEncoded(s: String): Option[IndepHash] =
+      CryptoUtils.base64UrlDecode(s) map { new IndepHash(_) }
   }
 
 }

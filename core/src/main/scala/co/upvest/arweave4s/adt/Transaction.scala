@@ -25,7 +25,8 @@ object Transaction {
       new Id(repr)
     }
 
-    def fromEncoded(s: String): Id = new Id(CryptoUtils.base64UrlDecode(s))
+    def fromEncoded(s: String): Option[Id] =
+      CryptoUtils.base64UrlDecode(s) map { new Id(_) }
   }
 
   sealed trait Type
