@@ -5,24 +5,26 @@ import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
 import com.softwaremill.sttp.HttpURLConnectionBackend
 import org.scalatest.{Matchers, WordSpec, Inside}
 
+import scala.util.Random
+
 class TransactionApiTest_v1 extends WordSpec
   with Matchers with MarshallerV1 with Inside {
 
   import co.upvest.arweave4s.adt._
   import co.upvest.arweave4s.api.ApiTestUtil._
   import io.circe.parser._
+  import io.circe.syntax._
 
   "v1 of the transaction API, on simple backend " when {
 
     implicit val backend = HttpURLConnectionBackend()
 
     val Some(transactionId) = Transaction.Id.fromEncoded(
-      "FDqgPohAc15sR0nZjtSo45fa1bzA6kcrigVtw4vSGIM"
+      "3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU"
     )
 
     "asked for a full Tx to TxId" should {
       "return a valid Transaction" in {
-
         val response = tx.getTxViaId(TestHost, transactionId).send()
         response.code shouldBe 200
 
@@ -42,7 +44,7 @@ class TransactionApiTest_v1 extends WordSpec
           .getOrElse(throw new IllegalStateException("Could not fetch tx"))
 
         val filteredResponse = tx.getFilteredTxViaId(TestHost, transactionId, "id").send()
-        val id = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
+        val Some(id) = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
 
         id shouldBe transaction.t.id
       }
@@ -53,7 +55,35 @@ class TransactionApiTest_v1 extends WordSpec
         // Should be tests with an transaction with non empty data.
       }
 
-      "submitting an valid transaction" in {}
+      "submitting a valid transfer transaction" in {
+        pending
+        val foobar = Wallet.generate()
+
+        val stx = Transaction.Transfer(
+          Transaction.Id.generate(),
+          None, // TODO: why is the transaction accepted even when the account has a last_tx?
+          TestAccount.wallet,
+          foobar.address,
+          quantity = Winston("1000"),
+          reward = Winston("100")).sign(TestAccount.wallet)
+
+        tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
+      }
+
+      "submitting a valid data transaction" in {
+        pending
+
+        val foobar = Wallet.generate()
+
+        val stx = Transaction.Data(
+          Transaction.Id.generate(),
+          None,
+          TestAccount.wallet,
+          new Data(Random.nextString(100).getBytes),
+          reward = Winston("100")).sign(TestAccount.wallet)
+
+        tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
+      }
     }
   }
 }

@@ -32,16 +32,17 @@ class WalletApiTest_v1 extends WordSpec
       }
 
       "return a valid transaction via address" in {
-        val Some(address) =
-          Address.fromEncoded("lDYPXHUth-DmJkoaj1hoyyjnY0YAzrgR2lbqSbg6G6Q")
-        val response = wallet.getLastTxViaAddress(TestHost, address).send()
+        val response = wallet.getLastTxViaAddress(
+          TestHost,
+          TestAccount.address
+        ).send()
 
         response.code shouldBe 200
 
         inside(response.body) { case Right(body) =>
           val Some(actualTx) = Transaction.Id.fromEncoded(body)
           val Some(expectedTx) = Transaction.Id.fromEncoded(
-            "pYBnnXu6Bdd5EcsyrjNfdE07s8fj_AG7qsEiZW58H_o"
+            "3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU"
           )
           actualTx shouldBe expectedTx
         }

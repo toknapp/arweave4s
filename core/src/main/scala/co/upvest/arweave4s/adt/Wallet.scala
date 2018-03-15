@@ -59,7 +59,7 @@ object Wallet extends WalletMarshallers {
 
   implicit def walletToPublicKey(w: Wallet): RSAPublicKey = w.pub
   implicit def walletToPrivateKey(w: Wallet): RSAPrivateCrtKey = w.priv
-
+  implicit def walletToOwner(w: Wallet): Owner = w.owner
 }
 
 trait WalletMarshallers {
