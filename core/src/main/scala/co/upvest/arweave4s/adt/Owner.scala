@@ -7,12 +7,15 @@ import java.security.spec.RSAPublicKeySpec
 import co.upvest.arweave4s.utils.{CryptoUtils, UnsignedBigInt}
 
 case class Owner(n: BigInt) {
-  lazy val bytes = UnsignedBigInt.toBigEndianBytes(n)
+  lazy val bytes                  = UnsignedBigInt.toBigEndianBytes(n)
   override def toString(): String = CryptoUtils.base64UrlEncode(bytes)
   lazy val publicKey: RSAPublicKey =
-    KeyFactory.getInstance("RSA").generatePublic(
-      new RSAPublicKeySpec(n.bigInteger, Wallet.PublicExponentUsedByArweave)
-    ).asInstanceOf[RSAPublicKey]
+    KeyFactory
+      .getInstance("RSA")
+      .generatePublic(
+        new RSAPublicKeySpec(n.bigInteger, Wallet.PublicExponentUsedByArweave)
+      )
+      .asInstanceOf[RSAPublicKey]
 }
 
 case object Owner {

@@ -7,8 +7,7 @@ import org.scalatest.{Matchers, WordSpec, Inside}
 
 import scala.util.Random
 
-class TransactionApiTest_v1 extends WordSpec
-  with Matchers with MarshallerV1 with Inside {
+class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Inside {
 
   import co.upvest.arweave4s.adt._
   import co.upvest.arweave4s.api.ApiTestUtil._
@@ -28,11 +27,12 @@ class TransactionApiTest_v1 extends WordSpec
         val response = tx.getTxViaId(TestHost, transactionId).send()
         response.code shouldBe 200
 
-        inside(response.body) { case Right(body) =>
-          inside(parse(body) flatMap {_.as[Signed[Transaction]]}) {
-            case Right(stx) =>
-              stx.verify(stx.t.owner) shouldBe true
-          }
+        inside(response.body) {
+          case Right(body) =>
+            inside(parse(body) flatMap { _.as[Signed[Transaction]] }) {
+              case Right(stx) =>
+                stx.verify(stx.t.owner) shouldBe true
+            }
         }
       }
 
@@ -44,7 +44,7 @@ class TransactionApiTest_v1 extends WordSpec
           .getOrElse(throw new IllegalStateException("Could not fetch tx"))
 
         val filteredResponse = tx.getFilteredTxViaId(TestHost, transactionId, "id").send()
-        val Some(id) = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
+        val Some(id)         = Transaction.Id.fromEncoded(filteredResponse.body.right.get)
 
         id shouldBe transaction.t.id
       }
@@ -59,13 +59,16 @@ class TransactionApiTest_v1 extends WordSpec
         pending
         val foobar = Wallet.generate()
 
-        val stx = Transaction.Transfer(
-          Transaction.Id.generate(),
-          None, // TODO: why is the transaction accepted even when the account has a last_tx?
-          TestAccount.wallet,
-          foobar.address,
-          quantity = Winston("1000"),
-          reward = Winston("100")).sign(TestAccount.wallet)
+        val stx = Transaction
+          .Transfer(
+            Transaction.Id.generate(),
+            None, // TODO: why is the transaction accepted even when the account has a last_tx?
+            TestAccount.wallet,
+            foobar.address,
+            quantity = Winston("1000"),
+            reward = Winston("100")
+          )
+          .sign(TestAccount.wallet)
 
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
       }
@@ -75,12 +78,9 @@ class TransactionApiTest_v1 extends WordSpec
 
         val foobar = Wallet.generate()
 
-        val stx = Transaction.Data(
-          Transaction.Id.generate(),
-          None,
-          TestAccount.wallet,
-          new Data(Random.nextString(100).getBytes),
-          reward = Winston("100")).sign(TestAccount.wallet)
+        val stx = Transaction
+          .Data(Transaction.Id.generate(), None, TestAccount.wallet, new Data(Random.nextString(100).getBytes), reward = Winston("100"))
+          .sign(TestAccount.wallet)
 
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
       }

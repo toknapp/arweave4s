@@ -8,7 +8,7 @@ lazy val core = (project in file("core"))
   .settings(commonSettings: _*)
   .settings(Defaults.itSettings: _*)
   .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
-  .settings(inConfig(IntegrationTest)(scalafmtSettings): _*)
+  .settings(Defaults.itSettings: _*)
   .enablePlugins(BuildInfoPlugin)
   .settings(
     name := "arweave4s-core",
@@ -41,7 +41,6 @@ lazy val library =
     object Version {
       val circe        = "0.9.1"
       val scalaCheck   = "1.13.5"
-      val scalaFmt     = "1.4.0"
       val scalaTest    = "3.0.5"
       val sttp         = "1.1.9"
       val spongyCastle = "1.58.0.0"
@@ -53,11 +52,9 @@ lazy val library =
     val scalaCheck          = "org.scalacheck"             %% "scalacheck"                  % Version.scalaCheck
     val scalaTest           = "org.scalatest"              %% "scalatest"                   % Version.scalaTest
 
-    // All exclusions that should be applied to every module.
+    // All exclusions that should be applied to every module.fo
     val exclusions = Seq(
-      ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12"),
-      ExclusionRule(organization = "log4j", name = "log4j"),
-      ExclusionRule(organization = "ch.qos.logback", name = "logback-classic")
+      //ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12")
     )
   }
 
@@ -97,8 +94,6 @@ lazy val commonSettings = Seq(
     "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
   ),
   cancelable in Global := true,
-  scalafmtOnCompile := true,
-  scalafmtVersion := library.Version.scalaFmt,
   fork in Global := true
 )
 

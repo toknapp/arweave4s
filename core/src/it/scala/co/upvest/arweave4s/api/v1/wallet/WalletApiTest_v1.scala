@@ -5,8 +5,7 @@ import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
 import com.softwaremill.sttp.HttpURLConnectionBackend
 import org.scalatest.{Matchers, WordSpec, Inside}
 
-class WalletApiTest_v1 extends WordSpec
-  with Matchers with MarshallerV1 with Inside {
+class WalletApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Inside {
 
   import co.upvest.arweave4s.api.ApiTestUtil._
   import io.circe.parser._
@@ -18,33 +17,39 @@ class WalletApiTest_v1 extends WordSpec
 
     "asked for a wallet" should {
       "return a valid wallet balance" in {
-        val response = wallet.getBalanceViaAddress(
-          TestHost,
-          validAddress
-        ).send()
+        val response = wallet
+          .getBalanceViaAddress(
+            TestHost,
+            validAddress
+          )
+          .send()
 
         response.code shouldBe 200
-        inside (response.body) { case Right(body) =>
-          parse(body) flatMap { _.as[BigInt] } should matchPattern {
-            case Right(_) =>
-          }
+        inside(response.body) {
+          case Right(body) =>
+            parse(body) flatMap { _.as[BigInt] } should matchPattern {
+              case Right(_) =>
+            }
         }
       }
 
       "return a valid transaction via address" in {
-        val response = wallet.getLastTxViaAddress(
-          TestHost,
-          TestAccount.address
-        ).send()
+        val response = wallet
+          .getLastTxViaAddress(
+            TestHost,
+            TestAccount.address
+          )
+          .send()
 
         response.code shouldBe 200
 
-        inside(response.body) { case Right(body) =>
-          val Some(actualTx) = Transaction.Id.fromEncoded(body)
-          val Some(expectedTx) = Transaction.Id.fromEncoded(
-            "3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU"
-          )
-          actualTx shouldBe expectedTx
+        inside(response.body) {
+          case Right(body) =>
+            val Some(actualTx) = Transaction.Id.fromEncoded(body)
+            val Some(expectedTx) = Transaction.Id.fromEncoded(
+              "3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU"
+            )
+            actualTx shouldBe expectedTx
         }
       }
     }
