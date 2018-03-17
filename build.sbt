@@ -5,16 +5,16 @@ import sbtrelease.ReleaseStateTransformations._
 
 lazy val core = (project in file("core"))
   .configs(IntegrationTest)
-  .settings(commonSettings: _*)
-  .settings(Defaults.itSettings: _*)
+  .settings(commonSettings:  _*)
+  .settings(publishSettings: _*)
   .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
   .settings(Defaults.itSettings: _*)
   .enablePlugins(BuildInfoPlugin)
   .settings(
-    name := "arweave4s-core",
+    moduleName := "arweave4s-core",
+    name := "Arweave4s Core",
     buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
     buildInfoPackage := "co.upvest.arweave4s",
-    skip in publish := true,
     libraryDependencies ++= Seq(
       // compile time dependencies
       library.circeCore         % Compile,
@@ -88,9 +88,6 @@ lazy val commonSettings = Seq(
     "-target",
     "1.8"
   ),
-  javaOptions ++= Seq(
-    "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
-  ),
   cancelable in Global := true,
   fork in Global := true
 )
@@ -105,6 +102,10 @@ lazy val credentialSettings = Seq(
 
 
 lazy val sharedPublishSettings = Seq(
+  useGpg := true,
+  pgpReadOnly := false,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  releaseVcsSign := true,
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
