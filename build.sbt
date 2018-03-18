@@ -106,12 +106,12 @@ lazy val credentialSettings = Seq(
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
 
-
 lazy val sharedPublishSettings = Seq(
   releaseTagName := tagName.value,
   useGpg := true,
   pgpReadOnly := false,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  pgpPassphrase := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray),
   releaseVcsSign := true,
   publishMavenStyle := true,
   publishArtifact in Test := false,
@@ -124,6 +124,7 @@ lazy val sharedPublishSettings = Seq(
       Some("Releases" at nexus + "service/local/staging/deploy/maven2")
   }
 )
+
 lazy val sharedReleaseProcess = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
