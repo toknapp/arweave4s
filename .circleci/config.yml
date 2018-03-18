@@ -6,9 +6,8 @@ sbt-build: &sbt-build
   docker:
     - image: hseeberger/scala-sbt:8u151-2.12.4-1.1.1
   steps:
-    - run: echo $PGP_PUB | base64 --decode --ignore-garbage > ~/sec.key
-    - run: gpg --import --batch --allow-secret-key-import ~/sec.key
-    - run: rm ~/sec.key
+    - run: mkdir ~/.sbt/gpg
+    - run: echo $PGP_PUB | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
     - checkout
     - setup_remote_docker:
         docker_layer_caching: true
@@ -16,6 +15,7 @@ sbt-build: &sbt-build
     - restore_cache:
         key: sbt-deps-{{ checksum "build.sbt" }}
     - run: sbt -Xms512m -Xmx2g -XX:+UseConcMarkSweepGC -XX:ReservedCodeCacheSize=256m -XX:+CMSClassUnloadingEnabled -Djava.awt.headless=true -no-colors -batch "$SBT_COMMAND"
+    - run: ~/.sbt/gpg/secring.asc
     - save_cache:
         key: sbt-deps-{{ checksum "build.sbt" }}
         paths:
@@ -30,6 +30,7 @@ sbt-build: &sbt-build
         destination: test-reports/core
     - store_test_results:
         path: core/target/test-reports/
+
 
 jobs:
 
