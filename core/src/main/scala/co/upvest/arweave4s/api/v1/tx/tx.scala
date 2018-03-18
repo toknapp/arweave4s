@@ -17,5 +17,4 @@ object tx {
 
   def postTx(host: String, payload: String): Request[String, Nothing] =
     sttp.body(payload).contentType("application/json").post(uri"$host/${v1.TxPath}")
-
 }

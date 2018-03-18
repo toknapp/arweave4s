@@ -6,9 +6,9 @@ import com.softwaremill.sttp._
 
 object wallet {
 
-  def getLastTxViaAddress(host: String, address: Address) =
+  def getLastTxViaAddress(host: String, address: Address): Request[String, Nothing] =
     sttp.get(uri"$host/${v1.WalletPath}/$address/last_tx")
 
-  def getBalanceViaAddress(host: String, address: Address) =
+  def getBalanceViaAddress(host: String, address: Address): Request[String, Nothing] =
     sttp.get(uri"$host/${v1.WalletPath}/$address/balance")
 }

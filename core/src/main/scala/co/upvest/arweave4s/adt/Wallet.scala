@@ -1,10 +1,10 @@
 package co.upvest.arweave4s.adt
 
 import java.math.BigInteger
-import java.security.{KeyPairGenerator, SecureRandom, KeyFactory}
+import java.security.{KeyFactory, KeyPairGenerator, SecureRandom}
 import java.security.interfaces.{RSAPrivateCrtKey, RSAPublicKey}
-import java.security.spec.{RSAKeyGenParameterSpec, RSAPublicKeySpec, RSAPrivateCrtKeySpec}
-import java.nio.file.{Files, Paths}
+import java.security.spec.{RSAKeyGenParameterSpec, RSAPrivateCrtKeySpec, RSAPublicKeySpec}
+import java.nio.file.{Files, Path, Paths}
 
 import co.upvest.arweave4s.utils.UnsignedBigIntMarshallers
 import io.circe.parser._
@@ -12,12 +12,13 @@ import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 
 import scala.io.Source
+import scala.language.implicitConversions
 import scala.util.Try
 
 case class Wallet(pub: RSAPublicKey, priv: RSAPrivateCrtKey) {
   require(pub.getPublicExponent == Wallet.PublicExponentUsedByArweave)
-  lazy val owner   = Owner(pub.getModulus)
-  lazy val address = Address.ofKey(pub)
+  lazy val owner    : Owner   = Owner(pub.getModulus)
+  lazy val address  : Address = Address.ofKey(pub)
 }
 
 object Wallet extends WalletMarshallers {
@@ -48,14 +49,14 @@ object Wallet extends WalletMarshallers {
       w    <- json.as[Wallet].toOption
     } yield w
 
-  def loadFile(filename: String) =
+  def loadFile(filename: String): Option[Wallet] =
     for {
       s <- Try { Source.fromFile(filename) }.toOption
       w <- load(s)
     } yield w
 
-  def writeFile(wallet: Wallet, filename: String): Unit = Try {
-    val _ = Files.write(Paths.get(filename), wallet.asJson.noSpaces.getBytes)
+  def writeFile(wallet: Wallet, filename: String): Try[Path] = Try {
+    Files.write(Paths.get(filename), wallet.asJson.noSpaces.getBytes)
   }
 
   implicit def walletToPublicKey(w: Wallet): RSAPublicKey      = w.pub

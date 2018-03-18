@@ -4,10 +4,9 @@ import com.softwaremill.sttp._
 
 object v1 {
 
-  def getCurrentBlock(host: String) =
+  def getCurrentBlock(host: String): Request[String, Nothing] =
     sttp.get(uri"$host/current_block")
 
-  def getPeersList(host: String) =
+  def getPeersList(host: String): Request[String, Nothing] =
     sttp.get(uri"$host/peers")
-
 }

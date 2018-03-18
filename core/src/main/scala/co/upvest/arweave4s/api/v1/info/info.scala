@@ -6,5 +6,4 @@ object info {
 
   def getInfo(host: String): Request[String, Nothing] =
     sttp.get(uri"$host/${v1.InfoPath}")
-
 }

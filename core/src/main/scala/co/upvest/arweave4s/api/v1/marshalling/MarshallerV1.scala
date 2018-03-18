@@ -10,16 +10,13 @@ import io.circe.syntax._
 trait MarshallerV1 {
   import CirceComplaints._
 
-  implicit lazy val infoDecoder: Decoder[Info] = new Decoder[Info] {
-    override def apply(c: HCursor): Result[Info] =
-      for {
-        network <- c.downField("network").as[String]
-        version <- c.downField("version").as[Int]
-        height  <- c.downField("height").as[BigInt]
-        blocks  <- c.downField("blocks").as[BigInt]
-        peers   <- c.downField("peers").as[Int]
-      } yield Info(network, version, height, blocks, peers)
-  }
+  implicit lazy val infoDecoder: Decoder[Info] = (c: HCursor) => for {
+    network   <- c.downField("network").as[String]
+    version   <- c.downField("version").as[Int]
+    height    <- c.downField("height").as[BigInt]
+    blocks    <- c.downField("blocks").as[BigInt]
+    peers     <- c.downField("peers").as[Int]
+  } yield Info(network, version, height, blocks, peers)
 
   implicit lazy val peersDecoder: Decoder[Peer] =
     (c: HCursor) => c.as[String].map(Peer.apply)
@@ -174,7 +171,7 @@ trait MarshallerV1 {
           diff = diff,
           height = height,
           hash = hash,
-          indep_hash = indep_hash,
+          indepHash = indep_hash,
           txs = txs,
           hashList = hash_list,
           walletList = wallet_list,

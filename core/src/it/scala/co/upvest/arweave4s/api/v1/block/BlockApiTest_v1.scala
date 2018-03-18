@@ -26,7 +26,7 @@ class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Insi
         inside(response.body) {
           case Right(body) =>
             inside(parse(body) flatMap { _.as[Block] }) {
-              case Right(b) => b.indep_hash shouldBe validBlock
+              case Right(b) => b.indepHash shouldBe validBlock
             }
         }
       }
