@@ -5,16 +5,16 @@ import sbtrelease.ReleaseStateTransformations._
 
 lazy val core = (project in file("core"))
   .configs(IntegrationTest)
-  .settings(commonSettings: _*)
-  .settings(Defaults.itSettings: _*)
+  .settings(commonSettings:  _*)
+  .settings(publishSettings: _*)
   .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
-  .settings(inConfig(IntegrationTest)(scalafmtSettings): _*)
+  .settings(Defaults.itSettings: _*)
   .enablePlugins(BuildInfoPlugin)
   .settings(
-    name := "arweave4s-core",
+    moduleName := "arweave4s-core",
+    name := "Arweave4s Core",
     buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
     buildInfoPackage := "co.upvest.arweave4s",
-    skip in publish := true,
     libraryDependencies ++= Seq(
       // compile time dependencies
       library.circeCore         % Compile,
@@ -30,8 +30,6 @@ lazy val core = (project in file("core"))
     })
   )
 
-
-
 // *****************************************************************************
 // Dependencies
 // *****************************************************************************
@@ -41,7 +39,6 @@ lazy val library =
     object Version {
       val circe        = "0.9.1"
       val scalaCheck   = "1.13.5"
-      val scalaFmt     = "1.4.0"
       val scalaTest    = "3.0.5"
       val sttp         = "1.1.9"
       val spongyCastle = "1.58.0.0"
@@ -53,17 +50,21 @@ lazy val library =
     val scalaCheck          = "org.scalacheck"             %% "scalacheck"                  % Version.scalaCheck
     val scalaTest           = "org.scalatest"              %% "scalatest"                   % Version.scalaTest
 
-    // All exclusions that should be applied to every module.
+    // All exclusions that should be applied to every module.fo
     val exclusions = Seq(
-      ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12"),
-      ExclusionRule(organization = "log4j", name = "log4j"),
-      ExclusionRule(organization = "ch.qos.logback", name = "logback-classic")
+      //ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12")
     )
   }
 
 // *****************************************************************************
 // Settings
 // *****************************************************************************
+
+organization in ThisBuild := "co.upvest"
+
+lazy val tagName = Def.setting{
+  s"v${if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value}"
+}
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
@@ -93,12 +94,7 @@ lazy val commonSettings = Seq(
     "-target",
     "1.8"
   ),
-  javaOptions ++= Seq(
-    "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
-  ),
   cancelable in Global := true,
-  scalafmtOnCompile := true,
-  scalafmtVersion := library.Version.scalaFmt,
   fork in Global := true
 )
 
@@ -112,6 +108,11 @@ lazy val credentialSettings = Seq(
 
 
 lazy val sharedPublishSettings = Seq(
+  releaseTagName := tagName.value,
+  useGpg := true,
+  pgpReadOnly := false,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  releaseVcsSign := true,
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),

@@ -42,6 +42,12 @@ jobs:
     environment:
       SBT_COMMAND: "it:test"
 
+  release-snapshot:
+    <<: *sbt-build
+    resource_class: large
+    environment:
+      SBT_COMMAND: "core/publishSigned"
+
 
 workflows:
   version: 2
@@ -53,6 +59,7 @@ workflows:
             branches:
               ignore: master
               ignore: develop
+
       - integration-test:
           filters:
             branches:
@@ -63,6 +70,11 @@ workflows:
     jobs:
       - test
       - integration-test
-
-
+      - release-snapshot:
+          filters:
+            branches:
+              only: develop
+          requires:
+             - test
+             - integration-test
 

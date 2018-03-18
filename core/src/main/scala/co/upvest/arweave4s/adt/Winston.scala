@@ -6,5 +6,5 @@ case class Winston(amount: BigInt) {
 
 object Winston {
   def apply(bi: BigInt): Winston = new Winston(bi)
-  def apply(s: String): Winston = new Winston(BigInt(s))
+  def apply(s: String): Winston  = new Winston(BigInt(s))
 }

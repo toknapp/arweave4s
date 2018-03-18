@@ -27,8 +27,8 @@ object Wallet extends WalletMarshallers {
   final val PublicExponentUsedByArweave = new BigInteger("17489")
 
   def generate(
-    sr: SecureRandom = new SecureRandom(),
-    keySize: Int = 4096
+      sr: SecureRandom = new SecureRandom(),
+      keySize: Int = 4096
   ): Wallet = {
     val kpg = KeyPairGenerator.getInstance("RSA")
     kpg.initialize(
@@ -45,21 +45,22 @@ object Wallet extends WalletMarshallers {
   def load(s: Source): Option[Wallet] =
     for {
       json <- parse(s.mkString).toOption
-      w <- json.as[Wallet].toOption
+      w    <- json.as[Wallet].toOption
     } yield w
 
-  def loadFile(filename: String) = for {
-    s <- Try { Source.fromFile(filename) }.toOption
-    w <- load(s)
-  } yield w
+  def loadFile(filename: String) =
+    for {
+      s <- Try { Source.fromFile(filename) }.toOption
+      w <- load(s)
+    } yield w
 
   def writeFile(wallet: Wallet, filename: String): Unit = Try {
     val _ = Files.write(Paths.get(filename), wallet.asJson.noSpaces.getBytes)
   }
 
-  implicit def walletToPublicKey(w: Wallet): RSAPublicKey = w.pub
+  implicit def walletToPublicKey(w: Wallet): RSAPublicKey      = w.pub
   implicit def walletToPrivateKey(w: Wallet): RSAPrivateCrtKey = w.priv
-  implicit def walletToOwner(w: Wallet): Owner = w.owner
+  implicit def walletToOwner(w: Wallet): Owner                 = w.owner
 }
 
 trait WalletMarshallers {
@@ -69,13 +70,13 @@ trait WalletMarshallers {
     for {
       _ <- c.downField("kty").as[String] flatMap {
         case "RSA" => Right(())
-        case _ => Left(DecodingFailure("unknown kty", Nil))
+        case _     => Left(DecodingFailure("unknown kty", Nil))
       }
-      e <- c.downField("e").as[BigInteger]
-      n <- c.downField("n").as[BigInteger]
-      d <- c.downField("d").as[BigInteger]
-      p <- c.downField("p").as[BigInteger]
-      q <- c.downField("q").as[BigInteger]
+      e  <- c.downField("e").as[BigInteger]
+      n  <- c.downField("n").as[BigInteger]
+      d  <- c.downField("d").as[BigInteger]
+      p  <- c.downField("p").as[BigInteger]
+      q  <- c.downField("q").as[BigInteger]
       dp <- c.downField("dp").as[BigInteger]
       dq <- c.downField("dq").as[BigInteger]
       qi <- c.downField("qi").as[BigInteger]
@@ -83,13 +84,15 @@ trait WalletMarshallers {
       val kf = KeyFactory.getInstance("RSA")
       Wallet(
         kf.generatePublic(
-          new RSAPublicKeySpec(n, e)
-        ).asInstanceOf[RSAPublicKey],
+            new RSAPublicKeySpec(n, e)
+          )
+          .asInstanceOf[RSAPublicKey],
         kf.generatePrivate(
-          new RSAPrivateCrtKeySpec(n, e, d, p, q, dp, dq, qi)
-        ).asInstanceOf[RSAPrivateCrtKey]
+            new RSAPrivateCrtKeySpec(n, e, d, p, q, dp, dq, qi)
+          )
+          .asInstanceOf[RSAPrivateCrtKey]
       )
-    }
+  }
 
   implicit lazy val walletToKeyfileEncoder: Encoder[Wallet] = w =>
     Json.obj(
@@ -102,5 +105,5 @@ trait WalletMarshallers {
       ("dp", w.priv.getPrimeExponentP.asJson),
       ("dq", w.priv.getPrimeExponentQ.asJson),
       ("qi", w.priv.getCrtCoefficient.asJson)
-    )
+  )
 }

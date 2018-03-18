@@ -51,14 +51,14 @@ trait MarshallerV1 {
   implicit def base64EncodedBytesEncoder[T <: Base64EncodedBytes]: Encoder[T] =
     bs => Json.fromString(bs.toString)
 
-  implicit lazy val ownerEncoder: Encoder[Owner] = _.toString.asJson
+  implicit lazy val ownerEncoder: Encoder[Owner]     = _.toString.asJson
   implicit lazy val winstonEncoder: Encoder[Winston] = _.toString.asJson
   implicit lazy val transactionTypeEncoder: Encoder[Transaction.Type] =
     _.toString.asJson
 
   implicit class NoneAsStringEncoder[T: Encoder](ot: Option[T]) {
     def noneAsEmptyString: Json = ot match {
-      case None => Json.fromString("")
+      case None    => Json.fromString("")
       case Some(t) => t.asJson
     }
   }
@@ -66,36 +66,38 @@ trait MarshallerV1 {
   implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
     override def apply(c: HCursor): Result[Transaction.Data] =
       for {
-        id       <- c.downField("id").as[Transaction.Id]
-        lastTx   <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
-        owner    <- c.downField("owner").as[Owner]
-        data      <- c.downField("data").as[Data]
-        reward    <- c.downField("reward").as[Winston]
+        id     <- c.downField("id").as[Transaction.Id]
+        lastTx <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
+        owner  <- c.downField("owner").as[Owner]
+        data   <- c.downField("data").as[Data]
+        reward <- c.downField("reward").as[Winston]
       } yield Transaction.Data(id, lastTx, owner, data, reward)
   }
 
   implicit lazy val dataTransactionEncoder: Encoder[Transaction.Data] =
-    tx => Json.obj(
-      ("id", tx.id.asJson),
-      ("last_tx", tx.lastTx.noneAsEmptyString),
-      ("target", Json.fromString("")),
-      ("owner", tx.owner.asJson),
-      ("reward", tx.reward.asJson),
-      ("quantity", Json.fromString("")),
-      ("data", tx.data.asJson),
-      ("type", tx.tpe.asJson)
+    tx =>
+      Json.obj(
+        ("id", tx.id.asJson),
+        ("last_tx", tx.lastTx.noneAsEmptyString),
+        ("target", Json.fromString("")),
+        ("owner", tx.owner.asJson),
+        ("reward", tx.reward.asJson),
+        ("quantity", Json.fromString("")),
+        ("data", tx.data.asJson),
+        ("type", tx.tpe.asJson)
     )
 
   implicit lazy val transferTransactionEncoder: Encoder[Transaction.Transfer] =
-    tx => Json.obj(
-      ("id", tx.id.asJson),
-      ("last_tx", tx.lastTx.noneAsEmptyString),
-      ("data", Json.fromString("")),
-      ("owner", tx.owner.asJson),
-      ("target", tx.target.asJson),
-      ("quantity", tx.quantity.asJson),
-      ("reward", tx.reward.asJson),
-      ("type", tx.tpe.asJson)
+    tx =>
+      Json.obj(
+        ("id", tx.id.asJson),
+        ("last_tx", tx.lastTx.noneAsEmptyString),
+        ("data", Json.fromString("")),
+        ("owner", tx.owner.asJson),
+        ("target", tx.target.asJson),
+        ("quantity", tx.quantity.asJson),
+        ("reward", tx.reward.asJson),
+        ("type", tx.tpe.asJson)
     )
 
   implicit lazy val transferTransactionDecoder =
@@ -107,7 +109,7 @@ trait MarshallerV1 {
           owner    <- c.downField("owner").as[Owner]
           target   <- c.downField("target").as[Address]
           quantity <- c.downField("quantity").as[Winston]
-          reward    <- c.downField("reward").as[Winston]
+          reward   <- c.downField("reward").as[Winston]
         } yield Transaction.Transfer(id, lastTx, owner, target, quantity, reward)
     }
 
@@ -126,15 +128,17 @@ trait MarshallerV1 {
       }
   }
 
-  implicit def signedDecoder[T <: Signable : Decoder]: Decoder[Signed[T]] =
-    c => for {
-      sig <- c.downField("signature").as[Signature]
-      t <- c.as[T]
-    } yield Signed[T](t, sig)
+  implicit def signedDecoder[T <: Signable: Decoder]: Decoder[Signed[T]] =
+    c =>
+      for {
+        sig <- c.downField("signature").as[Signature]
+        t   <- c.as[T]
+      } yield Signed[T](t, sig)
 
-  implicit def signedEncoder[T <: Signable : Encoder]: Encoder[Signed[T]] =
-    s => s.t.asJson.withObject { (jo: JsonObject) =>
-      Json.fromJsonObject( ("signature", s.signature.asJson) +: jo)
+  implicit def signedEncoder[T <: Signable: Encoder]: Encoder[Signed[T]] =
+    s =>
+      s.t.asJson.withObject { (jo: JsonObject) =>
+        Json.fromJsonObject(("signature", s.signature.asJson) +: jo)
     }
 
   implicit lazy val walletDecoder = new Decoder[WalletResponse] {

@@ -7,13 +7,11 @@ import com.softwaremill.sttp._
 object block {
 
   def getBlockViaId(
-    host: String,
-    blockId: Block.IndepHash
+      host: String,
+      blockId: Block.IndepHash
   ): Request[String, Nothing] =
     sttp.get(uri"$host/${v1.BlockPath}/hash/$blockId")
 
-  def getBlockViaHeight(
-    host: String,
-    height: BigInt): Request[String, Nothing] =
-      sttp.get(uri"$host/${v1.BlockPath}/height/$height")
+  def getBlockViaHeight(host: String, height: BigInt): Request[String, Nothing] =
+    sttp.get(uri"$host/${v1.BlockPath}/height/$height")
 }

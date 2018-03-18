@@ -10,7 +10,7 @@ trait UnsignedBigIntMarshallers {
 
   implicit val unsignedBigIntegerDecoder: Decoder[BigInteger] = c =>
     for {
-      s <- c.as[String]
+      s  <- c.as[String]
       bs <- CryptoUtils.base64UrlDecode(s).orComplain
       bi <- UnsignedBigInt.ofBigEndianBytes(bs).orComplain
     } yield bi.bigInteger
@@ -18,9 +18,7 @@ trait UnsignedBigIntMarshallers {
   implicit val unsignedBigIntDecoder: Decoder[BigInt] =
     _.as[BigInteger] map BigInt.apply
 
-
-  implicit val unsignedBigIntEncoder: Encoder[BigInt] = bi =>
-    CryptoUtils.base64UrlEncode(UnsignedBigInt.toBigEndianBytes(bi)).asJson
+  implicit val unsignedBigIntEncoder: Encoder[BigInt] = bi => CryptoUtils.base64UrlEncode(UnsignedBigInt.toBigEndianBytes(bi)).asJson
 
   implicit val unsignedBigIntegerEncoder: Encoder[BigInteger] =
     BigInt(_).asJson
