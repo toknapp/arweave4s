@@ -60,6 +60,12 @@ lazy val library =
 // Settings
 // *****************************************************************************
 
+organization in ThisBuild := "co.upvest"
+
+lazy val tagName = Def.setting{
+  s"v${if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value}"
+}
+
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
   organization := "co.upvest",
@@ -102,6 +108,7 @@ lazy val credentialSettings = Seq(
 
 
 lazy val sharedPublishSettings = Seq(
+  releaseTagName := tagName.value,
   useGpg := true,
   pgpReadOnly := false,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
