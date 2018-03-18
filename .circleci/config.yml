@@ -59,6 +59,7 @@ workflows:
             branches:
               ignore: master
               ignore: develop
+
       - integration-test:
           filters:
             branches:
@@ -69,6 +70,11 @@ workflows:
     jobs:
       - test
       - integration-test
-
-
+      - release-snapshot:
+          filters:
+            branches:
+              only: develop
+          requires:
+             - test
+             - integration-test
 
