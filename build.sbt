@@ -52,7 +52,6 @@ lazy val library =
 
     // All exclusions that should be applied to every module.fo
     val exclusions = Seq(
-      //ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12")
     )
   }
 
@@ -65,6 +64,11 @@ organization in ThisBuild := "co.upvest"
 lazy val tagName = Def.setting{
   s"v${if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value}"
 }
+
+lazy val compileScalastyle  = taskKey[Unit]("compileScalastyle")
+
+
+
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
@@ -95,7 +99,9 @@ lazy val commonSettings = Seq(
     "1.8"
   ),
   cancelable in Global := true,
-  fork in Global := true
+  fork in Global := true,
+  compileScalastyle           := scalastyle.in(Compile).toTask("").value,
+  (compile in Compile)        := ((compile in Compile) dependsOn compileScalastyle).value
 )
 
 

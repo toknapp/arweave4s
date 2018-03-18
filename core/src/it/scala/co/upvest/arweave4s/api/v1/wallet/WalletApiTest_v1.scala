@@ -20,7 +20,7 @@ class WalletApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Ins
         val response = wallet
           .getBalanceViaAddress(
             TestHost,
-            validAddress
+            validAddress.toString
           )
           .send()
 
@@ -37,7 +37,7 @@ class WalletApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Ins
         val response = wallet
           .getLastTxViaAddress(
             TestHost,
-            TestAccount.address
+            TestAccount.address.toString
           )
           .send()
 
