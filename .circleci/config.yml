@@ -7,7 +7,7 @@ sbt-build: &sbt-build
     - image: hseeberger/scala-sbt:8u151-2.12.4-1.1.1
   steps:
     - run: echo $PGP_PUB | base64 --decode --ignore-garbage > ~/sec.key
-    - run: gpg --import --allow-secret-key-import ~/sec.key
+    - run: gpg --import --batch --allow-secret-key-import ~/sec.key
     - run: rm ~/sec.key
     - checkout
     - setup_remote_docker:
