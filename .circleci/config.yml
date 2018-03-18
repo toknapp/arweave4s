@@ -15,7 +15,7 @@ sbt-build: &sbt-build
     - restore_cache:
         key: sbt-deps-{{ checksum "build.sbt" }}
     - run: sbt -Xms512m -Xmx2g -XX:+UseConcMarkSweepGC -XX:ReservedCodeCacheSize=256m -XX:+CMSClassUnloadingEnabled -Djava.awt.headless=true -no-colors -batch "$SBT_COMMAND"
-    - run: ~/.sbt/gpg/secring.asc
+    - run: rm ~/.sbt/gpg/secring.asc
     - save_cache:
         key: sbt-deps-{{ checksum "build.sbt" }}
         paths:
