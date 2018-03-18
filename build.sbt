@@ -106,12 +106,13 @@ lazy val credentialSettings = Seq(
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
 
+pgpPassphrase in Scope.Global := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray)
+
 lazy val sharedPublishSettings = Seq(
   releaseTagName := tagName.value,
   useGpg := true,
   pgpReadOnly := false,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  pgpPassphrase := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray),
   releaseVcsSign := true,
   publishMavenStyle := true,
   publishArtifact in Test := false,
