@@ -110,7 +110,6 @@ pgpPassphrase in Scope.Global := Option(System.getenv().get("PGP_PASS")).map(_.t
 
 lazy val sharedPublishSettings = Seq(
   releaseTagName := tagName.value,
-  useGpg := true,
   pgpReadOnly := false,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,

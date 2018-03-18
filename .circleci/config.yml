@@ -52,7 +52,6 @@ jobs:
     environment:
       SBT_COMMAND: "core/publishSigned"
 
-
 workflows:
   version: 2
 
@@ -69,7 +68,6 @@ workflows:
             branches:
               ignore: master
               ignore: develop
-
   cd:
     jobs:
       - test
