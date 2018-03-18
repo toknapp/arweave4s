@@ -4,6 +4,8 @@
 
 [![BuildStatus](https://circleci.com/gh/toknapp/arweave4s.svg?style=svg)](https://circleci.com/gh/toknapp/arweave4s)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/toknapp/arweave4s/develop/COPYING)
+[![Latest version](https://index.scala-lang.org/toknapp/arweave4s/arweave4s-core/latest.svg?color=blue&v=1)](https://index.scala-lang.org/toknapp/arweave4s/arweave4s-core)
+
 
 
 
