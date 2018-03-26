@@ -45,7 +45,8 @@ object Wallet extends WalletMarshallers {
 
   def load(s: Source): Option[Wallet] =
     for {
-      json <- parse(s.mkString).toOption
+      str <- Try { s.mkString }.toOption
+      json <- parse(str).toOption
       w    <- json.as[Wallet].toOption
     } yield w
 

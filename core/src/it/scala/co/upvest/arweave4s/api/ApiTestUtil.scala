@@ -13,13 +13,16 @@ object ApiTestUtil {
 
   object TestAccount {
     lazy val wallet = {
-      val mkf = Try { Source.fromResource("keyfile.json") } toOption
+      val mkf = Try {
+        Source.fromResource("keyfile.json")
+      } filter { _.nonEmpty } toOption
+
       val mev = for {
         s <- sys.env get "TESTNET_ACCOUNT_KEYFILE"
         bs <- CryptoUtils.base64UrlDecode(s)
       } yield Source fromBytes bs
 
-      (mkf orElse mev) >>= Wallet.load get
+      ((mkf orElse mev) >>= Wallet.load) get
     }
 
     lazy val address = wallet.address
