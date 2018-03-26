@@ -1,12 +1,19 @@
 package co.upvest.arweave4s.api.v1.tx
 
+import co.upvest.arweave4s.api.v1.wallet.wallet
 import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
-import com.softwaremill.sttp.HttpURLConnectionBackend
+import co.upvest.arweave4s.utils.{BlockchainPatience, EmptyStringAsNone}
+import com.softwaremill.sttp.{HttpURLConnectionBackend, SttpBackend, Id}
 import org.scalatest.{Matchers, WordSpec, Inside}
+import org.scalatest.concurrent.Eventually
+
+import cats.implicits._
 
 import scala.util.Random
 
-class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Inside {
+class TransactionApiTest_v1 extends WordSpec
+  with Matchers with MarshallerV1 with Inside
+  with Eventually with BlockchainPatience {
 
   import co.upvest.arweave4s.adt._
   import co.upvest.arweave4s.api.ApiTestUtil._
@@ -60,7 +67,7 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 wit
         val stx = Transaction
           .Transfer(
             Transaction.Id.generate(),
-            None, // TODO: why is the transaction accepted even when the account has a last_tx?
+            fetchLastTx(),
             TestAccount.wallet,
             foobar.address,
             quantity = Winston("1000"),
@@ -69,6 +76,12 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 wit
           .sign(TestAccount.wallet)
 
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
+
+        eventually {
+          tx.getTxViaId(TestHost, stx.id.toString).send().code shouldBe 200
+        }
+
+        fetchLastTx() shouldBe Some(stx.id)
       }
 
       "submitting a valid data transaction" in {
@@ -83,6 +96,18 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 wit
 
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
       }
+    }
+  }
+
+  def fetchLastTx()(implicit b: SttpBackend[Id, Nothing]): Option[Transaction.Id] = {
+    val r1 = wallet.getLastTxViaAddress(
+      TestHost,
+      TestAccount.address.toString
+    ).send()
+
+    r1.code shouldBe 200
+    inside(r1.body) { case Right(b) =>
+      EmptyStringAsNone.of(b).toOption >>= Transaction.Id.fromEncoded
     }
   }
 }
