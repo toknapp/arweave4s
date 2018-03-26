@@ -22,7 +22,7 @@ object ApiTestUtil {
         bs <- CryptoUtils.base64UrlDecode(s)
       } yield Source fromBytes bs
 
-      ((mkf orElse mev) >>= Wallet.load) get
+      mkf orElse mev >>= Wallet.load get
     }
 
     lazy val address = wallet.address
