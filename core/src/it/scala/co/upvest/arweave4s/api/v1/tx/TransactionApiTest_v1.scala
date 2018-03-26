@@ -68,7 +68,7 @@ class TransactionApiTest_v1 extends WordSpec
         val stx = Transaction
           .Transfer(
             Transaction.Id.generate(),
-            fetchLastTx(TestAccount.wallet),
+            fetchLastTx(owner),
             owner,
             Wallet.generate().address,
             quantity = randomWinstons(),
