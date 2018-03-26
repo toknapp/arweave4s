@@ -62,16 +62,36 @@ class TransactionApiTest_v1 extends WordSpec
       }
 
       "submitting a valid transfer transaction" in {
-        val foobar = Wallet.generate()
+        val owner = Wallet.generate()
 
         val stx = Transaction
           .Transfer(
             Transaction.Id.generate(),
-            fetchLastTx(),
+            fetchLastTx(TestAccount.wallet),
+            owner,
+            Wallet.generate().address,
+            quantity = randomWinstons(),
+            reward = randomWinstons()
+          )
+          .sign(owner)
+
+        tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
+      }
+
+      "submitting a valid transfer transaction and check updated balance" in {
+        val beneficiary = Wallet.generate()
+        val quantity = randomWinstons()
+
+        fetchBalance(beneficiary) shouldBe Winston.Zero
+
+        val stx = Transaction
+          .Transfer(
+            Transaction.Id.generate(),
+            fetchLastTx(TestAccount.wallet),
             TestAccount.wallet,
-            foobar.address,
-            quantity = Winston("1000"),
-            reward = Winston("100")
+            beneficiary.address,
+            quantity = quantity,
+            reward = randomWinstons()
           )
           .sign(TestAccount.wallet)
 
@@ -81,7 +101,9 @@ class TransactionApiTest_v1 extends WordSpec
           tx.getTxViaId(TestHost, stx.id.toString).send().code shouldBe 200
         }
 
-        fetchLastTx() shouldBe Some(stx.id)
+        fetchLastTx(TestAccount.wallet) shouldBe Some(stx.id)
+
+        fetchBalance(beneficiary) shouldBe quantity
       }
 
       "submitting a valid data transaction" in {
@@ -99,15 +121,30 @@ class TransactionApiTest_v1 extends WordSpec
     }
   }
 
-  def fetchLastTx()(implicit b: SttpBackend[Id, Nothing]): Option[Transaction.Id] = {
-    val r1 = wallet.getLastTxViaAddress(
+  def fetchLastTx(address: Address)(
+    implicit b: SttpBackend[Id, Nothing]
+  ): Option[Transaction.Id] = {
+    val r = wallet.getLastTxViaAddress(TestHost, address.toString).send()
+
+    r.code shouldBe 200
+
+    inside(r.body) { case Right(b) =>
+      EmptyStringAsNone.of(b).toOption >>= Transaction.Id.fromEncoded
+    }
+  }
+
+  def fetchBalance(address: Address)(
+    implicit b: SttpBackend[Id, Nothing]
+  ): Winston  = {
+    val r = wallet.getBalanceViaAddress(
       TestHost,
-      TestAccount.address.toString
+      address.toString
     ).send()
 
-    r1.code shouldBe 200
-    inside(r1.body) { case Right(b) =>
-      EmptyStringAsNone.of(b).toOption >>= Transaction.Id.fromEncoded
+    r.code shouldBe 200
+
+    inside(r.body) { case Right(b) =>
+      inside(parse(b) flatMap { _.as[Winston] }) { case Right(w) => w }
     }
   }
 }

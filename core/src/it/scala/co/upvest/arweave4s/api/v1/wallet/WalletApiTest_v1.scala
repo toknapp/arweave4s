@@ -28,7 +28,7 @@ class WalletApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Ins
         response.code shouldBe 200
         inside(response.body) {
           case Right(body) =>
-            parse(body) flatMap { _.as[BigInt] } should matchPattern {
+            parse(body) flatMap { _.as[Winston] } should matchPattern {
               case Right(_) =>
             }
         }

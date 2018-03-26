@@ -1,10 +1,10 @@
 package co.upvest.arweave4s.api
 
-import co.upvest.arweave4s.adt.Wallet
+import co.upvest.arweave4s.adt.{Wallet, Winston}
 import co.upvest.arweave4s.utils.CryptoUtils
 import cats.implicits._
 
-import scala.util.Try
+import scala.util.{Try, Random}
 import scala.io.Source
 
 object ApiTestUtil {
@@ -27,4 +27,7 @@ object ApiTestUtil {
 
     lazy val address = wallet.address
   }
+
+  def randomWinstons(bound: Long = 100000): Winston =
+    Winston(BigInt(Random.nextLong() % bound))
 }
