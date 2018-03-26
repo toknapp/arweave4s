@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.api.v1.wallet
 
 import co.upvest.arweave4s.adt._
+import co.upvest.arweave4s.api.v1.tx.tx
 import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
 import com.softwaremill.sttp.HttpURLConnectionBackend
 import org.scalatest.{Matchers, WordSpec, Inside}
@@ -34,22 +35,26 @@ class WalletApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Ins
       }
 
       "return a valid transaction via address" in {
-        val response = wallet
+        val r1 = wallet
           .getLastTxViaAddress(
             TestHost,
             TestAccount.address.toString
           )
           .send()
 
-        response.code shouldBe 200
+        r1.code shouldBe 200
 
-        inside(response.body) {
-          case Right(body) =>
-            val Some(actualTx) = Transaction.Id.fromEncoded(body)
-            val Some(expectedTx) = Transaction.Id.fromEncoded(
-              "3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU"
-            )
-            actualTx shouldBe expectedTx
+        inside(r1.body) { case Right(b1) =>
+          inside(Transaction.Id.fromEncoded(b1)) { case Some(txId) =>
+            val r2 = tx.getTxViaId(TestHost, txId.toString).send()
+            r2.code shouldBe 200
+            inside(r2.body) { case Right(b2) =>
+              inside(parse(b2) flatMap { _.as[Signed[Transaction]] }) {
+                case Right(Signed(tx, _)) =>
+                  tx.id shouldBe txId
+              }
+            }
+          }
         }
       }
     }

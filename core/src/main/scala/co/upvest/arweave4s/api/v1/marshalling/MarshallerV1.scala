@@ -6,6 +6,7 @@ import co.upvest.arweave4s.utils.CirceComplaints
 import io.circe.Decoder.Result
 import io.circe.{Decoder, HCursor, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.syntax._
+import cats.implicits._
 
 trait MarshallerV1 {
   import CirceComplaints._
@@ -112,12 +113,12 @@ trait MarshallerV1 {
 
   implicit lazy val transactionDecoder = new Decoder[Transaction] {
     override def apply(c: HCursor): Result[Transaction] =
-      c.downField("type").as[String] flatMap { s =>
+      c.downField("type").as[String] >>= { s =>
         Transaction.Type(s) toRight DecodingFailure(
           message = s"unknown transaction type $s",
           ops = Nil
         )
-      } flatMap {
+      } >>= {
         case t: Transaction.Type.Transfer.type =>
           transferTransactionDecoder(c)
         case d: Transaction.Type.Data.type =>

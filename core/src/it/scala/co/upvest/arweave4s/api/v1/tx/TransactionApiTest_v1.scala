@@ -55,7 +55,6 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 wit
       }
 
       "submitting a valid transfer transaction" in {
-        pending
         val foobar = Wallet.generate()
 
         val stx = Transaction
@@ -74,11 +73,12 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 wit
 
       "submitting a valid data transaction" in {
         pending
-
         val foobar = Wallet.generate()
 
         val stx = Transaction
-          .Data(Transaction.Id.generate(), None, TestAccount.wallet, new Data(Random.nextString(100).getBytes), reward = Winston("100"))
+          .Data(Transaction.Id.generate(), None, TestAccount.wallet,
+            new Data(Random.nextString(100).getBytes), reward = Winston("100")
+          )
           .sign(TestAccount.wallet)
 
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
