@@ -45,7 +45,8 @@ object Wallet extends WalletMarshallers {
 
   def load(s: Source): Option[Wallet] =
     for {
-      json <- parse(s.mkString).toOption
+      str <- Try { s.mkString }.toOption
+      json <- parse(str).toOption
       w    <- json.as[Wallet].toOption
     } yield w
 
@@ -62,6 +63,7 @@ object Wallet extends WalletMarshallers {
   implicit def walletToPublicKey(w: Wallet): RSAPublicKey      = w.pub
   implicit def walletToPrivateKey(w: Wallet): RSAPrivateCrtKey = w.priv
   implicit def walletToOwner(w: Wallet): Owner                 = w.owner
+  implicit def walletToAddress(w: Wallet): Address             = w.address
 }
 
 trait WalletMarshallers {

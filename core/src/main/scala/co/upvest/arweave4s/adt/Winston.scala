@@ -7,4 +7,6 @@ case class Winston(amount: BigInt) {
 object Winston {
   def apply(bi: BigInt): Winston = new Winston(bi)
   def apply(s: String): Winston  = new Winston(BigInt(s))
+
+  val Zero = apply("0")
 }

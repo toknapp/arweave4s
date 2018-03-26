@@ -2,13 +2,14 @@ package co.upvest.arweave4s.api.v1.marshalling
 
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
-import co.upvest.arweave4s.utils.CirceComplaints
+import co.upvest.arweave4s.utils.{CirceComplaints, EmptyStringAsNone}
 import io.circe.Decoder.Result
 import io.circe.{Decoder, HCursor, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.syntax._
+import cats.implicits._
 
 trait MarshallerV1 {
-  import CirceComplaints._
+  import CirceComplaints._, EmptyStringAsNone._
 
   implicit lazy val infoDecoder: Decoder[Info] = (c: HCursor) => for {
     network   <- c.downField("network").as[String]
@@ -53,18 +54,13 @@ trait MarshallerV1 {
   implicit lazy val transactionTypeEncoder: Encoder[Transaction.Type] =
     _.toString.asJson
 
-  implicit class NoneAsStringEncoder[T: Encoder](ot: Option[T]) {
-    def noneAsEmptyString: Json = ot match {
-      case None    => Json.fromString("")
-      case Some(t) => t.asJson
-    }
-  }
+  case class NoneAsEmptyStringDecoder[T: Decoder](t: T)
 
   implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
     override def apply(c: HCursor): Result[Transaction.Data] =
       for {
         id     <- c.downField("id").as[Transaction.Id]
-        lastTx <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
+        lastTx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
         owner  <- c.downField("owner").as[Owner]
         data   <- c.downField("data").as[Data]
         reward <- c.downField("reward").as[Winston]
@@ -102,7 +98,7 @@ trait MarshallerV1 {
       override def apply(c: HCursor): Result[Transaction.Transfer] =
         for {
           id       <- c.downField("id").as[Transaction.Id]
-          lastTx   <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
+          lastTx   <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
           owner    <- c.downField("owner").as[Owner]
           target   <- c.downField("target").as[Address]
           quantity <- c.downField("quantity").as[Winston]
@@ -112,12 +108,12 @@ trait MarshallerV1 {
 
   implicit lazy val transactionDecoder = new Decoder[Transaction] {
     override def apply(c: HCursor): Result[Transaction] =
-      c.downField("type").as[String] flatMap { s =>
+      c.downField("type").as[String] >>= { s =>
         Transaction.Type(s) toRight DecodingFailure(
           message = s"unknown transaction type $s",
           ops = Nil
         )
-      } flatMap {
+      } >>= {
         case t: Transaction.Type.Transfer.type =>
           transferTransactionDecoder(c)
         case d: Transaction.Type.Data.type =>
@@ -143,7 +139,7 @@ trait MarshallerV1 {
       for {
         addr    <- c.downField("wallet").as[Address]
         quant   <- c.downField("quantity").as[Winston]
-        last_tx <- c.downField("last_tx").as[Option[Transaction.Id]] // TODO: ensure "" is interpreted as None
+        last_tx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
       } yield WalletResponse(addr, quant, last_tx)
   }
 

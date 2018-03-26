@@ -68,8 +68,6 @@ lazy val tagName = Def.setting{
 lazy val compileScalastyle  = taskKey[Unit]("compileScalastyle")
 
 
-
-
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
   organization := "co.upvest",
@@ -78,8 +76,7 @@ lazy val commonSettings = Seq(
     "-deprecation",
     "-language:_",
     "-target:jvm-1.8",
-    "-encoding",
-    "UTF-8",
+    "-encoding", "UTF-8",
     "-Xfatal-warnings",
     "-Ywarn-unused-import",
     "-Yno-adapted-args",
@@ -92,12 +89,10 @@ lazy val commonSettings = Seq(
     "-Ypartial-unification",
     "-Xmacro-settings:materialize-derivations"
   ),
-  javacOptions ++= Seq(
-    "-source",
-    "1.8",
-    "-target",
-    "1.8"
-  ),
+  scalacOptions in (Compile, console) ~= {
+    _ filterNot (_ == "-Ywarn-unused-import")
+  },
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   cancelable in Global := true,
   fork in Global := true,
   compileScalastyle           := scalastyle.in(Compile).toTask("").value,

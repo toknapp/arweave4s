@@ -40,7 +40,13 @@ jobs:
     environment:
       SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
 
-  integration-test:
+  integration-test-fast:
+    <<: *sbt-build
+    resource_class: large
+    environment:
+      SBT_COMMAND: "it:testOnly -- -l org.scalatest.tags.Slow"
+
+  integration-test-all:
     <<: *sbt-build
     resource_class: large
     environment:
@@ -63,7 +69,7 @@ workflows:
               ignore: master
               ignore: develop
 
-      - integration-test:
+      - integration-test-fast:
           filters:
             branches:
               ignore: master
@@ -71,12 +77,24 @@ workflows:
   cd:
     jobs:
       - test
-      - integration-test
+      - integration-test-fast
       - release-snapshot:
           filters:
             branches:
               only: develop
           requires:
              - test
-             - integration-test
+             - integration-test-fast
 
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+                - develop
+    jobs:
+      - test
+      - integration-test-all

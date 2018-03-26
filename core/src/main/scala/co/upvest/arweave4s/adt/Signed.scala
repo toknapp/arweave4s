@@ -8,19 +8,7 @@ import org.spongycastle.crypto.engines.RSAEngine
 import org.spongycastle.crypto.params.{ParametersWithRandom, RSAPrivateCrtKeyParameters, RSAKeyParameters}
 import org.spongycastle.crypto.signers.PSSSigner
 
-case class Signed[T <: Signable](t: T, signature: Signature) {
-  def verify(pub: RSAPublicKey): Boolean = {
-    val sig_data = t.signingData
-
-    val signer = new PSSSigner(new RSAEngine, new SHA256Digest, 20)
-    signer.init(
-      true,
-      new RSAKeyParameters(false, pub.getModulus, pub.getPublicExponent)
-    )
-    signer.update(sig_data, 0, sig_data.length)
-    signer.verifySignature(signature.bytes)
-  }
-}
+case class Signed[T](t: T, signature: Signature)
 
 trait Signable {
   def signingData: Array[Byte]
@@ -48,4 +36,20 @@ object Signable {
       Signed(t, new Signature(signer.generateSignature()))
     }
   }
+
+  implicit class VerifiableSyntax[T <: Signable](st: Signed[T]) {
+    def verify(pub: RSAPublicKey): Boolean = {
+      val sig_data = st.signingData
+
+      val signer = new PSSSigner(new RSAEngine, new SHA256Digest, 20)
+      signer.init(
+        true,
+        new RSAKeyParameters(false, pub.getModulus, pub.getPublicExponent)
+      )
+      signer.update(sig_data, 0, sig_data.length)
+      signer.verifySignature(st.signature.bytes)
+    }
+  }
+
+  implicit def castSignable[T](st: Signed[T]): T = st.t
 }

@@ -30,7 +30,7 @@ class GenericApiTest_v1 extends WordSpec with Matchers with MarshallerV1 {
       }
 
       "return current block " in {
-        val response = v1.getCurrentBlock("http://178.62.4.18:1984").send()
+        val response = v1.getCurrentBlock(TestHost).send()
         response.statusText shouldBe "OK"
         response.body.isRight shouldBe true
         val json = parse(response.body.right.get)

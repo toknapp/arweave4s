@@ -1,12 +1,20 @@
 package co.upvest.arweave4s.api.v1.tx
 
+import co.upvest.arweave4s.api.v1.wallet.wallet
 import co.upvest.arweave4s.api.v1.marshalling.MarshallerV1
-import com.softwaremill.sttp.HttpURLConnectionBackend
+import co.upvest.arweave4s.utils.{BlockchainPatience, EmptyStringAsNone}
+import com.softwaremill.sttp.{HttpURLConnectionBackend, SttpBackend, Id}
 import org.scalatest.{Matchers, WordSpec, Inside}
+import org.scalatest.concurrent.Eventually
+import org.scalatest.tagobjects.Slow
+
+import cats.implicits._
 
 import scala.util.Random
 
-class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Inside {
+class TransactionApiTest_v1 extends WordSpec
+  with Matchers with MarshallerV1 with Inside
+  with Eventually with BlockchainPatience {
 
   import co.upvest.arweave4s.adt._
   import co.upvest.arweave4s.api.ApiTestUtil._
@@ -55,34 +63,89 @@ class TransactionApiTest_v1 extends WordSpec with Matchers with MarshallerV1 wit
       }
 
       "submitting a valid transfer transaction" in {
-        pending
-        val foobar = Wallet.generate()
+        val owner = Wallet.generate()
 
         val stx = Transaction
           .Transfer(
             Transaction.Id.generate(),
-            None, // TODO: why is the transaction accepted even when the account has a last_tx?
+            fetchLastTx(owner),
+            owner,
+            Wallet.generate().address,
+            quantity = randomWinstons(),
+            reward = randomWinstons()
+          )
+          .sign(owner)
+
+        tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
+      }
+
+      "submitting a valid transfer transaction and check updated balance" taggedAs(Slow) in {
+        val beneficiary = Wallet.generate()
+        val quantity = randomWinstons()
+
+        fetchBalance(beneficiary) shouldBe Winston.Zero
+
+        val stx = Transaction
+          .Transfer(
+            Transaction.Id.generate(),
+            fetchLastTx(TestAccount.wallet),
             TestAccount.wallet,
-            foobar.address,
-            quantity = Winston("1000"),
-            reward = Winston("100")
+            beneficiary.address,
+            quantity = quantity,
+            reward = randomWinstons()
+          )
+          .sign(TestAccount.wallet)
+
+        tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
+
+        eventually {
+          tx.getTxViaId(TestHost, stx.id.toString).send().code shouldBe 200
+        }
+
+        fetchLastTx(TestAccount.wallet) shouldBe Some(stx.id)
+
+        fetchBalance(beneficiary) shouldBe quantity
+      }
+
+      "submitting a valid data transaction" in {
+        pending
+        val foobar = Wallet.generate()
+
+        val stx = Transaction
+          .Data(Transaction.Id.generate(), None, TestAccount.wallet,
+            new Data(Random.nextString(100).getBytes), reward = Winston("100")
           )
           .sign(TestAccount.wallet)
 
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
       }
+    }
+  }
 
-      "submitting a valid data transaction" in {
-        pending
+  def fetchLastTx(address: Address)(
+    implicit b: SttpBackend[Id, Nothing]
+  ): Option[Transaction.Id] = {
+    val r = wallet.getLastTxViaAddress(TestHost, address.toString).send()
 
-        val foobar = Wallet.generate()
+    r.code shouldBe 200
 
-        val stx = Transaction
-          .Data(Transaction.Id.generate(), None, TestAccount.wallet, new Data(Random.nextString(100).getBytes), reward = Winston("100"))
-          .sign(TestAccount.wallet)
+    inside(r.body) { case Right(b) =>
+      EmptyStringAsNone.of(b).toOption >>= Transaction.Id.fromEncoded
+    }
+  }
 
-        tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
-      }
+  def fetchBalance(address: Address)(
+    implicit b: SttpBackend[Id, Nothing]
+  ): Winston  = {
+    val r = wallet.getBalanceViaAddress(
+      TestHost,
+      address.toString
+    ).send()
+
+    r.code shouldBe 200
+
+    inside(r.body) { case Right(b) =>
+      inside(parse(b) flatMap { _.as[Winston] }) { case Right(w) => w }
     }
   }
 }
