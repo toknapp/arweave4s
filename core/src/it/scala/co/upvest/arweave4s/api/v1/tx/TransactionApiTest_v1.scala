@@ -6,6 +6,7 @@ import co.upvest.arweave4s.utils.{BlockchainPatience, EmptyStringAsNone}
 import com.softwaremill.sttp.{HttpURLConnectionBackend, SttpBackend, Id}
 import org.scalatest.{Matchers, WordSpec, Inside}
 import org.scalatest.concurrent.Eventually
+import org.scalatest.tagobjects.Slow
 
 import cats.implicits._
 
@@ -78,7 +79,7 @@ class TransactionApiTest_v1 extends WordSpec
         tx.postTx(TestHost, stx.asJson.noSpaces).send().code shouldBe 200
       }
 
-      "submitting a valid transfer transaction and check updated balance" in {
+      "submitting a valid transfer transaction and check updated balance" taggedAs(Slow) in {
         val beneficiary = Wallet.generate()
         val quantity = randomWinstons()
 
