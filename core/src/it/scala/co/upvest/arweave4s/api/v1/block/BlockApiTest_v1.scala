@@ -20,7 +20,7 @@ class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Insi
     "asked for block to BlockId" should {
       "return a valid block" in {
 
-        val response = block.getBlockViaId(TestHost, validBlock).send()
+        val response = block.getBlockViaId(TestHost, validBlock.toString).send()
         response.code shouldBe 200
 
         inside(response.body) {
@@ -35,7 +35,7 @@ class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Insi
         pending
 
         val invalidBlockId = new Block.IndepHash(Array.empty)
-        val response       = block.getBlockViaId(TestHost, invalidBlockId).send()
+        val response       = block.getBlockViaId(TestHost, invalidBlockId.toString).send()
         response.code shouldBe 404
       }
 
@@ -43,7 +43,7 @@ class BlockApiTest_v1 extends WordSpec with Matchers with MarshallerV1 with Insi
         val Some(invalidBlockId) = Block.IndepHash.fromEncoded(
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         )
-        val response = block.getBlockViaId(TestHost, invalidBlockId).send()
+        val response = block.getBlockViaId(TestHost, invalidBlockId.toString).send()
         response.code shouldBe 404
       }
 

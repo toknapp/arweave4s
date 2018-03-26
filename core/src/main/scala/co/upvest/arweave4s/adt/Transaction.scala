@@ -19,7 +19,7 @@ object Transaction {
   object Id {
     final val Length = 32
 
-    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()) = {
+    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()): Transaction.Id = {
       val repr = new Array[Byte](size)
       sr.nextBytes(repr)
       new Id(repr)
@@ -40,11 +40,11 @@ object Transaction {
     }
 
     case object Transfer extends Type {
-      override def toString = "transfer"
+      override def toString:String = "transfer"
     }
 
     case object Data extends Type {
-      override def toString = "data"
+      override def toString:String = "data"
     }
   }
 
