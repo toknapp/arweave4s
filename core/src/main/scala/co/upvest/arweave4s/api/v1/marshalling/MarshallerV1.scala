@@ -93,6 +93,11 @@ trait MarshallerV1 {
         ("type", tx.tpe.asJson)
     )
 
+  implicit lazy val transactionEncoder: Encoder[Transaction] = {
+    case t: Transaction.Transfer => t.asJson
+    case t: Transaction.Data => t.asJson
+  }
+
   implicit lazy val transferTransactionDecoder =
     new Decoder[Transaction.Transfer] {
       override def apply(c: HCursor): Result[Transaction.Transfer] =

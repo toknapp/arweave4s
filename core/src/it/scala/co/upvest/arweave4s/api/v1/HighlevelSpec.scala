@@ -5,7 +5,9 @@ import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.api.{ApiTestUtil, highlevel}
 import org.scalatest.{WordSpec, Matchers, Inside}
 
+import cats.Id
 import cats.instances.try_._
+import cats.syntax.flatMap._
 
 import scala.util.{Success, Failure}
 
@@ -158,6 +160,21 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
         "return valid transaction" in {
           tx.get(validTxId).id shouldBe validTxId
         }
+
+        "submit transaction" in {
+          val owner = Wallet.generate()
+
+          val stx = Transaction.Transfer(
+            Transaction.Id.generate(),
+            address.lastTx[Id](owner),
+            owner,
+            Wallet.generate().address,
+            quantity = randomWinstons(),
+            reward = randomWinstons()
+          ).sign(owner)
+
+          tx.submit(stx) shouldBe (())
+        }
       }
 
       "using Try functor" should {
@@ -168,6 +185,25 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
           inside(tx.get(validTxId)) {
             case Success(tx) => tx.id shouldBe validTxId
           }
+        }
+
+        "submit transaction" in {
+          val owner = Wallet.generate()
+
+          val mtx = address.lastTx(owner) >>= { lastTx =>
+            tx.submit(
+              Transaction.Transfer(
+                Transaction.Id.generate(),
+                lastTx,
+                owner,
+                Wallet.generate().address,
+                quantity = randomWinstons(),
+                reward = randomWinstons()
+              ).sign(owner)
+            )
+          }
+
+          mtx should matchPattern { case Success(()) => }
         }
       }
     }

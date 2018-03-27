@@ -1,7 +1,7 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.utils.EmptyStringAsNone
-import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston}
+import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston, Signed}
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Response, SttpBackend, sttp, UriContext}
 import io.circe
@@ -19,6 +19,7 @@ object highlevel extends MarshallerV1 {
 
   type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
   type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F
+  type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
 
   case class Config[F[_]](host: String, backend: SttpBackend[F, _])
 
@@ -52,6 +53,17 @@ object highlevel extends MarshallerV1 {
         }
       }
     }
+
+    implicit def monadErrorSuccessHandler[F[_]: MonadError[?[_], T], T](
+      implicit as: Failure As T
+    ): SuccessHandler[F] = {
+      _ >>= { rsp =>
+        rsp.body match {
+          case Left(_) => as.coerce(HttpFailure(rsp)).raiseError
+          case Right(_) => ().pure[F]
+        }
+      }
+    }
   }
 
   object monadError extends MonadErrorInstances
@@ -74,6 +86,10 @@ object highlevel extends MarshallerV1 {
           case Right(Some(a)) => a
         }
       }
+
+    implicit def idSuccessHandler: SuccessHandler[Id] = { rsp =>
+      rsp.body.right getOrElse { throw HttpFailure(rsp) }
+    }
   }
 
   object id extends IdInstances
@@ -133,10 +149,20 @@ object highlevel extends MarshallerV1 {
     def get[F[_]](txId: Transaction.Id)(implicit
       c: Config[F], jh: JsonHandler[F]
     ): F[Transaction] = {
-      val req = sttp.get(
-        uri"${c.host}/tx/$txId"
-      ).response(asJson[Transaction])
+      val req = sttp
+        .get(uri"${c.host}/tx/$txId")
+        .response(asJson[Transaction])
       jh(c.backend.send(req))
+    }
+
+    def submit[F[_]](tx: Signed[Transaction])(implicit
+      c: Config[F], sh: SuccessHandler[F]
+    ): F[Unit] = {
+      val req = sttp
+        .body(tx)
+        .post(uri"${c.host}/tx")
+        .mapResponse { _ => () }
+      sh(c.backend send req)
     }
   }
 }
