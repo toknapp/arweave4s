@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.api
 
-import co.upvest.arweave4s.adt.Block
+import co.upvest.arweave4s.utils.EmptyStringAsNone
+import co.upvest.arweave4s.adt.{Block, Transaction, Address}
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Response, SttpBackend, sttp, UriContext}
 import io.circe
@@ -15,12 +16,14 @@ import cats.syntax.applicativeError._
 object highlevel extends MarshallerV1 {
 
   type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
+  type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F
 
   case class Config[F[_]](host: String, backend: SttpBackend[F, _])
 
   sealed trait Failure extends Exception
   case class HttpFailure(rsp: Response[_]) extends Failure
   case class DecodingFailure(t: Exception) extends Failure
+  case object InvalidEncoding extends Failure // TODO: more informative
 
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](
@@ -31,10 +34,22 @@ object highlevel extends MarshallerV1 {
           rsp.body match {
             case Left(_) => as.coerce(HttpFailure(rsp)).raiseError
             case Right(Left(e)) => as.coerce(DecodingFailure(e)).raiseError
-            case Right(Right(a)) => a.pure
+            case Right(Right(a)) => a.pure[F]
           }
         }
       }
+
+    implicit def monadErrorEncodedStringHandler[F[_]: MonadError[?[_], T], T](
+      implicit as: Failure As T
+    ): EncodedStringHandler[F] = λ[λ[α => F[Response[Option[α]]]] ~> F]{
+      _ >>= { rsp =>
+        rsp.body match {
+          case Left(_) => as.coerce(HttpFailure(rsp)).raiseError
+          case Right(None) => as.coerce(InvalidEncoding).raiseError
+          case Right(Some(a)) => a.pure[F]
+        }
+      }
+    }
   }
 
   object monadError extends MonadErrorInstances
@@ -48,38 +63,59 @@ object highlevel extends MarshallerV1 {
           case Right(Right(a)) => a
         }
       }
+
+    implicit def idEncodedStringHandler: EncodedStringHandler[Id] =
+      λ[λ[α => Id[Response[Option[α]]]] ~> Id]{ rsp =>
+        rsp.body match {
+          case Left(_) => throw HttpFailure(rsp)
+          case Right(None) => throw InvalidEncoding
+          case Right(Some(a)) => a
+        }
+      }
   }
 
   object id extends IdInstances
 
   object block {
-    private val blockPath = "block"
-
     def current[F[_]]()(implicit
-      c: Config[F],
-      jh: JsonHandler[F]
+      c: Config[F], jh: JsonHandler[F]
     ): F[Block] = {
       val req = sttp.get(uri"${c.host}/current_block").response(asJson[Block])
       jh(c.backend.send(req))
     }
 
     def get[F[_]](ih: Block.IndepHash)(implicit
-      c: Config[F],
-      jh: JsonHandler[F]
+      c: Config[F], jh: JsonHandler[F]
     ): F[Block] = {
-      val req = sttp.get(uri"${c.host}/$blockPath/hash/$ih"
+      val req = sttp.get(uri"${c.host}/block/hash/$ih"
       ).response(asJson[Block])
       jh(c.backend.send(req))
     }
 
     def get[F[_]](height: BigInt)(implicit
-      c: Config[F],
-      jh: JsonHandler[F]
+      c: Config[F], jh: JsonHandler[F]
     ): F[Block] = {
       val req = sttp.get(
-        uri"${c.host}/$blockPath/height/$height"
+        uri"${c.host}/block/height/$height"
       ).response(asJson[Block])
       jh(c.backend.send(req))
     }
   }
+
+  object address {
+    def lastTx[F[_]](address: Address)(implicit
+      c: Config[F], esh: EncodedStringHandler[F]
+    ): F[Option[Transaction.Id]] = {
+      val req = sttp
+        .get(uri"${c.host}/wallet/$address/last_tx")
+        .mapResponse { s =>
+          EmptyStringAsNone.of(s).toOption match {
+            case None => Some(None)
+            case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
+          }
+        }
+      esh(c.backend send req)
+    }
+  }
+
 }

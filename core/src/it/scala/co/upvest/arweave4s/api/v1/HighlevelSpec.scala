@@ -1,7 +1,7 @@
 package co.upvest.arweave4s.api.v1
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
-import co.upvest.arweave4s.adt.Block
+import co.upvest.arweave4s.adt.{Block, Transaction, Wallet}
 import co.upvest.arweave4s.api.{ApiTestUtil, highlevel}
 import org.scalatest.{WordSpec, Matchers, Inside}
 
@@ -85,6 +85,42 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
         "fail when a block does not exist (by height)" in {
           inside(block.get(invalidBlockHeight)) {
             case Failure(HttpFailure(rsp)) => rsp.code shouldBe 404
+          }
+        }
+      }
+    }
+
+    "address" should {
+      val arbitraryWallet = Wallet.generate()
+
+      "using Id functor" should {
+        import id._
+        implicit val _ = idConfig
+
+        "return last transaction id" in {
+          inside(address.lastTx(TestAccount.address)) {
+            case Some(txId) => txId shouldBe a[Transaction.Id]
+          }
+        }
+
+        "return none when no last transaction" in {
+          address.lastTx(arbitraryWallet.address) shouldBe empty
+        }
+      }
+
+      "using Try functor" should {
+        import monadError._
+        implicit val _ = tryConfig
+
+        "return last transaction id" in {
+          inside(address.lastTx(TestAccount.address)) {
+            case Success(Some(txId)) => txId shouldBe a[Transaction.Id]
+          }
+        }
+
+        "return none when no last transaction" in {
+          address.lastTx(arbitraryWallet.address) should matchPattern {
+            case Success(None) =>
           }
         }
       }
