@@ -140,7 +140,7 @@ object highlevel extends MarshallerV1 {
     ): F[Winston] = {
       val req = sttp
         .get(uri"${c.host}/wallet/$address/balance")
-        .mapResponse { s => Try { Winston.apply(s) } toOption }
+        .mapResponse(winstonMapper)
       esh(c.backend send req)
     }
   }
@@ -165,4 +165,17 @@ object highlevel extends MarshallerV1 {
       sh(c.backend send req)
     }
   }
+
+  object price {
+    def estimateForBytes[F[_]](bytes: BigInt)(implicit
+      c: Config[F], esh: EncodedStringHandler[F]
+    ): F[Winston] = {
+      val req = sttp
+        .get(uri"${c.host}/price/$bytes")
+        .mapResponse(winstonMapper)
+      esh(c.backend send req)
+    }
+  }
+
+  private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption
 }

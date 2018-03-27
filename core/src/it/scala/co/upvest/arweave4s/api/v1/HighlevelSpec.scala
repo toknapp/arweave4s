@@ -129,7 +129,7 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
         }
 
         "return none when no last transaction" in {
-          address.lastTx(arbitraryWallet.address) should matchPattern {
+          address.lastTx(arbitraryWallet) should matchPattern {
             case Success(None) =>
           }
         }
@@ -204,6 +204,51 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
           }
 
           mtx should matchPattern { case Success(()) => }
+        }
+      }
+    }
+
+    "price" should {
+      "using Id functor" should {
+        import id._
+        implicit val _ = idConfig
+        "return a valid (positive) price" in {
+          price.estimateForBytes(BigInt(10)).amount should be > BigInt(0)
+        }
+
+        "return a price proportionate in amount of bytes" in {
+          val x = randomPositiveBigInt(10000)
+          val q = randomPositiveBigInt(100)
+          val y = x * q
+
+          val px = price.estimateForBytes(x).amount
+          val py = price.estimateForBytes(y).amount
+
+          py / px shouldBe q
+        }
+      }
+
+      "using Try functor" should {
+        import monadError._
+        implicit val _ = tryConfig
+
+        "return a valid (positive) price" in {
+          inside(price.estimateForBytes(BigInt(10))) {
+            case Success(Winston(amount)) => amount should be > BigInt(0)
+          }
+        }
+
+        "return a price proportionate in amount of bytes" in {
+          val x = randomPositiveBigInt(10000)
+          val q = randomPositiveBigInt(100)
+          val y = x * q
+
+          val Success(mk) = for {
+            Winston(px) <- price.estimateForBytes(x)
+            Winston(py) <- price.estimateForBytes(y)
+          } yield py / px
+
+          mk shouldBe q
         }
       }
     }

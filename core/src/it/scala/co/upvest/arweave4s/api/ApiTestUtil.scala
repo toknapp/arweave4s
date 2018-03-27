@@ -29,5 +29,8 @@ object ApiTestUtil {
   }
 
   def randomWinstons(bound: Long = 100000): Winston =
-    Winston(BigInt(Random.nextLong().abs % bound))
+    Winston(randomPositiveBigInt(bound))
+
+  def randomPositiveBigInt(bound: Long): BigInt =
+    BigInt(Random.nextLong().abs % bound)
 }
