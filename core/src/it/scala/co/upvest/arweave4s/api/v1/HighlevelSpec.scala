@@ -145,5 +145,31 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
         }
       }
     }
+
+    "tx" should {
+      val Some(validTxId) = Transaction.Id.fromEncoded(
+        "3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU"
+      )
+
+      "using Id functor" should {
+        import id._
+        implicit val _ = idConfig
+
+        "return valid transaction" in {
+          tx.get(validTxId).id shouldBe validTxId
+        }
+      }
+
+      "using Try functor" should {
+        import monadError._
+        implicit val _ = tryConfig
+
+        "return valid transaction" in {
+          inside(tx.get(validTxId)) {
+            case Success(tx) => tx.id shouldBe validTxId
+          }
+        }
+      }
+    }
   }
 }

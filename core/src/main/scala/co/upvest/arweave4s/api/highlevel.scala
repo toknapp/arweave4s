@@ -129,4 +129,14 @@ object highlevel extends MarshallerV1 {
     }
   }
 
+  object tx {
+    def get[F[_]](txId: Transaction.Id)(implicit
+      c: Config[F], jh: JsonHandler[F]
+    ): F[Transaction] = {
+      val req = sttp.get(
+        uri"${c.host}/tx/$txId"
+      ).response(asJson[Transaction])
+      jh(c.backend.send(req))
+    }
+  }
 }
