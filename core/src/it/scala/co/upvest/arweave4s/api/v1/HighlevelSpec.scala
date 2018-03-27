@@ -1,7 +1,7 @@
 package co.upvest.arweave4s.api.v1
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet}
+import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.api.{ApiTestUtil, highlevel}
 import org.scalatest.{WordSpec, Matchers, Inside}
 
@@ -106,6 +106,14 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
         "return none when no last transaction" in {
           address.lastTx(arbitraryWallet.address) shouldBe empty
         }
+
+        "return a positive balance" in {
+          address.balance(TestAccount.address).amount should be > BigInt(0)
+        }
+
+        "return a zero balance" in {
+          address.balance(arbitraryWallet) shouldBe Winston.Zero
+        }
       }
 
       "using Try functor" should {
@@ -121,6 +129,18 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
         "return none when no last transaction" in {
           address.lastTx(arbitraryWallet.address) should matchPattern {
             case Success(None) =>
+          }
+        }
+
+        "return a positive balance" in {
+          inside(address.balance(TestAccount.address)) {
+            case Success(Winston(amount)) => amount should be > BigInt(0)
+          }
+        }
+
+        "return a zero balance" in {
+          address.balance(arbitraryWallet) should matchPattern {
+            case Success(Winston.Zero) =>
           }
         }
       }

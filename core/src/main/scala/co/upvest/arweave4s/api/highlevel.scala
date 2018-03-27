@@ -1,7 +1,7 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.utils.EmptyStringAsNone
-import co.upvest.arweave4s.adt.{Block, Transaction, Address}
+import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston}
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Response, SttpBackend, sttp, UriContext}
 import io.circe
@@ -12,6 +12,8 @@ import cats.evidence.As
 import cats.syntax.flatMap._
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
+
+import scala.util.Try
 
 object highlevel extends MarshallerV1 {
 
@@ -114,6 +116,15 @@ object highlevel extends MarshallerV1 {
             case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
           }
         }
+      esh(c.backend send req)
+    }
+
+    def balance[F[_]](address: Address)(implicit
+      c: Config[F], esh: EncodedStringHandler[F]
+    ): F[Winston] = {
+      val req = sttp
+        .get(uri"${c.host}/wallet/$address/balance")
+        .mapResponse { s => Try { Winston.apply(s) } toOption }
       esh(c.backend send req)
     }
   }
