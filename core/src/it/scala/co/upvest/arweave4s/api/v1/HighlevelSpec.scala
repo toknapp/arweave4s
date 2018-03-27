@@ -5,21 +5,20 @@ import co.upvest.arweave4s.adt.Block
 import co.upvest.arweave4s.api.{ApiTestUtil, highlevel}
 import org.scalatest.{WordSpec, Matchers, Inside}
 
-import cats.Id
 import cats.instances.try_._
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Success, Failure}
 
 class HighlevelSpec extends WordSpec with Matchers with Inside {
   import ApiTestUtil._
   import highlevel._
 
-  implicit val idConfig = Config[Id](
+  val idConfig = Config(
     host = TestHost,
     backend = HttpURLConnectionBackend()
   )
 
-  implicit val tryConfig = Config[Try](
+  val tryConfig = Config(
     host = TestHost,
     backend = TryHttpURLConnectionBackend()
   )
@@ -38,51 +37,53 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
 
       "using Id functor" should {
         import id._
+        implicit val _ = idConfig
 
         "return the current block" in {
-          block.current[Id]() shouldBe a[Block]
+          block.current() shouldBe a[Block]
         }
 
         "return a valid block by hash" in {
-          block.get[Id](validBlock) shouldBe a[Block]
+          block.get(validBlock) shouldBe a[Block]
         }
 
         "return a valid block by height" in {
-          block.get[Id](BigInt(100)) shouldBe a[Block]
+          block.get(BigInt(100)) shouldBe a[Block]
         }
 
         "fail when a block does not exist (by hash)" in {
-          assertThrows[HttpFailure] { block.get[Id](invalidBlockHash) }
+          assertThrows[HttpFailure] { block.get(invalidBlockHash) }
         }
 
         "fail when a block does not exist (by height)" in {
-          assertThrows[HttpFailure] { block.get[Id](invalidBlockHeight) }
+          assertThrows[HttpFailure] { block.get(invalidBlockHeight) }
         }
       }
 
       "using Try" should {
         import monadError._
+        implicit val _ = tryConfig
 
         "return the current block" in {
-          block.current[Try]() shouldBe a[Success[_]]
+          block.current() shouldBe a[Success[_]]
         }
 
         "return a valid block by hash" in {
-          block.get[Try](validBlock) shouldBe a[Success[_]]
+          block.get(validBlock) shouldBe a[Success[_]]
         }
 
         "return a valid block by height" in {
-          block.get[Try](BigInt(100)) shouldBe a[Success[_]]
+          block.get(BigInt(100)) shouldBe a[Success[_]]
         }
 
         "fail when a block does not exist (by hash)" in {
-          inside(block.get[Try](invalidBlockHash)) {
+          inside(block.get(invalidBlockHash)) {
             case Failure(HttpFailure(rsp)) => rsp.code shouldBe 404
           }
         }
 
         "fail when a block does not exist (by height)" in {
-          inside(block.get[Try](invalidBlockHeight)) {
+          inside(block.get(invalidBlockHeight)) {
             case Failure(HttpFailure(rsp)) => rsp.code shouldBe 404
           }
         }
