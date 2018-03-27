@@ -15,19 +15,22 @@ object highlevel extends MarshallerV1 {
 
   type ResponseHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
 
-  case class Config[F[_], S](
-    host: String,
-    backend: SttpBackend[F, S],
-    r: ResponseHandler[F]
-  )
+  trait Config[F[_], S] {
+    def host: String
+    def backend: SttpBackend[F, S]
+    def r: ResponseHandler[F]
+  }
 
   object eitherT {
     sealed trait Failure
     case class HttpFailure(rsp: Response[_]) extends Failure
     case class DecodingFailure(t: Throwable) extends Failure
 
-    def r[F[_]: MonadError[?[_], Failure]]: ResponseHandler[F] =
-      λ[λ[α => F[Response[Either[circe.Error, α]]]] ~> F]{
+    case class Config[F[_]: MonadError[?[_], Failure], S](
+      host: String,
+      backend: SttpBackend[F, S]
+    ) extends highlevel.Config[F, S] {
+      val r = λ[λ[α => F[Response[Either[circe.Error, α]]]] ~> F]{
         _ >>= { rsp =>
           rsp.body match {
             case Left(_) => (HttpFailure(rsp): Failure).raiseError
@@ -36,6 +39,7 @@ object highlevel extends MarshallerV1 {
           }
         }
       }
+    }
   }
 
   def currentBlock[F[_], S](implicit c: Config[F, S]): F[Block] =
