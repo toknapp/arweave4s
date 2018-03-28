@@ -1,9 +1,8 @@
-package co.upvest.arweave4s.api.v1
+package co.upvest.arweave4s
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
-import co.upvest.arweave4s.api.{ApiTestUtil, highlevel}
 import org.scalatest.{WordSpec, Matchers, Inside}
 import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 
@@ -17,11 +16,11 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.util.Try
 
-class HighlevelSpec extends WordSpec
+class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
   with IntegrationPatience {
   import ApiTestUtil._
-  import highlevel._
+  import api._
 
   val idConfig = Config[Id](host = TestHost, HttpURLConnectionBackend())
   val tryConfig = Config[Try](host = TestHost, TryHttpURLConnectionBackend())

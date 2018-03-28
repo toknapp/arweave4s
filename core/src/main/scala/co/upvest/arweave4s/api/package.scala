@@ -1,11 +1,10 @@
-package co.upvest.arweave4s.api
+package co.upvest.arweave4s
 
 import co.upvest.arweave4s.utils.EmptyStringAsNone
 import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston, Signed, Data}
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Response, SttpBackend, sttp, UriContext}
 import io.circe
-import v1.marshalling.MarshallerV1
 
 import cats.{MonadError, ~>, Id}
 import cats.arrow.FunctionK
@@ -16,7 +15,8 @@ import cats.syntax.applicativeError._
 
 import scala.util.Try
 
-object highlevel extends MarshallerV1 {
+package object api {
+  import Marshaller._
 
   type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
   type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F

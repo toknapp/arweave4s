@@ -1,4 +1,4 @@
-package co.upvest.arweave4s.api
+package co.upvest.arweave4s
 
 import co.upvest.arweave4s.adt.{Wallet, Winston, Data}
 import co.upvest.arweave4s.utils.CryptoUtils
