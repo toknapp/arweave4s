@@ -101,12 +101,30 @@ class HighlevelSpec extends WordSpec
         }
       }
 
+      "tre price api" should {
+        "return a valid (positive) price" in {
+          run { price.estimateForBytes(BigInt(10)) }
+            .amount should be > BigInt(0)
+        }
+
+        "return a price proportionate in amount of bytes" in {
+          val x = randomPositiveBigInt(10000, 0)
+          val q = randomPositiveBigInt(100, 0)
+          val y = x * q
+
+          val px = run { price.estimateForBytes(x) }.amount
+          val py = run { price.estimateForBytes(y) }.amount
+
+          py / px shouldBe q
+        }
+      }
+
       "the transaction api" should {
         "return valid transaction" in {
           run { tx.get(validTxId) }.id shouldBe validTxId
         }
 
-        "submit transaction" in {
+        "submit a transfer transaction" in {
           val owner = Wallet.generate()
 
           val stx = Transaction.Transfer(
@@ -120,23 +138,21 @@ class HighlevelSpec extends WordSpec
 
           run { tx.submit(stx) } shouldBe (())
         }
-      }
 
-      "tre price api" should {
-        "return a valid (positive) price" in {
-          run { price.estimateForBytes(BigInt(10)) }
-            .amount should be > BigInt(0)
-        }
+        "submit a data transaction" in {
+          val owner = Wallet.generate()
+          val data = randomData()
+          val estCost = run { price.estimate(data) }
 
-        "return a price proportionate in amount of bytes" in {
-          val x = randomPositiveBigInt(10000)
-          val q = randomPositiveBigInt(100)
-          val y = x * q
+          val stx = Transaction.Data(
+            Transaction.Id.generate(),
+            run { address.lastTx(owner) },
+            owner,
+            data,
+            reward = estCost
+          ).sign(owner)
 
-          val px = run { price.estimateForBytes(x) }.amount
-          val py = run { price.estimateForBytes(y) }.amount
-
-          py / px shouldBe q
+          run { tx.submit(stx) } shouldBe (())
         }
       }
     }

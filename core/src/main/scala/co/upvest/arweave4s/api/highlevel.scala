@@ -1,7 +1,7 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.utils.EmptyStringAsNone
-import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston, Signed}
+import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston, Signed, Data}
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Response, SttpBackend, sttp, UriContext}
 import io.circe
@@ -190,6 +190,10 @@ object highlevel extends MarshallerV1 {
         .mapResponse(winstonMapper)
       esh(c.i(c.backend send req))
     }
+
+    def estimate[F[_], G[_]](d: Data)(implicit
+      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
+    ): F[Winston] = estimateForBytes(d.bytes.length)
   }
 
   private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption

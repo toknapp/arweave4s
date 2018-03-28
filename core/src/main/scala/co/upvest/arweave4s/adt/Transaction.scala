@@ -73,7 +73,7 @@ object Transaction {
       Array.empty,
       id.bytes,
       data.bytes,
-      Array.empty,
+      Winston.Zero.toString.getBytes,
       reward.toString.getBytes,
       lastTx map { _.bytes } getOrElse Array.empty
     )

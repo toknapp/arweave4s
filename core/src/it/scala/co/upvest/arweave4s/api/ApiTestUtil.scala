@@ -1,6 +1,6 @@
 package co.upvest.arweave4s.api
 
-import co.upvest.arweave4s.adt.{Wallet, Winston}
+import co.upvest.arweave4s.adt.{Wallet, Winston, Data}
 import co.upvest.arweave4s.utils.CryptoUtils
 import cats.implicits._
 
@@ -28,9 +28,24 @@ object ApiTestUtil {
     lazy val address = wallet.address
   }
 
-  def randomWinstons(bound: Long = 100000): Winston =
-    Winston(randomPositiveBigInt(bound))
+  def randomWinstons(
+    upperBound: Winston = Winston.AR,
+    lowerBound: Winston = Winston.Zero): Winston = Winston(
+      randomPositiveBigInt(
+        upperBound = upperBound.amount.toLong, // TODO: horrible .toLong casts
+        lowerBound = lowerBound.amount.toLong
+      )
+    )
 
-  def randomPositiveBigInt(bound: Long): BigInt =
-    BigInt(Random.nextLong().abs % bound)
+  def randomPositiveBigInt(upperBound: Long, lowerBound: Long): BigInt =
+    BigInt(randomPositiveLong(upperBound, lowerBound))
+
+  def randomPositiveLong(upperBound: Long, lowerBound: Long): Long =
+    (Random.nextLong().abs % (upperBound - lowerBound)) + lowerBound
+
+  def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data = {
+    val bs = new Array[Byte](randomPositiveLong(upperBound, lowerBound).toInt)
+    Random.nextBytes(bs)
+    new Data(bs)
+  }
 }

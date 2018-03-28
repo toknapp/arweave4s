@@ -75,7 +75,7 @@ trait MarshallerV1 {
         ("target", Json.fromString("")),
         ("owner", tx.owner.asJson),
         ("reward", tx.reward.asJson),
-        ("quantity", Json.fromString("")),
+        ("quantity", Winston.Zero.asJson),
         ("data", tx.data.asJson),
         ("type", tx.tpe.asJson)
     )
