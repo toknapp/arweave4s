@@ -48,7 +48,7 @@ class apiSpec extends WordSpec
       }
     }
 
-  def highlevelApi[F[_], G[_]](c: AbstractConfig[F, G])(implicit
+  def apiBehavior[F[_], G[_]](c: AbstractConfig[F, G])(implicit
     jh: JsonHandler[F],
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
@@ -156,20 +156,20 @@ class apiSpec extends WordSpec
       }
     }
 
-  "Highlevel" should {
+  "api" should {
     "using Id" should {
       import id._
-      highlevelApi(idConfig)
+      apiBehavior(idConfig)
     }
 
     "using Try" should {
       import monadError._
-      highlevelApi(tryConfig)
+      apiBehavior(tryConfig)
     }
 
     "using EitherT[Future]" should {
       import monadError._
-      highlevelApi(futureConfig)
+      apiBehavior(futureConfig)
     }
   }
 }
