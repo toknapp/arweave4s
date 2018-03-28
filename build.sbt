@@ -16,6 +16,8 @@ lazy val core = (project in file("core"))
     buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
     buildInfoPackage := "co.upvest.arweave4s",
     libraryDependencies ++= Seq(
+      // compiler plugins
+      compilerPlugin(library.kindProjector),
       // compile time dependencies
       library.circeCore         % Compile,
       library.circeParser       % Compile,
@@ -25,7 +27,7 @@ lazy val core = (project in file("core"))
       // test dependencies
       library.scalaCheck        % "it,test",
       library.scalaTest         % "it,test",
-      compilerPlugin(library.kindProjector)
+      library.sttpAsyncBackend  % "it"
     ).map(dependencies =>
       library.exclusions.foldRight(dependencies) { (rule, module) =>
         module.excludeAll(rule)
@@ -50,6 +52,7 @@ lazy val library =
     val circeParser         = "io.circe"                   %% "circe-parser"                % Version.circe
     val sttpCore            = "com.softwaremill.sttp"      %% "core"                        % Version.sttp
     val sttpCirce           = "com.softwaremill.sttp"      %% "circe"                       % Version.sttp
+    val sttpAsyncBackend    = "com.softwaremill.sttp"      %% "async-http-client-backend-future" % Version.sttp
     val spongyCastleCore    = "com.madgag.spongycastle"    %  "core"                        % Version.spongyCastle
     val scalaCheck          = "org.scalacheck"             %% "scalacheck"                  % Version.scalaCheck
     val scalaTest           = "org.scalatest"              %% "scalatest"                   % Version.scalaTest

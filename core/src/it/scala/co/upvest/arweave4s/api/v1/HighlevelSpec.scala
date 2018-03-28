@@ -1,22 +1,38 @@
 package co.upvest.arweave4s.api.v1
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
+import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.api.{ApiTestUtil, highlevel}
 import org.scalatest.{WordSpec, Matchers, Inside}
+import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
 
 import cats.{Id, ~>}
+import cats.data.EitherT
 import cats.arrow.FunctionK
 import cats.instances.try_._
+import cats.instances.future._
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 import scala.util.Try
 
-class HighlevelSpec extends WordSpec with Matchers with Inside {
+class HighlevelSpec extends WordSpec
+  with Matchers with Inside with ScalaFutures
+  with IntegrationPatience {
   import ApiTestUtil._
   import highlevel._
 
-  val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
-  val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
+  val idConfig = Config[Id](host = TestHost, HttpURLConnectionBackend())
+  val tryConfig = Config[Try](host = TestHost, TryHttpURLConnectionBackend())
+
+  implicit val ec = ExecutionContext.global
+
+  val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
+      host = TestHost,
+      AsyncHttpClientFutureBackend(),
+      i = λ[Future ~> EitherT[Future, Failure, ?]]{ EitherT liftF _ }
+    )
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   val invalidBlockHeight = BigInt(Long.MaxValue)
@@ -25,8 +41,15 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
 
   implicit val idRunner: Id ~> Id = FunctionK.id
   implicit val tryRunner: Try ~> Id = λ[Try ~> Id]{ _.get }
+  implicit val eTFRunner: λ[α => EitherT[Future, Failure, α]] ~> Id =
+    λ[λ[α => EitherT[Future, Failure, α]] ~> Id] { eTF =>
+      whenReady(eTF.value) {
+        case Left(e) => throw e
+        case Right(a) => a
+      }
+    }
 
-  def highlevelApi[F[_]](c: Config[F])(implicit
+  def highlevelApi[F[_], G[_]](c: AbstractConfig[F, G])(implicit
     jh: JsonHandler[F],
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
@@ -127,6 +150,11 @@ class HighlevelSpec extends WordSpec with Matchers with Inside {
     "using Try" should {
       import monadError._
       highlevelApi(tryConfig)
+    }
+
+    "using EitherT[Future]" should {
+      import monadError._
+      highlevelApi(futureConfig)
     }
   }
 }
