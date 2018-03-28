@@ -38,10 +38,14 @@ package object api {
     host: String, backend: SttpBackend[G, _], i: G ~> F
   ) extends AbstractConfig[F, G]
 
-  sealed trait Failure extends Exception
-  case class HttpFailure(rsp: Response[_]) extends Failure
-  case class DecodingFailure(t: Exception) extends Failure
-  case object InvalidEncoding extends Failure // TODO: more informative
+  sealed abstract class Failure(message: String, cause: Option[Throwable])
+    extends Exception(message, cause.orNull)
+  case class HttpFailure(rsp: Response[_])
+    extends Failure(s"HTTP failure: $rsp", None)
+  case class DecodingFailure(t: Exception)
+    extends Failure("Decoding failure", Some(t))
+  case object InvalidEncoding
+    extends Failure("invalid encoding", None) // TODO: more informative
 
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](
