@@ -22,8 +22,8 @@ class apiSpec extends WordSpec
   import ApiTestUtil._
   import api._
 
-  val idConfig = Config[Id](host = TestHost, HttpURLConnectionBackend())
-  val tryConfig = Config[Try](host = TestHost, TryHttpURLConnectionBackend())
+  val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
+  val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
 
   implicit val ec = ExecutionContext.global
 
@@ -87,7 +87,7 @@ class apiSpec extends WordSpec
         }
 
         "return none when no last transaction" in {
-          run { address.lastTx(arbitraryWallet.address) } shouldBe empty
+          run { address.lastTx(arbitraryWallet) } shouldBe empty
         }
 
         "return a positive balance" in {
@@ -130,7 +130,7 @@ class apiSpec extends WordSpec
             Transaction.Id.generate(),
             run { address.lastTx(owner) },
             owner,
-            Wallet.generate().address,
+            Wallet.generate(),
             quantity = randomWinstons(),
             reward = randomWinstons()
           ).sign(owner)
