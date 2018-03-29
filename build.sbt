@@ -16,14 +16,18 @@ lazy val core = (project in file("core"))
     buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
     buildInfoPackage := "co.upvest.arweave4s",
     libraryDependencies ++= Seq(
+      // compiler plugins
+      compilerPlugin(library.kindProjector),
       // compile time dependencies
       library.circeCore         % Compile,
       library.circeParser       % Compile,
       library.sttpCore          % Compile,
+      library.sttpCirce         % Compile,
       library.spongyCastleCore  % Compile,
       // test dependencies
       library.scalaCheck        % "it,test",
-      library.scalaTest         % "it,test"
+      library.scalaTest         % "it,test",
+      library.sttpAsyncBackend  % "it"
     ).map(dependencies =>
       library.exclusions.foldRight(dependencies) { (rule, module) =>
         module.excludeAll(rule)
@@ -37,18 +41,22 @@ lazy val core = (project in file("core"))
 lazy val library =
   new {
     object Version {
-      val circe        = "0.9.1"
-      val scalaCheck   = "1.13.5"
-      val scalaTest    = "3.0.5"
-      val sttp         = "1.1.9"
-      val spongyCastle = "1.58.0.0"
+      val circe         = "0.9.1"
+      val scalaCheck    = "1.13.5"
+      val scalaTest     = "3.0.5"
+      val sttp          = "1.1.9"
+      val spongyCastle  = "1.58.0.0"
+      val kindProjector = "0.9.6"
     }
     val circeCore           = "io.circe"                   %% "circe-core"                  % Version.circe
     val circeParser         = "io.circe"                   %% "circe-parser"                % Version.circe
     val sttpCore            = "com.softwaremill.sttp"      %% "core"                        % Version.sttp
+    val sttpCirce           = "com.softwaremill.sttp"      %% "circe"                       % Version.sttp
+    val sttpAsyncBackend    = "com.softwaremill.sttp"      %% "async-http-client-backend-future" % Version.sttp
     val spongyCastleCore    = "com.madgag.spongycastle"    %  "core"                        % Version.spongyCastle
     val scalaCheck          = "org.scalacheck"             %% "scalacheck"                  % Version.scalaCheck
     val scalaTest           = "org.scalatest"              %% "scalatest"                   % Version.scalaTest
+    val kindProjector       = "org.spire-math"             %% "kind-projector"              % Version.kindProjector
 
     // All exclusions that should be applied to every module.fo
     val exclusions = Seq(

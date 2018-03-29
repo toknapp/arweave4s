@@ -1,14 +1,15 @@
-package co.upvest.arweave4s.api.v1.marshalling
+package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.utils.{CirceComplaints, EmptyStringAsNone}
 import io.circe.Decoder.Result
-import io.circe.{Decoder, HCursor, DecodingFailure, Encoder, Json, JsonObject}
+import io.circe
+import io.circe.{Decoder, HCursor, Encoder, Json, JsonObject}
 import io.circe.syntax._
 import cats.implicits._
 
-trait MarshallerV1 {
+trait Marshaller {
   import CirceComplaints._, EmptyStringAsNone._
 
   implicit lazy val infoDecoder: Decoder[Info] = (c: HCursor) => for {
@@ -75,7 +76,7 @@ trait MarshallerV1 {
         ("target", Json.fromString("")),
         ("owner", tx.owner.asJson),
         ("reward", tx.reward.asJson),
-        ("quantity", Json.fromString("")),
+        ("quantity", Winston.Zero.asJson),
         ("data", tx.data.asJson),
         ("type", tx.tpe.asJson)
     )
@@ -93,6 +94,11 @@ trait MarshallerV1 {
         ("type", tx.tpe.asJson)
     )
 
+  implicit lazy val transactionEncoder: Encoder[Transaction] = {
+    case t: Transaction.Transfer => t.asJson
+    case t: Transaction.Data => t.asJson
+  }
+
   implicit lazy val transferTransactionDecoder =
     new Decoder[Transaction.Transfer] {
       override def apply(c: HCursor): Result[Transaction.Transfer] =
@@ -109,7 +115,7 @@ trait MarshallerV1 {
   implicit lazy val transactionDecoder = new Decoder[Transaction] {
     override def apply(c: HCursor): Result[Transaction] =
       c.downField("type").as[String] >>= { s =>
-        Transaction.Type(s) toRight DecodingFailure(
+        Transaction.Type(s) toRight circe.DecodingFailure(
           message = s"unknown transaction type $s",
           ops = Nil
         )
@@ -175,3 +181,5 @@ trait MarshallerV1 {
         )
   }
 }
+
+object Marshaller extends Marshaller
