@@ -12,7 +12,7 @@ object ApiTestUtil {
   val TestHost = "165.227.40.8:1984"
 
   object TestAccount {
-    lazy val wallet = {
+    lazy val wallet : Wallet = {
       val mkf = Try {
         Source.fromResource("keyfile.json")
       } filter { _.nonEmpty } toOption
@@ -22,11 +22,14 @@ object ApiTestUtil {
         bs <- CryptoUtils.base64UrlDecode(s)
       } yield Source fromBytes bs
 
-      mkf orElse mev >>= Wallet.load get
+
+      (mkf orElse mev >>= Wallet.load) get
     }
 
     lazy val address = wallet.address
   }
+
+
 
   def randomWinstons(
     upperBound: Winston = Winston.AR,

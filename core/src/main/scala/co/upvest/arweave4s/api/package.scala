@@ -1,18 +1,18 @@
 package co.upvest.arweave4s
 
-import co.upvest.arweave4s.utils.EmptyStringAsNone
-import co.upvest.arweave4s.adt.{Block, Transaction, Address, Winston, Signed, Data}
-import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{Response, SttpBackend, sttp, UriContext}
-import io.circe
-
-import cats.{MonadError, ~>, Id}
 import cats.arrow.FunctionK
 import cats.evidence.As
-import cats.syntax.flatMap._
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
+import cats.syntax.flatMap._
+import cats.{Id, MonadError, ~>}
+import co.upvest.arweave4s.adt._
+import co.upvest.arweave4s.utils.EmptyStringAsNone
+import com.softwaremill.sttp.circe._
+import com.softwaremill.sttp.{Response, SttpBackend, UriContext, sttp}
+import io.circe
 
+import scala.language.{higherKinds, postfixOps}
 import scala.util.Try
 
 package object api {
@@ -50,22 +50,23 @@ package object api {
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](
       implicit as: Failure As T
-    ): JsonHandler[F] =
-      λ[λ[α => F[Response[Either[circe.Error, α]]]] ~> F]{
-        _ >>= { rsp =>
+    ): JsonHandler[F] = new (λ[α => F[Response[Either[circe.Error, α]]]] ~> F) {
+      override def apply[A](fa: F[Response[Either[circe.Error, A]]]): F[A] =
+        fa >>= { rsp =>
           rsp.body match {
             case Left(_) => as.coerce(HttpFailure(rsp)).raiseError
             case Right(Left(e)) => as.coerce(DecodingFailure(e)).raiseError
             case Right(Right(a)) => a.pure[F]
           }
         }
-      }
+    }
 
     implicit def monadErrorEncodedStringHandler[F[_]: MonadError[?[_], T], T](
       implicit as: Failure As T
-    ): EncodedStringHandler[F] = λ[λ[α => F[Response[Option[α]]]] ~> F]{
-      _ >>= { rsp =>
-        rsp.body match {
+    ): EncodedStringHandler[F] = new (λ[α => F[Response[Option[α]]]] ~> F){
+      override def apply[A](fa: F[Response[Option[A]]]): F[A] =
+        fa >>= { rsp =>
+          rsp.body match {
           case Left(_) => as.coerce(HttpFailure(rsp)).raiseError
           case Right(None) => as.coerce(InvalidEncoding).raiseError
           case Right(Some(a)) => a.pure[F]
@@ -89,22 +90,21 @@ package object api {
 
   trait IdInstances {
     implicit def idJsonHandler: JsonHandler[Id] =
-      λ[λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id]{ rsp =>
-        rsp.body match {
+      new (λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id){
+        override def apply[A](rsp: Id[Response[Either[circe.Error, A]]]): A = rsp.body match {
           case Left(_) => throw HttpFailure(rsp)
           case Right(Left(e)) => throw DecodingFailure(e)
           case Right(Right(a)) => a
         }
       }
 
-    implicit def idEncodedStringHandler: EncodedStringHandler[Id] =
-      λ[λ[α => Id[Response[Option[α]]]] ~> Id]{ rsp =>
-        rsp.body match {
-          case Left(_) => throw HttpFailure(rsp)
-          case Right(None) => throw InvalidEncoding
-          case Right(Some(a)) => a
-        }
+    implicit def idEncodedStringHandler: EncodedStringHandler[Id] = new (λ[α => Id[Response[Option[α]]]] ~> Id) {
+      override def apply[A](rsp: Id[Response[Option[A]]]): A = rsp.body match {
+        case Left(_) => throw HttpFailure(rsp)
+        case Right(None) => throw InvalidEncoding
+        case Right(Some(a)) => a
       }
+    }
 
     implicit def idSuccessHandler: SuccessHandler[Id] = { rsp =>
       rsp.body.right getOrElse { throw HttpFailure(rsp) }
