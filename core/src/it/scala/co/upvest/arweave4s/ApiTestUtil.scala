@@ -2,7 +2,6 @@ package co.upvest.arweave4s
 
 import co.upvest.arweave4s.adt.{Wallet, Winston, Data}
 import co.upvest.arweave4s.utils.CryptoUtils
-import cats.implicits._
 
 import scala.util.{Try, Random}
 import scala.io.Source
@@ -12,18 +11,19 @@ object ApiTestUtil {
   val TestHost = "165.227.40.8:1984"
 
   object TestAccount {
-    lazy val wallet = {
-      val mkf = Try {
-        Source.fromResource("keyfile.json")
-      } filter { _.nonEmpty } toOption
-
-      val mev = for {
-        s <- sys.env get "TESTNET_ACCOUNT_KEYFILE"
-        bs <- CryptoUtils.base64UrlDecode(s)
-      } yield Source fromBytes bs
-
-      mkf orElse mev >>= Wallet.load get
-    }
+    lazy val wallet: Wallet = (
+        for {
+          s <- Try { Source fromResource "keyfile.json" }.toOption
+          w <- Wallet load s if s.nonEmpty
+        } yield w
+      ) orElse (
+        for {
+          str <- sys.env get "TESTNET_ACCOUNT_KEYFILE"
+          bs <- CryptoUtils base64UrlDecode str
+          s = Source fromBytes bs
+          w <- Wallet load s
+        } yield w
+      ) get
 
     lazy val address = wallet.address
   }
