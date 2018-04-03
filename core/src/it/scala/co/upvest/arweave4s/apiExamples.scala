@@ -1,13 +1,14 @@
 package co.upvest.arweave4s
 
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import co.upvest.arweave4s.adt.{Wallet, Winston, Transaction}
+import co.upvest.arweave4s.adt.{Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{WordSpec, Matchers, GivenWhenThen}
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.tagobjects.Slow
-
 import cats.Id
+
+import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually with BlockchainPatience {
@@ -54,6 +55,14 @@ class apiExamples extends WordSpec
       eventually {
         api.address.balance(beneficiary) shouldBe quantity
       }
+    }
+
+    "be abole to use for-comprehensions" in {
+      implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend())
+
+      val testData = "Some data to persist forever!, Hi Mom!")
+
+      api.price.estimate()
     }
   }
 }

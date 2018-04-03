@@ -29,7 +29,6 @@ object ApiTestUtil {
   }
 
 
-
   def randomWinstons(
     upperBound: Winston = Winston.AR,
     lowerBound: Winston = Winston.Zero): Winston = Winston(
@@ -48,6 +47,6 @@ object ApiTestUtil {
   def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data = {
     val bs = new Array[Byte](randomPositiveLong(upperBound, lowerBound).toInt)
     Random.nextBytes(bs)
-    new Data(bs)
+    Data(bs)
   }
 }
