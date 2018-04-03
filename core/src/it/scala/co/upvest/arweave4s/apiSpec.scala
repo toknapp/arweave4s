@@ -41,7 +41,7 @@ class apiSpec extends WordSpec
   implicit val idRunner: Id ~> Id = FunctionK.id
   implicit val tryRunner: Try ~> Id = λ[Try ~> Id]{ _.get }
   implicit val eTFRunner: λ[α => EitherT[Future, Failure, α]] ~> Id =
-    λ[λ[α => EitherT[Future, Failure, α]] ~> Id] { eTF =>
+    λ[λ[α => EitherT[Future, Failure, α]] ~> Id] { eTF : EitherT[Future, Failure, _] =>
       whenReady(eTF.value) {
         case Left(e) => throw e
         case Right(a) => a
@@ -57,15 +57,15 @@ class apiSpec extends WordSpec
 
       "the block api" should {
         "return the current block" in {
-          run { block.current() } shouldBe a[Block]
+          run[Block] { block.current() } shouldBe a[Block]
         }
 
         "return a valid block by hash" in {
-          run { block.get(validBlock) } shouldBe a[Block]
+          run[Block] { block.get(validBlock) } shouldBe a[Block]
         }
 
         "return a valid block by height" in {
-          run { block.get(BigInt(100)) } shouldBe a[Block]
+          run[Block] { block.get(BigInt(100)) } shouldBe a[Block]
         }
 
         "fail when a block does not exist (by hash)" in {
@@ -87,22 +87,22 @@ class apiSpec extends WordSpec
         }
 
         "return none when no last transaction" in {
-          run { address.lastTx(arbitraryWallet) } shouldBe empty
+          run[Option[Transaction.Id]] { address.lastTx(arbitraryWallet) } shouldBe empty
         }
 
         "return a positive balance" in {
-          run { address.balance(TestAccount.address) }
+          run[Winston] { address.balance(TestAccount.address) }
             .amount should be > BigInt(0)
         }
 
         "return a zero balance" in {
-          run { address.balance(arbitraryWallet) } shouldBe Winston.Zero
+          run[Winston] { address.balance(arbitraryWallet) } shouldBe Winston.Zero
         }
       }
 
       "tre price api" should {
         "return a valid (positive) price" in {
-          run { price.estimateForBytes(BigInt(10)) }
+          run[Winston] { price.estimateForBytes(BigInt(10)) }
             .amount should be > BigInt(0)
         }
 
@@ -111,8 +111,8 @@ class apiSpec extends WordSpec
           val q = randomPositiveBigInt(100, 0)
           val y = x * q
 
-          val px = run { price.estimateForBytes(x) }.amount
-          val py = run { price.estimateForBytes(y) }.amount
+          val px = run[Winston] { price.estimateForBytes(x) }.amount
+          val py = run[Winston] { price.estimateForBytes(y) }.amount
 
           py / px shouldBe q
         }
@@ -120,7 +120,7 @@ class apiSpec extends WordSpec
 
       "the transaction api" should {
         "return valid transaction" in {
-          run { tx.get(validTxId) }.id shouldBe validTxId
+          run[Transaction] { tx.get(validTxId) }.id shouldBe validTxId
         }
 
         "submit a transfer transaction" in {
@@ -135,7 +135,7 @@ class apiSpec extends WordSpec
             reward = randomWinstons()
           ).sign(owner)
 
-          run { tx.submit(stx) } shouldBe (())
+          run[Unit] { tx.submit(stx) } shouldBe Unit
         }
 
         "submit a data transaction" in {
@@ -151,7 +151,7 @@ class apiSpec extends WordSpec
             reward = estCost
           ).sign(owner)
 
-          run { tx.submit(stx) } shouldBe (())
+          run[Unit] { tx.submit(stx) } shouldBe Unit
         }
       }
     }
