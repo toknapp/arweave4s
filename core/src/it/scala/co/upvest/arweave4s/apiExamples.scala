@@ -1,18 +1,22 @@
 package co.upvest.arweave4s
 
+import java.util.concurrent.Executors
+
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import co.upvest.arweave4s.adt.{Transaction, Wallet, Winston}
+import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.tagobjects.Slow
 import cats.Id
-
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
+
+import scala.concurrent.ExecutionContext
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually with BlockchainPatience {
   import ApiTestUtil._
+
 
   "An api axample" should {
     "be able to use Id" taggedAs(Slow) in {
@@ -58,11 +62,39 @@ class apiExamples extends WordSpec
     }
 
     "be abole to use for-comprehensions" in {
+
       implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend())
+      import api.future._
 
-      val testData = "Some data to persist forever!, Hi Mom!")
+      implicit val ec = apiExamples.ec
 
-      api.price.estimate()
+      Given("some test data that will last forever")
+
+      val testData = Data("Hi Mom!".getBytes("UTF-8"))
+
+      And("a wallet")
+      val wallet = TestAccount.wallet
+
+      Then("a transaction should be successful")
+
+      for {
+        price    <- api.price.estimate(testData)
+        lastTx   <- api.address.lastTx(wallet)
+        ()       <- api.tx.submit(
+          Transaction.Data(
+            id     = Transaction.Id.generate(),
+            lastTx = lastTx,
+            owner  = wallet,
+            data   = testData,
+            reward = price
+        ).sign(wallet))
+      } yield ()
     }
   }
 }
+
+object apiExamples {
+  implicit lazy val ec:ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2))
+}
+
+

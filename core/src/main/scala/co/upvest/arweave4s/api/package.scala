@@ -12,6 +12,7 @@ import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Response, SttpBackend, UriContext, sttp}
 import io.circe
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
 import scala.util.Try
 
@@ -106,12 +107,49 @@ package object api {
       }
     }
 
+
     implicit def idSuccessHandler: SuccessHandler[Id] = { rsp =>
       rsp.body.right getOrElse { throw HttpFailure(rsp) }
     }
   }
 
+
   object id extends IdInstances
+
+  trait FutureInstances {
+    implicit def futureJsonHandler(implicit ec:ExecutionContext): JsonHandler[Future] =
+      new (λ[α => Future[Response[Either[circe.Error, α]]]] ~> Future){
+        override def apply[A](frsp: Future[Response[Either[circe.Error, A]]])=
+          frsp map { rsp =>
+            rsp.body match {
+              case Left(_) => throw HttpFailure(rsp)
+              case Right(Left(e)) => throw DecodingFailure(e)
+              case Right(Right(a)) => a
+          }}
+      }
+
+    implicit def futureJsonHandlerEncodedStringHandler(implicit ec:ExecutionContext): EncodedStringHandler[Future] =
+      new (λ[α => Future[Response[Option[α]]]] ~> Future) {
+        override def apply[A](frsp: Future[Response[Option[A]]]) =
+          frsp map { rsp =>
+            rsp.body match {
+              case Left(_) => throw HttpFailure(rsp)
+              case Right(None) => throw InvalidEncoding
+              case Right(Some(a)) => a
+            }
+        }
+    }
+
+    implicit def futureJsonHandlerSuccessHandler(implicit ec:ExecutionContext): SuccessHandler[Future] = { frsp =>
+      frsp.flatMap { rsp =>
+        rsp.body
+          .map(Future.successful)
+          .getOrElse(Future.failed(HttpFailure(rsp)))
+      }
+    }
+  }
+
+  object future extends FutureInstances
 
   object block {
     def current[F[_], G[_]]()(implicit
