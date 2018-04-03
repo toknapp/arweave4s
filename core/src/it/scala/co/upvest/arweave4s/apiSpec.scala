@@ -3,9 +3,8 @@ package co.upvest.arweave4s
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
-import org.scalatest.{WordSpec, Matchers, Inside}
-import org.scalatest.concurrent.{ScalaFutures, IntegrationPatience}
-
+import org.scalatest.{Inside, Matchers, WordSpec}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import cats.{Id, ~>}
 import cats.data.EitherT
 import cats.arrow.FunctionK
@@ -30,7 +29,9 @@ class apiSpec extends WordSpec
   val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
       host = TestHost,
       AsyncHttpClientFutureBackend(),
-      i = λ[Future ~> EitherT[Future, Failure, ?]]{ EitherT liftF _ }
+      i = new (Future ~> EitherT[Future,Failure, ?]) {
+        override def apply[A](fa: Future[A]) = EitherT liftF fa
+      }
     )
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
@@ -38,14 +39,21 @@ class apiSpec extends WordSpec
   val Some(validBlock) = Block.IndepHash.fromEncoded("cOplqTqwO-JiUUfiJcl-KbD_9qpt3TPVdojgz-QB5h0")
   val Some(validTxId) = Transaction.Id.fromEncoded("3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU")
 
+
   implicit val idRunner: Id ~> Id = FunctionK.id
-  implicit val tryRunner: Try ~> Id = λ[Try ~> Id]{ _.get }
-  implicit val eTFRunner: λ[α => EitherT[Future, Failure, α]] ~> Id =
-    λ[λ[α => EitherT[Future, Failure, α]] ~> Id] { eTF =>
-      whenReady(eTF.value) {
-        case Left(e) => throw e
-        case Right(a) => a
-      }
+
+  implicit val tryRunner: Try ~> Id = new (Try ~> Id) {
+    override def apply[A](fa: Try[A]): A = fa.get
+  }
+
+
+  implicit val eTFRunner = new (λ[α => EitherT[Future, Failure, α]] ~> Id) {
+      override def apply[A](fa: EitherT[Future, Failure, A]): A =
+        whenReady(fa.value) {
+          case Left(e) => throw e
+          case Right(a) => a
+        }
+
     }
 
   def apiBehavior[F[_], G[_]](c: AbstractConfig[F, G])(implicit
@@ -53,19 +61,20 @@ class apiSpec extends WordSpec
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
     run: F ~> Id) {
+
       implicit val _ = c
 
       "the block api" should {
         "return the current block" in {
-          run { block.current() } shouldBe a[Block]
+          run[Block] { block.current() } shouldBe a[Block]
         }
 
         "return a valid block by hash" in {
-          run { block.get(validBlock) } shouldBe a[Block]
+          run[Block] { block.get(validBlock) } shouldBe a[Block]
         }
 
         "return a valid block by height" in {
-          run { block.get(BigInt(100)) } shouldBe a[Block]
+          run[Block] { block.get(BigInt(100)) } shouldBe a[Block]
         }
 
         "fail when a block does not exist (by hash)" in {
@@ -87,22 +96,23 @@ class apiSpec extends WordSpec
         }
 
         "return none when no last transaction" in {
-          run { address.lastTx(arbitraryWallet) } shouldBe empty
+          run[Option[Transaction.Id]] { address.lastTx(arbitraryWallet) } shouldBe empty
         }
 
         "return a positive balance" in {
-          run { address.balance(TestAccount.address) }
+          run[Winston] { address.balance(TestAccount.address) }
             .amount should be > BigInt(0)
         }
 
         "return a zero balance" in {
-          run { address.balance(arbitraryWallet) } shouldBe Winston.Zero
+          run[Winston] { address.balance(arbitraryWallet) } shouldBe Winston.Zero
+
         }
       }
 
       "tre price api" should {
         "return a valid (positive) price" in {
-          run { price.estimateForBytes(BigInt(10)) }
+          run[Winston] { price.estimateForBytes(BigInt(10)) }
             .amount should be > BigInt(0)
         }
 
@@ -111,8 +121,8 @@ class apiSpec extends WordSpec
           val q = randomPositiveBigInt(100, 0)
           val y = x * q
 
-          val px = run { price.estimateForBytes(x) }.amount
-          val py = run { price.estimateForBytes(y) }.amount
+          val px = run[Winston] { price.estimateForBytes(x) }.amount
+          val py = run[Winston] { price.estimateForBytes(y) }.amount
 
           py / px shouldBe q
         }
@@ -120,7 +130,7 @@ class apiSpec extends WordSpec
 
       "the transaction api" should {
         "return valid transaction" in {
-          run { tx.get(validTxId) }.id shouldBe validTxId
+          run[Transaction] { tx.get(validTxId) }.id shouldBe validTxId
         }
 
         "submit a transfer transaction" in {
@@ -135,7 +145,7 @@ class apiSpec extends WordSpec
             reward = randomWinstons()
           ).sign(owner)
 
-          run { tx.submit(stx) } shouldBe (())
+          run[Unit] { tx.submit(stx) } shouldBe Unit
         }
 
         "submit a data transaction" in {
@@ -151,7 +161,7 @@ class apiSpec extends WordSpec
             reward = estCost
           ).sign(owner)
 
-          run { tx.submit(stx) } shouldBe (())
+          run[Unit] { tx.submit(stx) } shouldBe Unit
         }
       }
     }
