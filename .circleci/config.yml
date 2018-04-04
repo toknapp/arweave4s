@@ -119,4 +119,4 @@ workflows:
       - release-snapshot:
           filters:
             branches:
-              only: development
+              only: develop
