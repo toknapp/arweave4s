@@ -1,4 +1,3 @@
-import sbtrelease.ReleaseStateTransformations._
 // *****************************************************************************
 // Projects
 // *****************************************************************************
@@ -107,13 +106,15 @@ lazy val commonSettings = Seq(
   (compile in Compile)        := ((compile in Compile) dependsOn compileScalastyle).value
 )
 
-
 lazy val credentialSettings = Seq(
   credentials ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
     password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
+
+import sbtrelease.ReleaseStateTransformations._
+import sbtrelease.Version
 
 pgpPassphrase in Scope.Global := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray)
 
@@ -122,6 +123,7 @@ lazy val sharedPublishSettings = Seq(
   pgpReadOnly := false,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,
+  releaseVersionBump := Version.Bump.Minor,
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
