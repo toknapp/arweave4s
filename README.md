@@ -15,8 +15,8 @@ Arweave4s is a lightweight modular http client for the [Arweave blockchain](http
 The core of Arweave4s is based on the [sttp http client](https://github.com/softwaremill/sttp), this allow to use it with 
 different [http backends of your choice](http://sttp.readthedocs.io/en/latest/), such as akka-http, Moniz, OkHttp, Scalaz Streams, plain Futures, synchronously and many more.
 
-The response handling is designed to be as flexible as the backend. By providing an implicit handling context the response will be the monad of your choice `Try`, `Future` 
-or a plain `T` and `Exception`. 
+The response handling is designed to be as flexible as the backend. By providing implicit response handlers for the monad of your choice `Try`, `Future` 
+`EitherT`, or plain old throw exceptions like it's 1999.  
 
 The current version implements the [following endpoints](https://raw.githubusercontent.com/ArweaveTeam/arweave/master/http_iface_docs.md) 
 
@@ -33,7 +33,7 @@ The current version implements the [following endpoints](https://raw.githubuserc
 * GET nodes peer list
 * POST transaction to network
 
-Additionally the client supports **wallet generation** and **transaction signing** compliant to (RSA-PSS). 
+Additionally the client supports **wallet generation** and **transaction signing**
 
 ### Quickstart
 
@@ -42,7 +42,7 @@ Add the following dependency
 ```
 "co.upvest" %% "arweave4s-core" % "0.0.1"
 ```
-then create a configuration context and weave-it-up :)
+then create a configuration context and weave-it-up.
 
 ```
  implicit val c = api.Config(host = TestHost, HttpURLConnectionBackend())
@@ -86,7 +86,7 @@ Lets put some data on the Arweave blockchain!
       } yield ()
       
 ```
-Woula, we persisted the data on the blockchain!
+Voilà, we persisted the data on the blockchain!
 
 
 ### Contact
@@ -97,7 +97,7 @@ For more information to Arweave protocol, check the [Arweave whitepaper](https:/
 and visit them on [Github](https://github.com/ArweaveTeam/arweave).
 
 
-### Caveats
+### Cavecats _[sic]_(https://www.youtube.com/watch?v=a0SuhNn8S60) 
 
 Copyright 2018 Ivan Morozov, Gustav Behm, Tokn GmbH (https://upvest.co)
 
