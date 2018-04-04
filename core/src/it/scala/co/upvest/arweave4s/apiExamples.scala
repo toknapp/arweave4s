@@ -28,7 +28,6 @@ class apiExamples extends WordSpec
 
       And("a wallet")
       val wallet: Wallet = TestAccount.wallet
-
       And("that it has enough funds in it")
       val reward = randomWinstons()
       // TODO: val requiredFunds = reward + quantity
@@ -61,12 +60,14 @@ class apiExamples extends WordSpec
       }
     }
 
-    "be abole to use for-comprehensions" in {
+    "be able to use for-comprehensions" in {
 
       implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend())
       import api.future._
 
       implicit val ec = apiExamples.ec
+
+
 
       Given("some test data that will last forever")
 

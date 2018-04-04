@@ -8,17 +8,93 @@
 
 
 
-
 ### Overview
 
-Arweave4s is a lightweight modular http client for the Arweave blockchain (https://github.com/ArweaveTeam/arweave/)
+Arweave4s is a lightweight modular http client for the [Arweave blockchain](https://github.com/ArweaveTeam/arweave/)
 
-### Scaladoc
+The core of Arweave4s is based on the [sttp http client](https://github.com/softwaremill/sttp), this allow to use it with 
+different [http backends of your choice](http://sttp.readthedocs.io/en/latest/), such as akka-http, Moniz, OkHttp, Scalaz Streams, plain Futures, synchronously and many more.
+
+The response handling is designed to be as flexible as the backend. By providing an implicit handling context the response will be the monad of your choice `Try`, `Future` 
+or a plain `T` and `Exception`. 
+
+The current version implements the [following endpoints](https://raw.githubusercontent.com/ArweaveTeam/arweave/master/http_iface_docs.md) 
+
+* GET network information
+* GET full transaction via ID
+* GET specific transaction fields via ID
+* GET transaction body as HTML via ID
+* GET estimated transaction price
+* GET block via ID
+* GET block via height
+* GET current block
+* GET wallet balance via address
+* GET last transaction via address
+* GET nodes peer list
+* POST transaction to network
+
+Additionally the client supports **wallet generation** and **transaction signing** compliant to (RSA-PSS). 
+
+### Quickstart
+
+Add the following dependency
+
+```
+"co.upvest" %% "arweave4s-core" % "0.0.1"
+```
+then create a configuration context and weave-it-up :)
+
+```
+ implicit val c = api.Config(host = TestHost, HttpURLConnectionBackend())
+ import api.id._
+ 
+ api.block.current()
+ res1: Block = ...
+```
+
+### Examples
+
+Lets put some data on the Arweave blockchain!
+```
+ // Create configuration. Set the sttp's async backend for returning Futures
+ implicit val _ = api.Config(host = TestHost, AsyncHttpClientFutureBackend())
+ 
+ // Import response handler for Future
+ import api.future._
+ import scala.concurrent.ExecutionContext.global
+ 
+ // Data to persist on the blockchain.
+ val testData = Data("Hi Mom!".getBytes("UTF-8"))
+ 
+ // Let's get a new wallet
+ val wallet = Wallet.generate()
+ for {
+      // using the API method to estimate the price for the transaction in `Winstons`
+      price    <- api.price.estimate(testData)
+      // Get the last transaction of the sender wallet
+      lastTx   <- api.address.lastTx(wallet)
+      // Construct and send the transaction.
+      ()       <- api.tx.submit(Transaction.Data(
+            id     = Transaction.Id.generate(),
+            lastTx = lastTx,
+            owner  = wallet,
+            data   = testData,
+            reward = price)
+            // Here we actually sign our transaction
+            .sign(wallet)
+          )
+      } yield ()
+      
+```
+Woula, we persisted the data on the blockchain!
 
 
 ### Contact
 
 By questions, comments or suggestions feel free to get in touch by creating an PR or an issue.
+
+For more information to Arweave protocol, check the [Arweave whitepaper](https://www.arweave.org/files/arweave-whitepaper.pdf)
+and visit them on [Github](https://github.com/ArweaveTeam/arweave).
 
 
 ### Caveats
