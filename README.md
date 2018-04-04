@@ -97,7 +97,7 @@ For more information to Arweave protocol, check the [Arweave whitepaper](https:/
 and visit them on [Github](https://github.com/ArweaveTeam/arweave).
 
 
-### Cavecats _[sic]_(https://www.youtube.com/watch?v=a0SuhNn8S60) 
+### Cavecats [sic](https://www.youtube.com/watch?v=a0SuhNn8S60) 
 
 Copyright 2018 Ivan Morozov, Gustav Behm, Tokn GmbH (https://upvest.co)
 
