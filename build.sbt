@@ -116,7 +116,7 @@ lazy val credentialSettings = Seq(
 import sbtrelease.ReleaseStateTransformations._
 import sbtrelease.Version
 
-lazy val sharedPublishSettings = Seq(
+lazy val releaseSettings = Seq(
   releaseTagName := tagName.value,
   pgpReadOnly := true,
   pgpSigningKey := Some(5475909627322236304L),
@@ -170,7 +170,7 @@ lazy val publishSettings = Seq(
       </developer>
     </developers>
     )
-) ++ credentialSettings ++ sharedPublishSettings ++ sharedPublishSettings
+) ++ credentialSettings ++ releaseSettings
 
 
 
