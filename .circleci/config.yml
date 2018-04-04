@@ -67,7 +67,7 @@ jobs:
     <<: *sbt-build
     resource_class: large
     environment:
-      SBT_COMMAND: "publishSigned"
+      SBT_COMMAND: "core/publishSigned"
 
 workflows:
   version: 2
