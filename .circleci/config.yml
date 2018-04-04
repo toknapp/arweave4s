@@ -85,17 +85,6 @@ workflows:
             branches:
               ignore: master
               ignore: develop
-  cd:
-    jobs:
-      - test
-      - integration-test-fast
-      - release-snapshot:
-          filters:
-            branches:
-              only: develop
-          requires:
-             - test
-             - integration-test-fast
 
   nightly:
     triggers:
