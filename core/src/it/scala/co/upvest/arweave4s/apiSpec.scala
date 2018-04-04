@@ -60,7 +60,7 @@ class apiSpec extends WordSpec
     jh: JsonHandler[F],
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
-    run: F ~> Id) {
+    run: F ~> Id): Unit = {
 
       implicit val _ = c
 

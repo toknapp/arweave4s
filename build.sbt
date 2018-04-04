@@ -76,7 +76,7 @@ lazy val compileScalastyle  = taskKey[Unit]("compileScalastyle")
 
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.5",
   organization := "co.upvest",
   scalacOptions ++= Seq(
     "-unchecked",
@@ -94,7 +94,10 @@ lazy val commonSettings = Seq(
     "-Ywarn-nullary-unit",
     "-Ywarn-unused-import",
     "-Ypartial-unification",
-    "-Xmacro-settings:materialize-derivations"
+    "-Xmacro-settings:materialize-derivations",
+    "-Xfuture",
+    "-Ycache-plugin-class-loader:last-modified",
+    "-Ycache-macro-class-loader:last-modified"
   ),
   scalacOptions in (Compile, console) ~= {
     _ filterNot (_ == "-Ywarn-unused-import")
@@ -171,6 +174,3 @@ lazy val publishSettings = Seq(
     </developers>
     )
 ) ++ credentialSettings ++ releaseSettings
-
-
-
