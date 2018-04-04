@@ -149,6 +149,7 @@ lazy val releaseSettings = Seq(
     publishArtifacts,
     setNextVersion,
     commitNextVersion,
+    releaseStepCommand("sonatypeReleaseAll"),
     pushChanges
   )
 )
