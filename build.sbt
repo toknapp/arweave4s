@@ -127,6 +127,7 @@ lazy val sharedPublishSettings = Seq(
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
+  releaseCommitMessage := s"Setting version to ${version in ThisBuild}\n\n[skip ci]",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)

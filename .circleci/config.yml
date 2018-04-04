@@ -1,4 +1,3 @@
-
 version: 2
 
 
@@ -10,6 +9,8 @@ sbt-build: &sbt-build
     - run: echo $PGP_PUB | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
     - run: echo $PGP_PASS | gpg --batch --allow-secret-key-import --passphrase-fd 0 --import ~/.sbt/gpg/secring.asc
     - run: git config --global user.signingkey 5C90DFE428FC2B33
+    - run: git config --global user.email ivan@upvest.co
+    - run: git config --global user.name "Upvest/Arweave4s"
     - checkout
     - setup_remote_docker:
         docker_layer_caching: true
@@ -104,6 +105,5 @@ workflows:
   release:
     jobs:
       - release-core:
-          filters:
-            branches:
-              ignore: release-cycle
+          branches:
+            only: release-cycle
