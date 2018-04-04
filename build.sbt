@@ -116,11 +116,11 @@ lazy val credentialSettings = Seq(
 import sbtrelease.ReleaseStateTransformations._
 import sbtrelease.Version
 
-pgpPassphrase in Scope.Global := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray)
-
 lazy val sharedPublishSettings = Seq(
   releaseTagName := tagName.value,
-  pgpReadOnly := false,
+  pgpReadOnly := true,
+  pgpPassphrase := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray),
+  pgpSigningKey := Some(6670077219168856883L),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,
   releaseVersionBump := Version.Bump.Minor,

@@ -8,6 +8,8 @@ sbt-build: &sbt-build
   steps:
     - run: mkdir ~/.sbt/gpg
     - run: echo $PGP_PUB | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
+    - run: echo $PGP_PASS | gpg --batch --allow-secret-key-import --passphrase-fd 0 --import ~/.sbt/gpg/secring.asc
+    - run: git config --global user.signingkey 5C90DFE428FC2B33
     - checkout
     - setup_remote_docker:
         docker_layer_caching: true
@@ -52,11 +54,11 @@ jobs:
     environment:
       SBT_COMMAND: "it:test"
 
-  release-snapshot:
+  release-core:
     <<: *sbt-build
     resource_class: large
     environment:
-      SBT_COMMAND: "core/publishSigned"
+      SBT_COMMAND: "; project core; release with-defaults"
 
 workflows:
   version: 2
@@ -98,3 +100,10 @@ workflows:
     jobs:
       - test
       - integration-test-all
+
+  release:
+    jobs:
+      - release-core:
+          filters:
+            branches:
+              ignore: release-cycle
