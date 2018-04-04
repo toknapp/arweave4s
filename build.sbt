@@ -138,6 +138,10 @@ lazy val releaseSettings = Seq(
     else
       Some("Releases" at nexus + "service/local/staging/deploy/maven2")
   },
+  publishConfiguration := publishConfiguration.value.withOverwrite(isSnapshot.value),
+  PgpKeys.publishSignedConfiguration := PgpKeys.publishSignedConfiguration.value.withOverwrite(isSnapshot.value),
+  publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(isSnapshot.value),
+  PgpKeys.publishLocalSignedConfiguration := PgpKeys.publishLocalSignedConfiguration.value.withOverwrite(isSnapshot.value),
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
