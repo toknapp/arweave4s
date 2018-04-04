@@ -8,7 +8,7 @@ import scala.io.Source
 
 object ApiTestUtil {
 
-  val TestHost = "165.227.40.8:1984"
+  val TestHost = "207.154.238.1:1984"
 
   object TestAccount {
     lazy val wallet: Wallet = (
@@ -29,7 +29,6 @@ object ApiTestUtil {
   }
 
 
-
   def randomWinstons(
     upperBound: Winston = Winston.AR,
     lowerBound: Winston = Winston.Zero): Winston = Winston(
@@ -48,6 +47,6 @@ object ApiTestUtil {
   def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data = {
     val bs = new Array[Byte](randomPositiveLong(upperBound, lowerBound).toInt)
     Random.nextBytes(bs)
-    new Data(bs)
+    Data(bs)
   }
 }

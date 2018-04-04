@@ -145,7 +145,7 @@ class apiSpec extends WordSpec
             reward = randomWinstons()
           ).sign(owner)
 
-          run[Unit] { tx.submit(stx) } shouldBe Unit
+          run[Unit] { tx.submit(stx) } shouldBe (())
         }
 
         "submit a data transaction" in {
@@ -161,7 +161,7 @@ class apiSpec extends WordSpec
             reward = estCost
           ).sign(owner)
 
-          run[Unit] { tx.submit(stx) } shouldBe Unit
+          run[Unit] { tx.submit(stx) } shouldBe (())
         }
       }
     }
