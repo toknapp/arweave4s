@@ -134,7 +134,7 @@ lazy val sharedPublishSettings = Seq(
       Some("Snapshots" at nexus + "content/repositories/snapshots")
     else
       Some("Releases" at nexus + "service/local/staging/deploy/maven2")
-  }
+  },
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
@@ -145,7 +145,7 @@ lazy val sharedPublishSettings = Seq(
     tagRelease,
     publishArtifacts,
     setNextVersion,
-    commitNextVersion
+    commitNextVersion,
     pushChanges
   )
 )
