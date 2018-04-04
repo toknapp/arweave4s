@@ -74,17 +74,8 @@ workflows:
 
   ci:
     jobs:
-      - test:
-          filters:
-            branches:
-              ignore: master
-              ignore: develop
-
-      - integration-test-fast:
-          filters:
-            branches:
-              ignore: master
-              ignore: develop
+      - test
+      - integration-test-fast
 
   nightly:
     triggers:
