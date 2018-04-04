@@ -9,7 +9,7 @@ trait CirceComplaints {
   }
 
   implicit class DecoderResultComplainer[T](d: Decoder.Result[Option[T]]) {
-    def orComplain: Decoder.Result[T] = d map { _ orComplain } joinRight
+    def orComplain: Decoder.Result[T] = d.right map { _ orComplain } joinRight
   }
 }
 

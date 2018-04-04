@@ -21,12 +21,13 @@ trait EmptyStringAsNoneImplicits {
     }
   }
 
-  implicit def emptyStringAsNoneDecoder[T: Decoder]: Decoder[EmptyStringAsNone[T]] = {
-    c => c.as[String] >>= {
-      case "" => EmptyStringAsNone(None).pure
-      case _ => c.as[T] map { (t: T) => EmptyStringAsNone(Some(t)) }
+  implicit def emptyStringAsNoneDecoder[T: Decoder]: Decoder[EmptyStringAsNone[T]] =
+    Decoder.instance {
+      c => c.as[String] >>= {
+        case "" => EmptyStringAsNone(None).pure
+        case _ => c.as[T].right map { (t: T) => EmptyStringAsNone(Some(t)) }
+      }
     }
-  }
 }
 
 object EmptyStringAsNone extends EmptyStringAsNoneImplicits {

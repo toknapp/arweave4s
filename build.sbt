@@ -77,6 +77,7 @@ lazy val compileScalastyle  = taskKey[Unit]("compileScalastyle")
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
+  crossScalaVersions := Seq(scalaVersion.value, "2.11.11"),
   organization := "co.upvest",
   scalacOptions ++= Seq(
     "-unchecked",

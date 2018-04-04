@@ -11,6 +11,9 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 
+import cats.syntax.flatMap._
+import cats.instances.either._
+
 import scala.io.Source
 import scala.language.implicitConversions
 import scala.util.Try
@@ -46,8 +49,8 @@ object Wallet extends WalletMarshallers {
   def load(s: Source): Option[Wallet] =
     for {
       str <- Try { s.mkString }.toOption
-      json <- parse(str).toOption
-      w    <- json.as[Wallet].toOption
+      json <- parse(str).right.toOption
+      w    <- json.as[Wallet].right.toOption
     } yield w
 
   def loadFile(filename: String): Option[Wallet] =
@@ -69,9 +72,9 @@ object Wallet extends WalletMarshallers {
 trait WalletMarshallers {
   import UnsignedBigIntMarshallers._
 
-  implicit lazy val keyfileToWalletDecoder: Decoder[Wallet] = c =>
-    for {
-      _ <- c.downField("kty").as[String] flatMap {
+  implicit lazy val keyfileToWalletDecoder: Decoder[Wallet] =
+    Decoder.instance { c => for {
+      _ <- c.downField("kty").as[String] >>= {
         case "RSA" => Right(())
         case _     => Left(DecodingFailure("unknown kty", Nil))
       }
@@ -82,31 +85,34 @@ trait WalletMarshallers {
       q  <- c.downField("q").as[BigInteger]
       dp <- c.downField("dp").as[BigInteger]
       dq <- c.downField("dq").as[BigInteger]
-      qi <- c.downField("qi").as[BigInteger]
-    } yield {
-      val kf = KeyFactory.getInstance("RSA")
-      Wallet(
-        kf.generatePublic(
-            new RSAPublicKeySpec(n, e)
-          )
-          .asInstanceOf[RSAPublicKey],
-        kf.generatePrivate(
-            new RSAPrivateCrtKeySpec(n, e, d, p, q, dp, dq, qi)
-          )
-          .asInstanceOf[RSAPrivateCrtKey]
-      )
+      qi <- c.downField("qi").as[BigInteger].right
+     } yield {
+       val kf = KeyFactory.getInstance("RSA")
+       Wallet(
+         kf.generatePublic(
+           new RSAPublicKeySpec(n, e)
+         )
+           .asInstanceOf[RSAPublicKey],
+           kf.generatePrivate(
+             new RSAPrivateCrtKeySpec(n, e, d, p, q, dp, dq, qi)
+           )
+             .asInstanceOf[RSAPrivateCrtKey]
+           )
+     }
   }
 
-  implicit lazy val walletToKeyfileEncoder: Encoder[Wallet] = w =>
-    Json.obj(
-      ("kty", "RSA".asJson),
-      ("e", w.pub.getPublicExponent.asJson),
-      ("n", w.pub.getModulus.asJson),
-      ("d", w.priv.getPrivateExponent.asJson),
-      ("p", w.priv.getPrimeP.asJson),
-      ("q", w.priv.getPrimeQ.asJson),
-      ("dp", w.priv.getPrimeExponentP.asJson),
-      ("dq", w.priv.getPrimeExponentQ.asJson),
-      ("qi", w.priv.getCrtCoefficient.asJson)
-  )
+  implicit lazy val walletToKeyfileEncoder: Encoder[Wallet] =
+    Encoder.instance { w =>
+      Json.obj(
+        ("kty", "RSA".asJson),
+        ("e", w.pub.getPublicExponent.asJson),
+        ("n", w.pub.getModulus.asJson),
+        ("d", w.priv.getPrivateExponent.asJson),
+        ("p", w.priv.getPrimeP.asJson),
+        ("q", w.priv.getPrimeQ.asJson),
+        ("dp", w.priv.getPrimeExponentP.asJson),
+        ("dq", w.priv.getPrimeExponentQ.asJson),
+        ("qi", w.priv.getCrtCoefficient.asJson)
+      )
+    }
 }

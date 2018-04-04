@@ -31,7 +31,7 @@ package object api {
   case class Config[F[_]](
     host: String, backend: SttpBackend[F, _]
   ) extends AbstractConfig[F, F] {
-    override val i = FunctionK.id
+    override val i = FunctionK.id[F]
   }
 
   case class FullConfig[F[_], G[_]](
