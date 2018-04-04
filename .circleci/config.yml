@@ -105,5 +105,6 @@ workflows:
   release:
     jobs:
       - release-core:
-          branches:
-            only: release-cycle
+          filters:
+            branches:
+              only: release-process
