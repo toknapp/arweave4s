@@ -127,7 +127,7 @@ lazy val sharedPublishSettings = Seq(
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  releaseCommitMessage := s"Setting version to ${version in ThisBuild}\n\n[skip ci]",
+  releaseCommitMessage := s"Bumping version\n\n[skip ci]",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -135,25 +135,20 @@ lazy val sharedPublishSettings = Seq(
     else
       Some("Releases" at nexus + "service/local/staging/deploy/maven2")
   }
-)
-
-lazy val sharedReleaseProcess = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
     runClean,
-    releaseStepCommand("validate"),
+    runTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
     publishArtifacts,
     setNextVersion,
-    commitNextVersion,
-    releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges)
+    commitNextVersion
+    pushChanges
+  )
 )
-
-
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://github.com/toknapp/arweave4s")),
