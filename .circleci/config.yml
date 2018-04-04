@@ -12,6 +12,7 @@ sbt-build: &sbt-build
     - run: git config --global user.email ivan@upvest.co
     - run: git config --global user.name "Upvest/Arweave4s"
     - checkout
+    - run: git branch -u origin/$CIRCLE_BRANCH
     - setup_remote_docker:
         docker_layer_caching: true
         version: 17.09.0-ce
