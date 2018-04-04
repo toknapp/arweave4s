@@ -1,4 +1,3 @@
-import sbtrelease.ReleaseStateTransformations._
 // *****************************************************************************
 // Projects
 // *****************************************************************************
@@ -77,7 +76,7 @@ lazy val compileScalastyle  = taskKey[Unit]("compileScalastyle")
 
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.5",
   organization := "co.upvest",
   scalacOptions ++= Seq(
     "-unchecked",
@@ -95,7 +94,10 @@ lazy val commonSettings = Seq(
     "-Ywarn-nullary-unit",
     "-Ywarn-unused-import",
     "-Ypartial-unification",
-    "-Xmacro-settings:materialize-derivations"
+    "-Xmacro-settings:materialize-derivations",
+    "-Xfuture",
+    "-Ycache-plugin-class-loader:last-modified",
+    "-Ycache-macro-class-loader:last-modified"
   ),
   scalacOptions in (Compile, console) ~= {
     _ filterNot (_ == "-Ywarn-unused-import")
@@ -107,7 +109,6 @@ lazy val commonSettings = Seq(
   (compile in Compile)        := ((compile in Compile) dependsOn compileScalastyle).value
 )
 
-
 lazy val credentialSettings = Seq(
   credentials ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
@@ -115,31 +116,33 @@ lazy val credentialSettings = Seq(
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq
 )
 
-pgpPassphrase in Scope.Global := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray)
+import sbtrelease.ReleaseStateTransformations._
+import sbtrelease.Version
 
-lazy val sharedPublishSettings = Seq(
+lazy val releaseSettings = Seq(
   releaseTagName := tagName.value,
-  pgpReadOnly := false,
+  pgpReadOnly := true,
+  pgpSigningKey := Some(5475909627322236304L),
+  pgpPassphrase := Some(Array.empty),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,
+  releaseVersionBump := Version.Bump.Minor,
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
+  releaseCommitMessage := s"Bumping version\n\n[skip ci]",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
       Some("Snapshots" at nexus + "content/repositories/snapshots")
     else
       Some("Releases" at nexus + "service/local/staging/deploy/maven2")
-  }
-)
-
-lazy val sharedReleaseProcess = Seq(
+  },
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
     runClean,
-    releaseStepCommand("validate"),
+    runTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
@@ -147,10 +150,9 @@ lazy val sharedReleaseProcess = Seq(
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges)
+    pushChanges
+  )
 )
-
-
 
 lazy val publishSettings = Seq(
   homepage := Some(url("https://github.com/toknapp/arweave4s")),
@@ -172,7 +174,4 @@ lazy val publishSettings = Seq(
       </developer>
     </developers>
     )
-) ++ credentialSettings ++ sharedPublishSettings ++ sharedPublishSettings
-
-
-
+) ++ credentialSettings ++ releaseSettings
