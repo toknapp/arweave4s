@@ -119,8 +119,8 @@ import sbtrelease.Version
 lazy val sharedPublishSettings = Seq(
   releaseTagName := tagName.value,
   pgpReadOnly := true,
-  pgpPassphrase := Option(System.getenv().get("PGP_PASS")).map(_.toCharArray),
-  pgpSigningKey := Some(6670077219168856883L),
+  pgpSigningKey := Some(5475909627322236304L),
+  pgpPassphrase := Some(Array.empty),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,
   releaseVersionBump := Version.Bump.Minor,

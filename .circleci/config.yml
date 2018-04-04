@@ -6,9 +6,9 @@ sbt-build: &sbt-build
     - image: hseeberger/scala-sbt:8u151-2.12.4-1.1.1
   steps:
     - run: mkdir ~/.sbt/gpg
-    - run: echo $PGP_PUB | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
-    - run: echo $PGP_PASS | gpg --batch --allow-secret-key-import --passphrase-fd 0 --import ~/.sbt/gpg/secring.asc
-    - run: git config --global user.signingkey 5C90DFE428FC2B33
+    - run: echo $PGPKEY | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
+    - run: gpg --batch --allow-secret-key-import --import ~/.sbt/gpg/secring.asc
+    - run: git config --global user.signingkey 4BFE56CB1EAEFD90
     - run: git config --global user.email ivan@upvest.co
     - run: git config --global user.name "Upvest/Arweave4s"
     - checkout
