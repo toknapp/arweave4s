@@ -40,7 +40,7 @@ Additionally the client supports **wallet generation** and **transaction signing
 Add the following dependency
 
 ```
-"co.upvest" %% "arweave4s-core" % "0.5.0"
+"co.upvest" %% "arweave4s-core" % "0.6.0"
 ```
 then create a configuration context and weave-it-up.
 
