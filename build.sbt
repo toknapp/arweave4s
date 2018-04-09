@@ -40,10 +40,10 @@ lazy val core = (project in file("core"))
 lazy val library =
   new {
     object Version {
-      val circe         = "0.9.1"
+      val circe         = "0.9.3"
       val scalaCheck    = "1.13.5"
       val scalaTest     = "3.0.5"
-      val sttp          = "1.1.9"
+      val sttp          = "1.1.12"
       val spongyCastle  = "1.58.0.0"
       val kindProjector = "0.9.6"
     }
