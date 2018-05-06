@@ -4,7 +4,7 @@
 
 [![BuildStatus](https://circleci.com/gh/toknapp/arweave4s.svg?style=svg)](https://circleci.com/gh/toknapp/arweave4s)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/toknapp/arweave4s/develop/COPYING)
-[![Latest version](https://index.scala-lang.org/toknapp/arweave4s/arweave4s-core/latest.svg?color=blue&v=1)](https://index.scala-lang.org/toknapp/arweave4s/arweave4s-core)
+[![Latest version](https://maven-badges.herokuapp.com/maven-central/co.upvest/arweave4s-core_2.12/badge.png?style=plastic)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22co.upvest%22%20AND%20a%3A%22arweave4s-core_2.12%22)
 
 
 
@@ -40,7 +40,7 @@ Additionally the client supports **wallet generation** and **transaction signing
 Add the following dependency
 
 ```
-"co.upvest" %% "arweave4s-core" % "0.5.0"
+"co.upvest" %% "arweave4s-core" % "0.6.0"
 ```
 then create a configuration context and weave-it-up.
 
