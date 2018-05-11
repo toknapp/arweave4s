@@ -30,22 +30,9 @@ object Transaction {
   }
 
   sealed trait Type
-
   object Type {
-
-    def apply(strRep: String): Option[Type] = strRep match {
-      case "transfer" => Some(Transfer)
-      case "data"     => Some(Data)
-      case _          => None
-    }
-
-    case object Transfer extends Type {
-      override def toString:String = "transfer"
-    }
-
-    case object Data extends Type {
-      override def toString:String = "data"
-    }
+    case object Transfer extends Type
+    case object Data extends Type
   }
 
   /**
@@ -96,6 +83,6 @@ object Transaction {
   object WithStatus {
     case class NotFound(id: Id) extends WithStatus
     case class Pending(id: Id) extends WithStatus
-    case class Accepted(tx: Transaction) extends WithStatus
+    case class Accepted(stx: Signed[Transaction]) extends WithStatus
   }
 }

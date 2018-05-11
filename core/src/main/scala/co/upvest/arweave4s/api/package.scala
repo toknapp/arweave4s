@@ -220,8 +220,9 @@ package object api {
           case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
           case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
           case (_, Right(str)) =>
-            jh(rsp.copy(body = rsp.body map decode[Transaction]).pure) map
-              Transaction.WithStatus.Accepted
+            jh(
+              rsp.copy(body = rsp.body map decode[Signed[Transaction]]).pure
+            ) map Transaction.WithStatus.Accepted
           case (_, Left(l)) => jh(rsp.copy(body = Left(l)).pure)
         }
       }

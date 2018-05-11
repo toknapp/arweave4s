@@ -2,7 +2,7 @@ package co.upvest.arweave4s
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
+import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston, Signed}
 import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{Inside, Matchers, WordSpec}
 import org.scalatest.concurrent.{ScalaFutures, Eventually}
@@ -135,19 +135,21 @@ class apiSpec extends WordSpec
         "submit a transfer transaction" in {
           val owner = Wallet.generate()
 
-          val stx = Transaction.Transfer(
+          val utx = Transaction.Transfer(
             Transaction.Id.generate(),
             run { address.lastTx(owner) },
             owner,
             Wallet.generate(),
             quantity = randomWinstons(),
             reward = randomWinstons()
-          ).sign(owner)
+          )
+
+          val stx = utx.copy(reward = run { price estimate utx }).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
         }
 
-        "eventually return a valid transaction by " taggedAs(Slow) in {
+        "eventually return a valid transaction by id" taggedAs(Slow) in {
           val owner = TestAccount.wallet
 
           val id = Transaction.Id.generate()
@@ -165,15 +167,21 @@ class apiSpec extends WordSpec
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
-          eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](id) } shouldBe
-              Transaction.WithStatus.Pending(id)
-          }
+          run[Transaction.WithStatus]{ tx.get[F, G](id) } match {
+            case Transaction.WithStatus.Accepted(Signed(t, _)) =>
+              t.id shouldBe id
+            case _ =>
+              eventually {
+                run[Transaction.WithStatus]{ tx.get[F, G](id) } shouldBe
+                Transaction.WithStatus.Pending(id)
+              }
 
-          eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
-              case Transaction.WithStatus.Accepted(t) => t.id shouldBe id
-            }
+              eventually {
+                inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
+                  case Transaction.WithStatus.Accepted(Signed(t, _)) =>
+                    t.id shouldBe id
+                }
+              }
           }
         }
 

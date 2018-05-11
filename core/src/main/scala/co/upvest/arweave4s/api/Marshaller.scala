@@ -7,7 +7,6 @@ import io.circe.Decoder.Result
 import io.circe
 import io.circe.{Decoder, HCursor, Encoder, Json, JsonObject}
 import io.circe.syntax._
-import cats.implicits._
 
 trait Marshaller {
   import CirceComplaints._, EmptyStringAsNone._
@@ -52,8 +51,6 @@ trait Marshaller {
 
   implicit lazy val ownerEncoder: Encoder[Owner]     = _.toString.asJson
   implicit lazy val winstonEncoder: Encoder[Winston] = _.toString.asJson
-  implicit lazy val transactionTypeEncoder: Encoder[Transaction.Type] =
-    _.toString.asJson
 
   case class NoneAsEmptyStringDecoder[T: Decoder](t: T)
 
@@ -77,8 +74,7 @@ trait Marshaller {
         ("owner", tx.owner.asJson),
         ("reward", tx.reward.asJson),
         ("quantity", Winston.Zero.asJson),
-        ("data", tx.data.asJson),
-        ("type", tx.tpe.asJson)
+        ("data", tx.data.asJson)
     )
 
   implicit lazy val transferTransactionEncoder: Encoder[Transaction.Transfer] =
@@ -90,8 +86,7 @@ trait Marshaller {
         ("owner", tx.owner.asJson),
         ("target", tx.target.asJson),
         ("quantity", tx.quantity.asJson),
-        ("reward", tx.reward.asJson),
-        ("type", tx.tpe.asJson)
+        ("reward", tx.reward.asJson)
     )
 
   implicit lazy val transactionEncoder: Encoder[Transaction] = {
@@ -114,16 +109,16 @@ trait Marshaller {
 
   implicit lazy val transactionDecoder = new Decoder[Transaction] {
     override def apply(c: HCursor): Result[Transaction] =
-      c.downField("type").as[String] >>= { s =>
-        Transaction.Type(s) toRight circe.DecodingFailure(
-          message = s"unknown transaction type $s",
+      (for {
+        d <- c.downField("data").as[EmptyStringAsNone[Data]]
+        q <- c.downField("quantity").as[Option[Winston]]
+      } yield (d.toOption, q)) flatMap {
+        case (None, Some(_)) => transferTransactionDecoder(c)
+        case (Some(_), None) => dataTransactionDecoder(c)
+        case _ => Left(circe.DecodingFailure(
+          message = s"unknown transaction type",
           ops = Nil
-        )
-      } >>= {
-        case t: Transaction.Type.Transfer.type =>
-          transferTransactionDecoder(c)
-        case d: Transaction.Type.Data.type =>
-          dataTransactionDecoder(c)
+        ))
       }
   }
 
