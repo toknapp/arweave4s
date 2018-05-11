@@ -3,9 +3,11 @@ package co.upvest.arweave4s
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
+import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{Inside, Matchers, WordSpec}
-import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import cats.{Id, ~>}
+import org.scalatest.concurrent.{ScalaFutures, Eventually}
+import org.scalatest.tagobjects.Slow
+import cats.{Id, ~>, Monad}
 import cats.data.EitherT
 import cats.arrow.FunctionK
 import cats.instances.try_._
@@ -17,7 +19,7 @@ import scala.util.Try
 
 class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
-  with IntegrationPatience {
+  with Eventually with BlockchainPatience {
   import ApiTestUtil._
   import api._
 
@@ -36,9 +38,8 @@ class apiSpec extends WordSpec
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   val invalidBlockHeight = BigInt(Long.MaxValue)
-  val Some(validBlock) = Block.IndepHash.fromEncoded("cOplqTqwO-JiUUfiJcl-KbD_9qpt3TPVdojgz-QB5h0")
-  val Some(validTxId) = Transaction.Id.fromEncoded("3MFrfH0-HI9GeMfFAwIhK9TcASsxDJeK6MFMbJplSkU")
 
+  val maxReward = Winston.AR
 
   implicit val idRunner: Id ~> Id = FunctionK.id
 
@@ -56,7 +57,7 @@ class apiSpec extends WordSpec
 
     }
 
-  def apiBehavior[F[_], G[_]](c: AbstractConfig[F, G])(implicit
+  def apiBehavior[F[_]: Monad, G[_]](c: AbstractConfig[F, G])(implicit
     jh: JsonHandler[F],
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
@@ -70,7 +71,8 @@ class apiSpec extends WordSpec
         }
 
         "return a valid block by hash" in {
-          run[Block] { block.get(validBlock) } shouldBe a[Block]
+          val b = run[Block] { block.current() }
+          run[Block] { block.get(b.indepHash) } shouldBe a[Block]
         }
 
         "return a valid block by height" in {
@@ -129,9 +131,6 @@ class apiSpec extends WordSpec
       }
 
       "the transaction api" should {
-        "return valid transaction" in {
-          run[Transaction] { tx.get(validTxId) }.id shouldBe validTxId
-        }
 
         "submit a transfer transaction" in {
           val owner = Wallet.generate()
@@ -148,18 +147,50 @@ class apiSpec extends WordSpec
           run[Unit] { tx.submit(stx) } shouldBe (())
         }
 
+        "eventually return a valid transaction by " taggedAs(Slow) in {
+          val owner = TestAccount.wallet
+
+          val id = Transaction.Id.generate()
+
+          val utx = Transaction.Transfer(
+            id,
+            run { address.lastTx(owner) },
+            owner,
+            Wallet.generate(),
+            quantity = randomWinstons(upperBound = Winston("100000")),
+            reward = maxReward
+          )
+
+          val stx = utx.copy(reward = run { price estimate utx }).sign(owner)
+
+          run[Unit] { tx.submit(stx) } shouldBe (())
+
+          eventually {
+            run[Transaction.WithStatus]{ tx.get[F, G](id) } shouldBe
+              Transaction.WithStatus.Pending(id)
+          }
+
+          eventually {
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
+              case Transaction.WithStatus.Accepted(t) => t.id shouldBe id
+            }
+          }
+        }
+
         "submit a data transaction" in {
           val owner = Wallet.generate()
-          val data = randomData()
-          val estCost = run { price.estimate(data) }
 
-          val stx = Transaction.Data(
+          val data = randomData()
+
+          val utx = Transaction.Data(
             Transaction.Id.generate(),
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = estCost
-          ).sign(owner)
+            reward = maxReward
+          )
+
+          val stx = utx.copy( reward = run { price estimate utx }).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
         }

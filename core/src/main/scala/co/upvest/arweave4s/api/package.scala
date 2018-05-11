@@ -1,16 +1,19 @@
 package co.upvest.arweave4s
 
+import cats.{Id, MonadError, ~>, Monad}
 import cats.arrow.FunctionK
 import cats.evidence.As
+import cats.syntax.functor._
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
-import cats.{Id, MonadError, ~>}
+
 import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.utils.EmptyStringAsNone
 import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{Response, SttpBackend, UriContext, sttp}
+import com.softwaremill.sttp.{Response, SttpBackend, UriContext, sttp, asString}
 import io.circe
+import io.circe.parser.decode
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
@@ -22,6 +25,7 @@ package object api {
   type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
   type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
+  type TransactionHandler[F[_]] = F[Response[String]] => F[Transaction.WithStatus]
 
   trait AbstractConfig[F[_], G[_]] {
     def host: String
@@ -206,13 +210,21 @@ package object api {
   }
 
   object tx {
-    def get[F[_], G[_]](txId: Transaction.Id)(implicit
+    def get[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Transaction] = {
-      val req = sttp
-        .get(uri"${c.host}/tx/$txId")
-        .response(asJson[Transaction])
-      jh(c.i(c.backend send req))
+    ): F[Transaction.WithStatus] = {
+      val req = sttp.get(uri"${c.host}/tx/$txId").response(asString)
+
+      c.i(c.backend send req) >>= { rsp =>
+        (rsp.code, rsp.body) match {
+          case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
+          case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
+          case (_, Right(str)) =>
+            jh(rsp.copy(body = rsp.body map decode[Transaction]).pure) map
+              Transaction.WithStatus.Accepted
+          case (_, Left(l)) => jh(rsp.copy(body = Left(l)).pure)
+        }
+      }
     }
 
     def submit[F[_], G[_]](tx: Signed[Transaction])(implicit
@@ -239,6 +251,10 @@ package object api {
     def estimate[F[_], G[_]](d: Data)(implicit
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Winston] = estimateForBytes(d.bytes.length)
+
+    def estimate[F[_], G[_], T <: Signable](t: T)(implicit
+      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
+    ): F[Winston] = estimateForBytes(t.signingData.length)
   }
 
   private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption

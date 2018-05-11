@@ -8,13 +8,13 @@ import scala.io.Source
 
 object ApiTestUtil {
 
-  val TestHost = "178.62.4.18:1984"
+  val TestHost = "127.0.0.1:1984"
 
   object TestAccount {
     lazy val wallet: Wallet = (
         for {
           s <- Try { Source fromResource "keyfile.json" }.toOption
-          w <- Wallet load s if s.nonEmpty
+          w <- Wallet load s
         } yield w
       ) orElse (
         for {

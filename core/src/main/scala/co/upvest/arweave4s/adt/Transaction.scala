@@ -19,7 +19,7 @@ object Transaction {
   object Id {
     final val Length = 32
 
-    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()): Transaction.Id = {
+    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()): Id = {
       val repr = new Array[Byte](size)
       sr.nextBytes(repr)
       new Id(repr)
@@ -92,4 +92,10 @@ object Transaction {
     )
   }
 
+  sealed trait WithStatus
+  object WithStatus {
+    case class NotFound(id: Id) extends WithStatus
+    case class Pending(id: Id) extends WithStatus
+    case class Accepted(tx: Transaction) extends WithStatus
+  }
 }

@@ -160,7 +160,7 @@ trait Marshaller {
         height        <- c.downField("height").as[BigInt]
         hash          <- c.downField("hash").as[Block.Hash]
         indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]
-        txs           <- c.downField("txs").as[Seq[Signed[Transaction]]]
+        txs           <- c.downField("txs").as[Seq[Transaction.Id]]
         hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
         wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
         reward_addr   <- c.downField("reward_addr").as[String]
