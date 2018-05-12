@@ -50,7 +50,7 @@ jobs:
       - image: alpine
     resource_class: large
     steps:
-      - run: apk update && apk add curl git
+      - run: apk update && apk add curl git openssh-client
       - run:
           name: Install Docker Compose
           command: |
