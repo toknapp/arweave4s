@@ -13,6 +13,7 @@ RUN git init
 RUN git remote add origin $REPOSITORY
 RUN git fetch origin $REFSPEC
 RUN git checkout $REFSPEC
+RUN echo "building git ref: $(git show-ref -s --head HEAD)"
 
 ADD 0001-docker-friendly-dev-chain.patch .
 RUN git apply 0001-docker-friendly-dev-chain.patch
