@@ -1,24 +1,37 @@
-From 24f953ef2ba40cdbfe665624089252345f65009f Mon Sep 17 00:00:00 2001
+From 157380e847da9f5d3e3c7a408bfd3ca6e7e3e60a Mon Sep 17 00:00:00 2001
 From: Gustav Behm <gustav@upvest.co>
 Date: Sat, 12 May 2018 16:18:22 +0200
 Subject: [PATCH] docker-friendly-dev-chain
 
 ---
- arweave-server           | 12 ++++++++++--
+ arweave-server           | 24 ++++++++++++------------
  data/genesis_wallets.csv |  1 +
  src/ar.hrl               | 10 +++++-----
- 3 files changed, 16 insertions(+), 7 deletions(-)
+ 3 files changed, 18 insertions(+), 17 deletions(-)
 
 diff --git a/arweave-server b/arweave-server
-index 55cf1fc..ed9241b 100755
+index 55cf1fc..40a48ea 100755
 --- a/arweave-server
 +++ b/arweave-server
-@@ -1,10 +1,18 @@
+@@ -1,16 +1,16 @@
 -#!/bin/bash
 +#!/bin/sh
++
++set -o errexit
  
  mkdir -p ebin logs blocks wallets txs
  
+-while true; do
+-	erlc +export_all -o ebin/ src/ar.erl
+-	if erl -pa ebin/ -s ar rebuild -run ar main "$@"; then
+-		echo "Heartbeat: Server terminated safely."
+-		exit 1
+-	else
+-		echo "Heartbeat: The Arweave server has terminated unsafely. It will restart in 15 seconds."
+-		echo "Heartbeat: If you would like to avoid this, please press control+C now..."
+-		sleep 15
+-	fi
+-done
 +echo "executing with git ref: $(git show-ref -s --head HEAD)"
 +
 +if [ -t 1 ]; then
@@ -26,14 +39,9 @@ index 55cf1fc..ed9241b 100755
 +else
 +	SHELL_OPTS=-noinput
 +fi
-+
- while true; do
- 	erlc +export_all -o ebin/ src/ar.erl
--	if erl -pa ebin/ -s ar rebuild -run ar main "$@"; then
-+	if erl $SHELL_OPTS -pa ebin/ -s ar rebuild -run ar main "$@"; then
- 		echo "Heartbeat: Server terminated safely."
- 		exit 1
- 	else
+ 
++erlc +export_all -o ebin/ src/ar.erl
++exec erl $SHELL_OPTS -pa ebin/ -s ar rebuild -run ar main "$@"
 diff --git a/data/genesis_wallets.csv b/data/genesis_wallets.csv
 index f7b6438..19c1951 100644
 --- a/data/genesis_wallets.csv
@@ -44,7 +52,7 @@ index f7b6438..19c1951 100644
  L6KrnA0E2c9TOZv8JmT-o62LXC1ETdxfPcdBNhR4ouA,50000
 +eIGjur5U0dXas84AO1iuligWMhts8KiLi7phYyGCb0I,1000000
 diff --git a/src/ar.hrl b/src/ar.hrl
-index d52b4ca..d4ecd4d 100644
+index d52b4ca..a00dd42 100644
 --- a/src/ar.hrl
 +++ b/src/ar.hrl
 @@ -6,7 +6,7 @@
