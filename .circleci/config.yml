@@ -38,13 +38,18 @@ jobs:
     docker:
       - image: docker/compose:1.21.2
     steps:
-      - run: apk update && apk add curl git openssh-client
+      - run: apk update && apk add curl git openssh-client coreutils
       - setup_remote_docker
       - checkout
       - run: docker-compose build --no-cache
       - run:
           name: Collect logs
-          command: while true; do docker-compose logs >> logs; sleep 1s; done
+          command: |
+            while true; do
+              docker-compose logs --no-color > logs
+              cp --force --backup=numbered logs logs
+              sleep 1s
+            done
           background: true
       - run: docker-compose run it
       - store_artifacts:
