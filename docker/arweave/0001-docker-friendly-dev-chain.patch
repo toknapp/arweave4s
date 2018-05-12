@@ -1,0 +1,91 @@
+From c8f49efe0ab92fb8a662d630103649a273bacad9 Mon Sep 17 00:00:00 2001
+From: Gustav Behm <gustav@upvest.co>
+Date: Sat, 12 May 2018 16:18:22 +0200
+Subject: [PATCH] docker-friendly-dev-chain
+
+---
+ arweave-server           | 24 ++++++++++++------------
+ data/genesis_wallets.csv |  1 +
+ src/ar.hrl               | 10 +++++-----
+ 3 files changed, 18 insertions(+), 17 deletions(-)
+
+diff --git a/arweave-server b/arweave-server
+index 55cf1fc..40a48ea 100755
+--- a/arweave-server
++++ b/arweave-server
+@@ -1,16 +1,16 @@
+-#!/bin/bash
++#!/bin/sh
++
++set -o errexit
+ 
+ mkdir -p ebin logs blocks wallets txs
+ 
+-while true; do
+-	erlc +export_all -o ebin/ src/ar.erl
+-	if erl -pa ebin/ -s ar rebuild -run ar main "$@"; then
+-		echo "Heartbeat: Server terminated safely."
+-		exit 1
+-	else
+-		echo "Heartbeat: The Arweave server has terminated unsafely. It will restart in 15 seconds."
+-		echo "Heartbeat: If you would like to avoid this, please press control+C now..."
+-		sleep 15
+-	fi
+-done
++echo "executing with git ref: $(git show-ref -s --head HEAD)"
++
++if [ -t 1 ]; then
++	SHELL_OPTS=
++else
++	SHELL_OPTS=-noinput
++fi
+ 
++erlc +export_all -o ebin/ src/ar.erl
++exec erl $SHELL_OPTS -pa ebin/ -s ar rebuild -run ar main "$@"
+diff --git a/data/genesis_wallets.csv b/data/genesis_wallets.csv
+index f7b6438..19c1951 100644
+--- a/data/genesis_wallets.csv
++++ b/data/genesis_wallets.csv
+@@ -41,3 +41,4 @@ TOAgO-RGG0NcUYHIpOeJRRG4CVt0NNwjfpVPnJZqHZs,1000000
+ heiGOJ9BcrJxc903urRq7Xx-JYq4UGeyr8Ix7BArSbQ,1000000
+ CoII4rfEhEAro5Bv2wEYlAxRaLSp382T6TVEpknKwWc,1000000
+ L6KrnA0E2c9TOZv8JmT-o62LXC1ETdxfPcdBNhR4ouA,50000
++eIGjur5U0dXas84AO1iuligWMhts8KiLi7phYyGCb0I,1000000
+diff --git a/src/ar.hrl b/src/ar.hrl
+index d52b4ca..02d298e 100644
+--- a/src/ar.hrl
++++ b/src/ar.hrl
+@@ -6,7 +6,7 @@
+ -define(CLIENT_VERSION, 1).
+ 
+ %% Should ar:report_console/1 /actually/ report to the console?
+--define(SILENT, true).
++%-define(SILENT, false).
+ %% The hashing algorithm used to verify that the weave has not been tampered
+ %% with.
+ -define(HASH_ALG, sha256).
+@@ -14,9 +14,9 @@
+ -define(SIGN_ALG, rsa).
+ -define(PRIV_KEY_SZ, 4096).
+ %% NOTE: Setting the default difficulty too high will cause TNT to fail!
+--define(DEFAULT_DIFF, 8).
+--define(TARGET_TIME, 150).
+--define(RETARGET_BLOCKS, 10).
++-define(DEFAULT_DIFF, 10).
++-define(TARGET_TIME, 2).
++-define(RETARGET_BLOCKS, 5).
+ -define(RETARGET_TOLERANCE, 0.1).
+ -define(BLOCK_PAD_SIZE, (1024*1024*1)).
+ 
+@@ -59,7 +59,7 @@
+ %% Number of transfers for which not to score (and potentially drop) new peers.
+ -define(PEER_GRACE_PERIOD, 50).
+ %% Never drop to lower than this number of peers.
+--define(MINIMUM_PEERS, 2).
++-define(MINIMUM_PEERS, 0).
+ %% Default list of peers if no others are specified
+ -define(DEFAULT_PEER_LIST,
+ 	[
+-- 
+2.17.0
+
