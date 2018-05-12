@@ -76,7 +76,7 @@ class apiSpec extends WordSpec
         }
 
         "return a valid block by height" in {
-          run[Block] { block.get(BigInt(100)) } shouldBe a[Block]
+          run[Block] { block.get(BigInt(1)) } shouldBe a[Block]
         }
 
         "fail when a block does not exist (by hash)" in {
@@ -167,21 +167,11 @@ class apiSpec extends WordSpec
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
-          run[Transaction.WithStatus]{ tx.get[F, G](id) } match {
-            case Transaction.WithStatus.Accepted(Signed(t, _)) =>
-              t.id shouldBe id
-            case _ =>
-              eventually {
-                run[Transaction.WithStatus]{ tx.get[F, G](id) } shouldBe
-                Transaction.WithStatus.Pending(id)
-              }
-
-              eventually {
-                inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
-                  case Transaction.WithStatus.Accepted(Signed(t, _)) =>
-                    t.id shouldBe id
-                }
-              }
+          eventually {
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
+              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
+                t.id shouldBe id
+            }
           }
         }
 

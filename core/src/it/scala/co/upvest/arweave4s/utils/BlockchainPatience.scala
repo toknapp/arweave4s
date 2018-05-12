@@ -6,7 +6,7 @@ import org.scalatest.time.SpanSugar
 trait BlockchainPatience extends AbstractPatienceConfiguration {
   import SpanSugar._
   implicit override val patienceConfig = PatienceConfig(
-    timeout = 10 minutes,
-    interval = 10 seconds
+    timeout = 1 minute,
+    interval = 5 seconds
   )
 }
