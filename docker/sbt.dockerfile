@@ -8,6 +8,6 @@ ADD build.sbt .
 RUN sbt update
 
 ADD core core
-RUN sbt test:compile
+RUN sbt compile it:compile
 
 ENTRYPOINT ["sbt"]

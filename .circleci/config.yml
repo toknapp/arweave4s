@@ -1,6 +1,5 @@
 version: 2
 
-
 sbt-build: &sbt-build
   docker:
     - image: upvest/scala-sbt-docker-k8:stable
@@ -27,44 +26,35 @@ sbt-build: &sbt-build
           - ~/.m2
           - ~/.ivy2
           - ~/.sbt
-    - store_artifacts:
-        path: core/target/scala-2.12/api/
-        destination: scaladoc/core
-    - store_artifacts:
-        path: core/target/test-reports/
-        destination: test-reports/core
-    - store_test_results:
-        path: core/target/test-reports/
-
 
 jobs:
 
   test:
     <<: *sbt-build
-    resource_class: large
     environment:
       SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
 
   integration-test:
     docker:
-      - image: alpine
-    resource_class: large
+      - image: docker/compose:1.21.2
     steps:
-      - run:
-          name: Install Docker Compose
-          command: |
-            apk update && apk add curl
-            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-            chmod +x ~/docker-compose
-            mv ~/docker-compose /usr/local/bin/docker-compose
+      - run: apk update && apk add curl git openssh-client coreutils
       - setup_remote_docker
       - checkout
-      - run: docker-compose build
+      - run: docker-compose build --no-cache
+      - run:
+          name: Collect logs
+          command: |
+            mkdir logs
+            while true; do
+              docker-compose logs --follow --no-color > logs/docker-compose
+              cp --force --backup=numbered logs/docker-compose logs/docker-compose
+              sleep 1s
+            done
+          background: true
       - run: docker-compose run it
-      - run: docker-compose logs > logs
       - store_artifacts:
           path: logs
-          destination: docker-compose-logs
 
   release:
     <<: *sbt-build
