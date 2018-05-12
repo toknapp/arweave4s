@@ -45,16 +45,16 @@ jobs:
       - run:
           name: Collect logs
           command: |
+            mkdir logs
             while true; do
-              docker-compose logs --no-color > logs
-              cp --force --backup=numbered logs logs
+              docker-compose logs --no-color > logs/docker-compose
+              cp --force --backup=numbered logs/docker-compose logs/docker-compose
               sleep 1s
             done
           background: true
       - run: docker-compose run it
       - store_artifacts:
           path: logs
-          destination: docker-compose-logs
 
   release:
     <<: *sbt-build
