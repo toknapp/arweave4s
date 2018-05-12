@@ -47,16 +47,10 @@ jobs:
 
   integration-test:
     docker:
-      - image: alpine
+      - image: docker/compose:1.21.2
     resource_class: large
     steps:
       - run: apk update && apk add curl git openssh-client
-      - run:
-          name: Install Docker Compose
-          command: |
-            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-            chmod +x ~/docker-compose
-            mv ~/docker-compose /usr/local/bin/docker-compose
       - setup_remote_docker
       - checkout
       - run: docker-compose build
