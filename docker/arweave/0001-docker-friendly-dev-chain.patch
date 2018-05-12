@@ -1,4 +1,4 @@
-From c8f49efe0ab92fb8a662d630103649a273bacad9 Mon Sep 17 00:00:00 2001
+From 974c01e7a87774ced78316930a72d68ebd28519e Mon Sep 17 00:00:00 2001
 From: Gustav Behm <gustav@upvest.co>
 Date: Sat, 12 May 2018 16:18:22 +0200
 Subject: [PATCH] docker-friendly-dev-chain
@@ -7,7 +7,8 @@ Subject: [PATCH] docker-friendly-dev-chain
  arweave-server           | 24 ++++++++++++------------
  data/genesis_wallets.csv |  1 +
  src/ar.hrl               | 10 +++++-----
- 3 files changed, 18 insertions(+), 17 deletions(-)
+ src/ar_node.erl          |  4 ++--
+ 4 files changed, 20 insertions(+), 19 deletions(-)
 
 diff --git a/arweave-server b/arweave-server
 index 55cf1fc..40a48ea 100755
@@ -86,6 +87,26 @@ index d52b4ca..02d298e 100644
  %% Default list of peers if no others are specified
  -define(DEFAULT_PEER_LIST,
  	[
+diff --git a/src/ar_node.erl b/src/ar_node.erl
+index f15ed38..fcd0de9 100644
+--- a/src/ar_node.erl
++++ b/src/ar_node.erl
+@@ -23,7 +23,7 @@
+ 	gossip,
+ 	txs = [],
+ 	miner,
+-	mining_delay = 0,
++	mining_delay = 10,
+ 	automine = false,
+ 	reward_addr = unclaimed,
+ 	trusted_peers = []
+@@ -1472,4 +1472,4 @@ rejoin_test() ->
+ 	receive after 500 -> ok end,
+ 	rejoin(Node2, []),
+ 	timer:sleep(500),
+-	get_blocks(Node1) == get_blocks(Node2).
+\ No newline at end of file
++	get_blocks(Node1) == get_blocks(Node2).
 -- 
 2.17.0
 
