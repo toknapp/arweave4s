@@ -1,4 +1,4 @@
-From 157380e847da9f5d3e3c7a408bfd3ca6e7e3e60a Mon Sep 17 00:00:00 2001
+From c8f49efe0ab92fb8a662d630103649a273bacad9 Mon Sep 17 00:00:00 2001
 From: Gustav Behm <gustav@upvest.co>
 Date: Sat, 12 May 2018 16:18:22 +0200
 Subject: [PATCH] docker-friendly-dev-chain
@@ -52,7 +52,7 @@ index f7b6438..19c1951 100644
  L6KrnA0E2c9TOZv8JmT-o62LXC1ETdxfPcdBNhR4ouA,50000
 +eIGjur5U0dXas84AO1iuligWMhts8KiLi7phYyGCb0I,1000000
 diff --git a/src/ar.hrl b/src/ar.hrl
-index d52b4ca..a00dd42 100644
+index d52b4ca..02d298e 100644
 --- a/src/ar.hrl
 +++ b/src/ar.hrl
 @@ -6,7 +6,7 @@
@@ -71,9 +71,9 @@ index d52b4ca..a00dd42 100644
 --define(DEFAULT_DIFF, 8).
 --define(TARGET_TIME, 150).
 --define(RETARGET_BLOCKS, 10).
-+-define(DEFAULT_DIFF, 15).
++-define(DEFAULT_DIFF, 10).
 +-define(TARGET_TIME, 2).
-+-define(RETARGET_BLOCKS, 20).
++-define(RETARGET_BLOCKS, 5).
  -define(RETARGET_TOLERANCE, 0.1).
  -define(BLOCK_PAD_SIZE, (1024*1024*1)).
  
