@@ -1,6 +1,5 @@
 version: 2
 
-
 sbt-build: &sbt-build
   docker:
     - image: upvest/scala-sbt-docker-k8:stable
@@ -27,15 +26,6 @@ sbt-build: &sbt-build
           - ~/.m2
           - ~/.ivy2
           - ~/.sbt
-    - store_artifacts:
-        path: core/target/scala-2.12/api/
-        destination: scaladoc/core
-    - store_artifacts:
-        path: core/target/test-reports/
-        destination: test-reports/core
-    - store_test_results:
-        path: core/target/test-reports/
-
 
 jobs:
 
