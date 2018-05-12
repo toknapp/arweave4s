@@ -12,7 +12,7 @@ WORKDIR /arweave
 RUN git init
 RUN git remote add origin $REPOSITORY
 RUN git fetch origin $REFSPEC
-RUN git checkout FETCH_HEAD
+RUN git checkout $REFSPEC
 
 ADD 0001-docker-friendly-dev-chain.patch .
 RUN git apply 0001-docker-friendly-dev-chain.patch
