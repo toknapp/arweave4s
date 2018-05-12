@@ -47,7 +47,7 @@ jobs:
           command: |
             mkdir logs
             while true; do
-              docker-compose logs --no-color > logs/docker-compose
+              docker-compose logs --follow --no-color > logs/docker-compose
               cp --force --backup=numbered logs/docker-compose logs/docker-compose
               sleep 1s
             done
