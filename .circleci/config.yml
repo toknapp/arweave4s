@@ -43,7 +43,7 @@ jobs:
       - run: apk update && apk add curl git openssh-client
       - setup_remote_docker
       - checkout
-      - run: docker-compose build
+      - run: docker-compose build --no-cache
       - run: docker-compose run it
       - run: docker-compose logs > logs
       - store_artifacts:
