@@ -44,8 +44,11 @@ jobs:
       - setup_remote_docker
       - checkout
       - run: docker-compose build --no-cache
+      - run:
+          name: Collect logs
+          command: while true; do docker-compose logs >> logs; sleep 1s done
+          background: true
       - run: docker-compose run it
-      - run: docker-compose logs > logs
       - store_artifacts:
           path: logs
           destination: docker-compose-logs
