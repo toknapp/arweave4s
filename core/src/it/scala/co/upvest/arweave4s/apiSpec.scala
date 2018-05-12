@@ -141,10 +141,13 @@ class apiSpec extends WordSpec
             owner,
             Wallet.generate(),
             quantity = randomWinstons(),
-            reward = randomWinstons()
+            reward = maxReward
           )
 
-          val stx = utx.copy(reward = run { price estimate utx }).sign(owner)
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = utx.copy(reward =
+            run { price estimate utx } plus extraReward
+          ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
         }
@@ -163,7 +166,10 @@ class apiSpec extends WordSpec
             reward = maxReward
           )
 
-          val stx = utx.copy(reward = run { price estimate utx }).sign(owner)
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = utx.copy(reward =
+            run { price estimate utx } plus extraReward
+          ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
@@ -189,7 +195,10 @@ class apiSpec extends WordSpec
             reward = maxReward
           )
 
-          val stx = utx.copy( reward = run { price estimate utx }).sign(owner)
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = utx.copy( reward =
+            run { price estimate utx } plus extraReward
+          ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
         }

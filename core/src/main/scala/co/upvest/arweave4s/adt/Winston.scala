@@ -2,6 +2,8 @@ package co.upvest.arweave4s.adt
 
 case class Winston(amount: BigInt) {
   override def toString: String = amount.toString
+
+  def plus(o: Winston): Winston = Winston(amount + o.amount)
 }
 
 object Winston {
