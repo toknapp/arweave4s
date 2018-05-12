@@ -26,7 +26,8 @@ lazy val core = (project in file("core"))
       // test dependencies
       library.scalaCheck        % "it,test",
       library.scalaTest         % "it,test",
-      library.sttpAsyncBackend  % "it"
+      library.sttpAsyncBackend  % "it",
+      library.logback           % "it"
     ).map(dependencies =>
       library.exclusions.foldRight(dependencies) { (rule, module) =>
         module.excludeAll(rule)
@@ -46,20 +47,21 @@ lazy val library =
       val sttp          = "1.1.9"
       val spongyCastle  = "1.58.0.0"
       val kindProjector = "0.9.6"
+      val logback       = "1.2.3"
     }
-    val circeCore           = "io.circe"                   %% "circe-core"                  % Version.circe
-    val circeParser         = "io.circe"                   %% "circe-parser"                % Version.circe
-    val sttpCore            = "com.softwaremill.sttp"      %% "core"                        % Version.sttp
-    val sttpCirce           = "com.softwaremill.sttp"      %% "circe"                       % Version.sttp
+    val circeCore           = "io.circe"                   %% "circe-core"                       % Version.circe
+    val circeParser         = "io.circe"                   %% "circe-parser"                     % Version.circe
+    val sttpCore            = "com.softwaremill.sttp"      %% "core"                             % Version.sttp
+    val sttpCirce           = "com.softwaremill.sttp"      %% "circe"                            % Version.sttp
     val sttpAsyncBackend    = "com.softwaremill.sttp"      %% "async-http-client-backend-future" % Version.sttp
-    val spongyCastleCore    = "com.madgag.spongycastle"    %  "core"                        % Version.spongyCastle
-    val scalaCheck          = "org.scalacheck"             %% "scalacheck"                  % Version.scalaCheck
-    val scalaTest           = "org.scalatest"              %% "scalatest"                   % Version.scalaTest
-    val kindProjector       = "org.spire-math"             %% "kind-projector"              % Version.kindProjector
+    val spongyCastleCore    = "com.madgag.spongycastle"    %  "core"                             % Version.spongyCastle
+    val scalaCheck          = "org.scalacheck"             %% "scalacheck"                       % Version.scalaCheck
+    val scalaTest           = "org.scalatest"              %% "scalatest"                        % Version.scalaTest
+    val kindProjector       = "org.spire-math"             %% "kind-projector"                   % Version.kindProjector
+    val logback             = "ch.qos.logback"             %  "logback-classic"                  % Version.logback
 
-    // All exclusions that should be applied to every module.fo
-    val exclusions = Seq(
-    )
+    // All exclusions that should be applied to every module
+    val exclusions = Seq()
   }
 
 // *****************************************************************************
