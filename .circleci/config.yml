@@ -31,14 +31,12 @@ jobs:
 
   test:
     <<: *sbt-build
-    resource_class: large
     environment:
       SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
 
   integration-test:
     docker:
       - image: docker/compose:1.21.2
-    resource_class: large
     steps:
       - run: apk update && apk add curl git openssh-client
       - setup_remote_docker
@@ -46,7 +44,7 @@ jobs:
       - run: docker-compose build --no-cache
       - run:
           name: Collect logs
-          command: while true; do docker-compose logs >> logs; sleep 1s done
+          command: while true; do docker-compose logs >> logs; sleep 1s; done
           background: true
       - run: docker-compose run it
       - store_artifacts:
