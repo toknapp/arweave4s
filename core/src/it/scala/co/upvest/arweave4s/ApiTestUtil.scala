@@ -8,7 +8,7 @@ import scala.io.Source
 
 object ApiTestUtil {
 
-  val TestHost = "127.0.0.1:1984"
+  val TestHost = "arweave:1984"
 
   object TestAccount {
     lazy val wallet: Wallet = (

@@ -3,7 +3,7 @@ version: 2
 
 sbt-build: &sbt-build
   docker:
-    - image: hseeberger/scala-sbt:8u151-2.12.4-1.1.1
+    - image: upvest/scala-sbt-docker-k8:stable
   steps:
     - run: mkdir ~/.sbt/gpg
     - run: echo $PGPKEY | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
@@ -45,17 +45,26 @@ jobs:
     environment:
       SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
 
-  integration-test-fast:
-    <<: *sbt-build
+  integration-test:
+    docker:
+      - image: alpine
     resource_class: large
-    environment:
-      SBT_COMMAND: "it:testOnly -- -l org.scalatest.tags.Slow"
-
-  integration-test-all:
-    <<: *sbt-build
-    resource_class: large
-    environment:
-      SBT_COMMAND: "it:test"
+    steps:
+      - run:
+          name: Install Docker Compose
+          command: |
+            apk update && apk add curl
+            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+            chmod +x ~/docker-compose
+            mv ~/docker-compose /usr/local/bin/docker-compose
+      - setup_remote_docker
+      - checkout
+      - run: docker-compose build
+      - run: docker-compose run it
+      - run: docker-compose logs > logs
+      - store_artifacts:
+          path: logs
+          destination: docker-compose-logs
 
   release:
     <<: *sbt-build
@@ -75,7 +84,7 @@ workflows:
   ci:
     jobs:
       - test
-      - integration-test-fast
+      - integration-test
 
   nightly:
     triggers:
@@ -88,7 +97,7 @@ workflows:
                 - develop
     jobs:
       - test
-      - integration-test-all
+      - integration-test
 
   release:
     jobs:
