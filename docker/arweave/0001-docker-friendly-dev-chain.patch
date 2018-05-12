@@ -1,4 +1,4 @@
-From f6df52f2c25dbb5ac7ad8f69d950fe7abcba9791 Mon Sep 17 00:00:00 2001
+From 24f953ef2ba40cdbfe665624089252345f65009f Mon Sep 17 00:00:00 2001
 From: Gustav Behm <gustav@upvest.co>
 Date: Sat, 12 May 2018 16:18:22 +0200
 Subject: [PATCH] docker-friendly-dev-chain
@@ -6,8 +6,8 @@ Subject: [PATCH] docker-friendly-dev-chain
 ---
  arweave-server           | 12 ++++++++++--
  data/genesis_wallets.csv |  1 +
- src/ar.hrl               |  6 +++---
- 3 files changed, 14 insertions(+), 5 deletions(-)
+ src/ar.hrl               | 10 +++++-----
+ 3 files changed, 16 insertions(+), 7 deletions(-)
 
 diff --git a/arweave-server b/arweave-server
 index 55cf1fc..ed9241b 100755
@@ -44,7 +44,7 @@ index f7b6438..19c1951 100644
  L6KrnA0E2c9TOZv8JmT-o62LXC1ETdxfPcdBNhR4ouA,50000
 +eIGjur5U0dXas84AO1iuligWMhts8KiLi7phYyGCb0I,1000000
 diff --git a/src/ar.hrl b/src/ar.hrl
-index d52b4ca..5b93360 100644
+index d52b4ca..d4ecd4d 100644
 --- a/src/ar.hrl
 +++ b/src/ar.hrl
 @@ -6,7 +6,7 @@
@@ -56,15 +56,19 @@ index d52b4ca..5b93360 100644
  %% The hashing algorithm used to verify that the weave has not been tampered
  %% with.
  -define(HASH_ALG, sha256).
-@@ -15,7 +15,7 @@
+@@ -14,9 +14,9 @@
+ -define(SIGN_ALG, rsa).
  -define(PRIV_KEY_SZ, 4096).
  %% NOTE: Setting the default difficulty too high will cause TNT to fail!
- -define(DEFAULT_DIFF, 8).
+--define(DEFAULT_DIFF, 8).
 --define(TARGET_TIME, 150).
-+-define(TARGET_TIME, 5).
- -define(RETARGET_BLOCKS, 10).
+--define(RETARGET_BLOCKS, 10).
++-define(DEFAULT_DIFF, 15).
++-define(TARGET_TIME, 2).
++-define(RETARGET_BLOCKS, 20).
  -define(RETARGET_TOLERANCE, 0.1).
  -define(BLOCK_PAD_SIZE, (1024*1024*1)).
+ 
 @@ -59,7 +59,7 @@
  %% Number of transfers for which not to score (and potentially drop) new peers.
  -define(PEER_GRACE_PERIOD, 50).

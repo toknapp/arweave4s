@@ -167,12 +167,13 @@ class apiSpec extends WordSpec
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
-          eventually {
+          val t = eventually {
             inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
-              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
-                t.id shouldBe id
+              case Transaction.WithStatus.Accepted(Signed(t, _)) => t
             }
           }
+
+          t.id shouldBe id
         }
 
         "submit a data transaction" in {
