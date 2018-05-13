@@ -4,9 +4,9 @@ import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBack
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston, Signed}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{Inside, Matchers, WordSpec}
+import org.scalatest.{Inside, Matchers, WordSpec, Retries}
 import org.scalatest.concurrent.{ScalaFutures, Eventually}
-import org.scalatest.tagobjects.Slow
+import org.scalatest.tagobjects.{Slow, Retryable}
 import cats.{Id, ~>, Monad}
 import cats.data.EitherT
 import cats.arrow.FunctionK
@@ -19,7 +19,7 @@ import scala.util.Try
 
 class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
-  with Eventually with BlockchainPatience {
+  with Eventually with BlockchainPatience with Retries {
   import ApiTestUtil._
   import api._
 
@@ -56,6 +56,13 @@ class apiSpec extends WordSpec
         }
 
     }
+
+  override def withFixture(test: NoArgTest) = {
+    if (isRetryable(test))
+      withRetry { super.withFixture(test) }
+    else
+      super.withFixture(test)
+  }
 
   def apiBehavior[F[_]: Monad, G[_]](c: AbstractConfig[F, G])(implicit
     jh: JsonHandler[F],
@@ -118,7 +125,7 @@ class apiSpec extends WordSpec
             .amount should be > BigInt(0)
         }
 
-        "return a price proportionate in amount of bytes" in {
+        "return a price proportionate in amount of bytes" taggedAs(Retryable) in {
           val x = randomPositiveBigInt(10000, 0)
           val q = randomPositiveBigInt(100, 0)
           val y = x * q
@@ -132,7 +139,7 @@ class apiSpec extends WordSpec
 
       "the transaction api" should {
 
-        "submit a transfer transaction" in {
+        "submit a transfer transaction" taggedAs(Retryable) in {
           val owner = Wallet.generate()
 
           val utx = Transaction.Transfer(
@@ -148,11 +155,10 @@ class apiSpec extends WordSpec
           val stx = utx.copy(reward =
             run { price estimate utx } + extraReward
           ).sign(owner)
-
           run[Unit] { tx.submit(stx) } shouldBe (())
         }
 
-        "eventually return a valid transaction by id" taggedAs(Slow) in {
+        "eventually return a valid transaction by id" taggedAs(Slow, Retryable) in {
           val owner = TestAccount.wallet
 
           val id = Transaction.Id.generate()
@@ -182,7 +188,7 @@ class apiSpec extends WordSpec
           t.id shouldBe id
         }
 
-        "submit a data transaction" in {
+        "submit a data transaction" taggedAs(Retryable) in {
           val owner = Wallet.generate()
 
           val data = randomData()
