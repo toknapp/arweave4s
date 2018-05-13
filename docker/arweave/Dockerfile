@@ -16,7 +16,9 @@ RUN git checkout $REFSPEC
 RUN echo "building git ref: $(git show-ref -s --head HEAD)"
 
 ADD 0001-docker-friendly-dev-chain.patch .
-RUN git apply 0001-docker-friendly-dev-chain.patch
+ADD ./0002-Generate-next-nonce-without-access-to-strong-entropy.patch .
+RUN git apply 0001-docker-friendly-dev-chain.patch \
+  0002-Generate-next-nonce-without-access-to-strong-entropy.patch
 
 RUN make all
 

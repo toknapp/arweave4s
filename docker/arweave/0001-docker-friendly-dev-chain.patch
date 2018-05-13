@@ -1,7 +1,7 @@
 From bad5f7219b29f86f8297296113eeecce9bde1171 Mon Sep 17 00:00:00 2001
 From: Gustav Behm <gustav@upvest.co>
 Date: Sat, 12 May 2018 16:18:22 +0200
-Subject: [PATCH] docker-friendly-dev-chain
+Subject: [PATCH 1/2] docker-friendly-dev-chain
 
 ---
  arweave-server           | 24 ++++++++++++------------
