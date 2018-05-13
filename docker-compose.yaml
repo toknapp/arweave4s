@@ -1,10 +1,11 @@
-version: '3'
+version: '2.2'
 services:
   arweave:
     build: docker/arweave
     ports:
       - "1984:1984"
     command: no_auto_join init mine peer 127.0.0.1:9
+    cpus: 0.5
   it:
     build:
       context: .
