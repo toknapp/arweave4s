@@ -146,7 +146,7 @@ class apiSpec extends WordSpec
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
           val stx = utx.copy(reward =
-            run { price estimate utx } plus extraReward
+            run { price estimate utx } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
@@ -168,7 +168,7 @@ class apiSpec extends WordSpec
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
           val stx = utx.copy(reward =
-            run { price estimate utx } plus extraReward
+            run { price estimate utx } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
@@ -197,7 +197,7 @@ class apiSpec extends WordSpec
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
           val stx = utx.copy( reward =
-            run { price estimate utx } plus extraReward
+            run { price estimate utx } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
