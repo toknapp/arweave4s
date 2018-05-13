@@ -41,6 +41,11 @@ jobs:
       - run: apk update && apk add curl git openssh-client coreutils
       - setup_remote_docker
       - checkout
+      - run:
+          name: Update submodules
+          command: |
+            git submodule sync
+            git submodule update --init --remote
       - run: docker-compose build --no-cache
       - run:
           name: Collect logs

@@ -1,0 +1,4 @@
+[submodule "arweave"]
+	path = arweave
+	url = https://github.com/toknapp/arweave-1.git
+	branch = docker-dev-chain
