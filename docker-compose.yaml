@@ -13,3 +13,5 @@ services:
     command: it:test
     depends_on:
       - arweave
+    environment:
+      TESTNET_HOST: arweave
