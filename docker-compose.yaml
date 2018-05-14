@@ -1,0 +1,17 @@
+version: '2.2'
+services:
+  arweave:
+    build: arweave
+    ports:
+      - "1984:1984"
+    command: no_auto_join init mine peer 127.0.0.1:9
+    cpus: 0.5
+  it:
+    build:
+      context: .
+      dockerfile: docker/sbt.dockerfile
+    command: it:test
+    depends_on:
+      - arweave
+    environment:
+      TESTNET_HOST: arweave

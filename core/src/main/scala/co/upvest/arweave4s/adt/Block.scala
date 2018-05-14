@@ -10,7 +10,7 @@ case class Block(nonce:         String,
                  height:        BigInt,
                  hash:          Block.Hash,
                  indepHash:     Block.IndepHash, // also referred to as the "ID associated with the block"
-                 txs:           Seq[Signed[Transaction]],
+                 txs:           Seq[Transaction.Id],
                  hashList:      Seq[Block.Hash], // TODO: these are most likely
                  // hashes of the uploaded data in
                  // the block => separate the types

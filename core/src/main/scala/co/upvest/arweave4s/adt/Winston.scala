@@ -1,7 +1,14 @@
 package co.upvest.arweave4s.adt
 
+import cats.Monoid
+
 case class Winston(amount: BigInt) {
+  require(amount >= 0)
+
   override def toString: String = amount.toString
+
+  def +(o: Winston): Winston = Winston(amount + o.amount)
+  def <(o: Winston): Boolean = amount < o.amount
 }
 
 object Winston {
@@ -10,4 +17,9 @@ object Winston {
 
   val Zero = apply("0")
   val AR = apply("1000000000000")
+
+  implicit val winstonInstances = new Monoid[Winston] {
+    val empty = Zero
+    def combine(a: Winston, b: Winston) = a + b
+  }
 }
