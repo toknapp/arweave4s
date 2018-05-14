@@ -76,11 +76,6 @@ jobs:
 workflows:
   version: 2
 
-  ci:
-    jobs:
-      - test
-      - integration-test
-
   nightly:
     triggers:
       - schedule:
@@ -94,13 +89,22 @@ workflows:
       - test
       - integration-test
 
-  release:
+  ci:
+    jobs:
+      - test
+      - integration-test
     jobs:
       - release:
           filters:
             branches:
               only: master
+          requires:
+            - test
+            - integration-test
       - release-snapshot:
           filters:
             branches:
               only: develop
+          requires:
+            - test
+            - integration-test
