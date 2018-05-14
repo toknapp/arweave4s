@@ -25,7 +25,6 @@ package object api {
   type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
   type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
-  type TransactionHandler[F[_]] = F[Response[String]] => F[Transaction.WithStatus]
 
   trait AbstractConfig[F[_], G[_]] {
     def host: String
