@@ -19,7 +19,7 @@ object Transaction {
   object Id {
     final val Length = 32
 
-    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()): Transaction.Id = {
+    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()): Id = {
       val repr = new Array[Byte](size)
       sr.nextBytes(repr)
       new Id(repr)
@@ -30,22 +30,9 @@ object Transaction {
   }
 
   sealed trait Type
-
   object Type {
-
-    def apply(strRep: String): Option[Type] = strRep match {
-      case "transfer" => Some(Transfer)
-      case "data"     => Some(Data)
-      case _          => None
-    }
-
-    case object Transfer extends Type {
-      override def toString:String = "transfer"
-    }
-
-    case object Data extends Type {
-      override def toString:String = "data"
-    }
+    case object Transfer extends Type
+    case object Data extends Type
   }
 
   /**
@@ -92,4 +79,10 @@ object Transaction {
     )
   }
 
+  sealed trait WithStatus
+  object WithStatus {
+    case class NotFound(id: Id) extends WithStatus
+    case class Pending(id: Id) extends WithStatus
+    case class Accepted(stx: Signed[Transaction]) extends WithStatus
+  }
 }

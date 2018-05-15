@@ -1,9 +1,8 @@
 version: 2
 
-
 sbt-build: &sbt-build
   docker:
-    - image: hseeberger/scala-sbt:8u151-2.12.4-1.1.1
+    - image: upvest/scala-sbt-docker-k8:stable
   steps:
     - run: mkdir ~/.sbt/gpg
     - run: echo $PGPKEY | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
@@ -27,35 +26,40 @@ sbt-build: &sbt-build
           - ~/.m2
           - ~/.ivy2
           - ~/.sbt
-    - store_artifacts:
-        path: core/target/scala-2.12/api/
-        destination: scaladoc/core
-    - store_artifacts:
-        path: core/target/test-reports/
-        destination: test-reports/core
-    - store_test_results:
-        path: core/target/test-reports/
-
 
 jobs:
 
   test:
     <<: *sbt-build
-    resource_class: large
     environment:
       SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
 
-  integration-test-fast:
-    <<: *sbt-build
-    resource_class: large
-    environment:
-      SBT_COMMAND: "it:testOnly -- -l org.scalatest.tags.Slow"
-
-  integration-test-all:
-    <<: *sbt-build
-    resource_class: large
-    environment:
-      SBT_COMMAND: "it:test"
+  integration-test:
+    docker:
+      - image: docker/compose:1.21.2
+    steps:
+      - run: apk update && apk add curl git openssh-client coreutils
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Update submodules
+          command: |
+            git submodule sync
+            git submodule update --init --remote
+      - run: docker-compose build --no-cache
+      - run:
+          name: Collect logs
+          command: |
+            mkdir logs
+            while true; do
+              docker-compose logs --follow --no-color > logs/docker-compose
+              cp --force --backup=numbered logs/docker-compose logs/docker-compose
+              sleep 1s
+            done
+          background: true
+      - run: docker-compose run it
+      - store_artifacts:
+          path: logs
 
   release:
     <<: *sbt-build
@@ -72,11 +76,6 @@ jobs:
 workflows:
   version: 2
 
-  ci:
-    jobs:
-      - test
-      - integration-test-fast
-
   nightly:
     triggers:
       - schedule:
@@ -88,15 +87,23 @@ workflows:
                 - develop
     jobs:
       - test
-      - integration-test-all
+      - integration-test
 
-  release:
+  ci:
     jobs:
+      - test
+      - integration-test
       - release:
           filters:
             branches:
               only: master
+          requires:
+            - test
+            - integration-test
       - release-snapshot:
           filters:
             branches:
               only: develop
+          requires:
+            - test
+            - integration-test

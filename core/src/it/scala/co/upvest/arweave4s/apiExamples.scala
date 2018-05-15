@@ -5,21 +5,28 @@ import java.util.concurrent.Executors
 import com.softwaremill.sttp.HttpURLConnectionBackend
 import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec}
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries}
 import org.scalatest.concurrent.Eventually
-import org.scalatest.tagobjects.Slow
+import org.scalatest.tagobjects.{Slow, Retryable}
 import cats.Id
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 
 import scala.concurrent.ExecutionContext
 
 class apiExamples extends WordSpec
-  with Matchers with GivenWhenThen with Eventually with BlockchainPatience {
+  with Matchers with GivenWhenThen with Eventually
+  with BlockchainPatience with Retries {
   import ApiTestUtil._
 
+  override def withFixture(test: NoArgTest) = {
+    if (isRetryable(test))
+      withRetry { super.withFixture(test) }
+    else
+      super.withFixture(test)
+  }
 
   "An api axample" should {
-    "be able to use Id" taggedAs(Slow) in {
+    "be able to use Id" taggedAs(Slow, Retryable) in {
 
       implicit val c = api.Config(host = TestHost, HttpURLConnectionBackend())
       import api.id._
@@ -60,14 +67,12 @@ class apiExamples extends WordSpec
       }
     }
 
-    "be able to use for-comprehensions" in {
+    "be able to use for-comprehensions" taggedAs(Retryable) in {
 
       implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend())
       import api.future._
 
       implicit val ec = apiExamples.ec
-
-
 
       Given("some test data that will last forever")
 

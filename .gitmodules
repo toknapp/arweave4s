@@ -1,0 +1,4 @@
+[submodule "arweave"]
+	path = arweave
+	url = https://github.com/ArweaveTeam/arweave
+	branch = master
