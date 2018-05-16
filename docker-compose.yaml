@@ -10,7 +10,7 @@ services:
     build:
       context: .
       dockerfile: docker/sbt.dockerfile
-    command: it:test
+    command: it:test -- -F $SPAN_SCALE_FACTOR
     depends_on:
       - arweave
     environment:
