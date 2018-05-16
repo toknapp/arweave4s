@@ -50,7 +50,8 @@ jobs:
       - image: docker/compose:1.21.2
     steps:
       - run: apk update && apk add curl git openssh-client coreutils
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       - run:
           name: Update submodules
