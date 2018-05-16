@@ -27,8 +27,19 @@ sbt-build: &sbt-build
           - ~/.ivy2
           - ~/.sbt
 
-jobs:
+collect-logs: &collect-logs
+  run:
+    name: Collect logs
+    command: |
+      mkdir logs
+      while true; do
+        docker-compose logs --follow --no-color > logs/docker-compose
+        cp --force --backup=numbered logs/docker-compose logs/docker-compose
+        sleep 1s
+      done
+    background: true
 
+jobs:
   test:
     <<: *sbt-build
     environment:
@@ -39,7 +50,8 @@ jobs:
       - image: docker/compose:1.21.2
     steps:
       - run: apk update && apk add curl git openssh-client coreutils
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - checkout
       - run:
           name: Update submodules
@@ -47,16 +59,10 @@ jobs:
             git submodule sync
             git submodule update --init --remote
       - run: docker-compose build --no-cache
+      - *collect-logs
       - run:
-          name: Collect logs
-          command: |
-            mkdir logs
-            while true; do
-              docker-compose logs --follow --no-color > logs/docker-compose
-              cp --force --backup=numbered logs/docker-compose logs/docker-compose
-              sleep 1s
-            done
-          background: true
+          name: Set scale factor of ScalaTest's spans
+          command: echo "SPAN_SCALE_FACTOR=10.0" >> .env
       - run: docker-compose run it
       - store_artifacts:
           path: logs
