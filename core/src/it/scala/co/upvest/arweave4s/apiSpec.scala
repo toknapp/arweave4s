@@ -158,11 +158,10 @@ class apiSpec extends WordSpec
           run[Unit] { tx.submit(stx) } shouldBe (())
         }
 
-        "eventually return a valid transaction by id" taggedAs(Slow, Retryable) in {
+        "return a valid transaction by id" taggedAs(Slow, Retryable) in {
           val owner = TestAccount.wallet
 
           val id = Transaction.Id.generate()
-
           val utx = Transaction.Transfer(
             id,
             run { address.lastTx(owner) },
@@ -179,13 +178,66 @@ class apiSpec extends WordSpec
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
-          val t = eventually {
+          eventually {
             inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
-              case Transaction.WithStatus.Accepted(Signed(t, _)) => t
+              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
+                t.id shouldBe id
             }
           }
+        }
 
-          t.id shouldBe id
+        "transfer ARs to and from a generated wallet" taggedAs(Slow, Retryable) in {
+          val initialOwner = TestAccount.wallet
+          val intermediateOwner = Wallet.generate()
+          val lastOwner = Wallet.generate()
+
+          val quantity1 = Winston.AR
+          val quantity2 = randomWinstons(upperBound = Winston("10000000"))
+
+          val extraReward1 = randomWinstons(upperBound = Winston("1000"))
+          val extraReward2 = randomWinstons(upperBound = Winston("1000"))
+
+          val utx1 = Transaction.Transfer(
+            Transaction.Id.generate(),
+            run { address.lastTx(initialOwner) },
+            initialOwner,
+            intermediateOwner,
+            quantity = quantity1,
+            reward = maxReward
+          )
+          run[Unit] {
+            tx.submit(
+              utx1.copy(
+                reward = run { price estimate utx1 } + extraReward1
+              ).sign(initialOwner)
+            )
+          } shouldBe (())
+
+          eventually {
+            run[Transaction.WithStatus]{ tx.get[F, G](utx1.id) } should
+              matchPattern { case Transaction.WithStatus.Accepted(_) => }
+          }
+
+          val utx2 = Transaction.Transfer(
+            Transaction.Id.generate(),
+            run { address.lastTx(intermediateOwner) },
+            intermediateOwner,
+            lastOwner,
+            quantity = quantity2,
+            reward = maxReward
+          )
+          run[Unit] {
+            tx.submit(
+              utx2.copy(
+                reward = run { price estimate utx2 } + extraReward2
+              ).sign(intermediateOwner)
+            )
+          } shouldBe (())
+
+          eventually {
+            run[Transaction.WithStatus]{ tx.get[F, G](utx2.id) } should
+              matchPattern { case Transaction.WithStatus.Accepted(_) => }
+          }
         }
 
         "submit a data transaction" taggedAs(Retryable) in {

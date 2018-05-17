@@ -3,7 +3,7 @@ package co.upvest.arweave4s.adt
 import java.math.BigInteger
 import java.security.{KeyFactory, KeyPairGenerator, SecureRandom}
 import java.security.interfaces.{RSAPrivateCrtKey, RSAPublicKey}
-import java.security.spec.{RSAKeyGenParameterSpec, RSAPrivateCrtKeySpec, RSAPublicKeySpec}
+import java.security.spec.{RSAKeyGenParameterSpec, RSAPrivateCrtKeySpec, RSAPublicKeySpec, PKCS8EncodedKeySpec}
 import java.nio.file.{Files, Path, Paths}
 
 import co.upvest.arweave4s.utils.UnsignedBigIntMarshallers
@@ -19,6 +19,8 @@ case class Wallet(pub: RSAPublicKey, priv: RSAPrivateCrtKey) {
   require(pub.getPublicExponent == Wallet.PublicExponentUsedByArweave)
   lazy val owner    : Owner   = Owner(pub.getModulus)
   lazy val address  : Address = Address.ofKey(pub)
+
+  lazy val asPKCS8: Array[Byte] = priv.getEncoded
 }
 
 object Wallet extends WalletMarshallers {
@@ -58,6 +60,16 @@ object Wallet extends WalletMarshallers {
 
   def writeFile(wallet: Wallet, filename: String): Try[Path] = Try {
     Files.write(Paths.get(filename), wallet.asJson.noSpaces.getBytes)
+  }
+
+  def fromPKCS8(bs: Array[Byte]): Try[Wallet] = Try {
+    val spec = new PKCS8EncodedKeySpec(bs)
+    val kf = KeyFactory.getInstance("RSA")
+    val priv = kf.generatePrivate(spec).asInstanceOf[RSAPrivateCrtKey]
+    val pub = kf.generatePublic(
+      new RSAPublicKeySpec(priv.getModulus, priv.getPublicExponent)
+    ).asInstanceOf[RSAPublicKey]
+    Wallet(pub, priv)
   }
 
   implicit def walletToPublicKey(w: Wallet): RSAPublicKey      = w.pub
@@ -110,3 +122,5 @@ trait WalletMarshallers {
       ("qi", w.priv.getCrtCoefficient.asJson)
   )
 }
+
+object WalletMarshallers extends WalletMarshallers
