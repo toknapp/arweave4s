@@ -58,7 +58,7 @@ trait Marshaller {
     lazy implicit val encoder: Encoder[Tag.Custom] = ct =>
       Json.obj(
         "name"  := CryptoUtils.base64UrlEncode(ct.name),
-        "value" := CryptoUtils.base64UrlEncode(ct.name)
+        "value" := CryptoUtils.base64UrlEncode(ct.value)
       )
 
     lazy implicit val decoder: Decoder[Tag.Custom] = c => for {
@@ -175,7 +175,7 @@ trait Marshaller {
         q <- c.downField("quantity").as[Option[Winston]]
       } yield (d.toOption, q)) flatMap {
         case (None, Some(_)) => transferTransactionDecoder(c)
-        case (Some(_), None) => dataTransactionDecoder(c)
+        case (Some(_), Some(Winston.Zero)) => dataTransactionDecoder(c)
         case _ => Left(circe.DecodingFailure(
           message = s"unknown transaction type",
           ops = Nil
