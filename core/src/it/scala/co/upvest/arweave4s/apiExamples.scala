@@ -3,9 +3,9 @@ package co.upvest.arweave4s
 import java.util.concurrent.Executors
 
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston}
+import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston, Query}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries}
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries, LoneElement}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.tagobjects.{Slow, Retryable}
 import cats.Id
@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually
-  with BlockchainPatience with Retries {
+  with BlockchainPatience with Retries with LoneElement {
   import ApiTestUtil._
 
   override def withFixture(test: NoArgTest) = {
@@ -65,6 +65,15 @@ class apiExamples extends WordSpec
       eventually {
         api.address.balance(beneficiary) shouldBe quantity
       }
+
+      And("the transaction id should be in their transaction histories")
+      api.arql(
+        Query.transactionHistory(wallet)
+      ).toList should contain (stx.id)
+
+      api.arql(
+        Query.transactionHistory(beneficiary)
+      ).toList.loneElement shouldBe stx.id
     }
 
     "be able to use for-comprehensions" taggedAs(Retryable) in {

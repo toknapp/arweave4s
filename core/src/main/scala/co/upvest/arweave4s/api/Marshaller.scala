@@ -57,7 +57,7 @@ trait Marshaller {
   object TagsInTransaction {
     lazy implicit val encoder: Encoder[Tag.Custom] = ct =>
       Json.obj(
-        "name" := CryptoUtils.base64UrlEncode(ct.name),
+        "name"  := CryptoUtils.base64UrlEncode(ct.name),
         "value" := CryptoUtils.base64UrlEncode(ct.name)
       )
 
@@ -71,6 +71,39 @@ trait Marshaller {
         orComplain
       )
     } yield Tag.Custom(name = n, value = v)
+  }
+
+  implicit lazy val queryEncoder: Encoder[Query] = {
+    case Query.Or(q1, q2) =>
+      Json.obj(
+        "op"    := "or",
+        "expr1" := q1,
+        "expr2" := q2
+      )
+    case Query.And(q1, q2) =>
+      Json.obj(
+        "op"    := "and",
+        "expr1" := q1,
+        "expr2" := q2
+      )
+    case Query.Exact(Tag.From(a)) =>
+      Json.obj(
+        "op"    := "equals",
+        "expr1" := CryptoUtils.base64UrlEncode("from".getBytes),
+        "expr2" := a.toString
+      )
+    case Query.Exact(Tag.To(a)) =>
+      Json.obj(
+        "op"    := "equals",
+        "expr1" := CryptoUtils.base64UrlEncode("to".getBytes),
+        "expr2" := a.toString
+      )
+    case Query.Exact(ct: Tag.Custom) =>
+      Json.obj(
+        "op"    := "equals",
+        "expr1" := CryptoUtils.base64UrlEncode(ct.name),
+        "expr2" := CryptoUtils.base64UrlEncode(ct.value)
+      )
   }
 
   implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
