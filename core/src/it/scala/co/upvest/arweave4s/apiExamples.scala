@@ -92,7 +92,8 @@ class apiExamples extends WordSpec
             lastTx = lastTx,
             owner  = wallet,
             data   = testData,
-            reward = price
+            reward = price,
+            tags   = Nil
         ).sign(wallet))
       } yield ()
     }

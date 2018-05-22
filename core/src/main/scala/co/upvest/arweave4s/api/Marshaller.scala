@@ -2,7 +2,7 @@ package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
-import co.upvest.arweave4s.utils.{CirceComplaints, EmptyStringAsNone}
+import co.upvest.arweave4s.utils.{CirceComplaints, EmptyStringAsNone, CryptoUtils}
 import io.circe.Decoder.Result
 import io.circe
 import io.circe.{Decoder, HCursor, Encoder, Json, JsonObject}
@@ -54,6 +54,25 @@ trait Marshaller {
 
   case class NoneAsEmptyStringDecoder[T: Decoder](t: T)
 
+  object TagsInTransaction {
+    lazy implicit val encoder: Encoder[Tag.Custom] = ct =>
+      Json.obj(
+        "name" := CryptoUtils.base64UrlEncode(ct.name),
+        "value" := CryptoUtils.base64UrlEncode(ct.name)
+      )
+
+    lazy implicit val decoder: Decoder[Tag.Custom] = c => for {
+      n <- (c.downField("name").as[String]
+        map CryptoUtils.base64UrlDecode
+        orComplain
+      )
+      v <- (c.downField("value").as[String]
+        map CryptoUtils.base64UrlDecode
+        orComplain
+      )
+    } yield Tag.Custom(name = n, value = v)
+  }
+
   implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
     override def apply(c: HCursor): Result[Transaction.Data] =
       for {
@@ -62,7 +81,11 @@ trait Marshaller {
         owner  <- c.downField("owner").as[Owner]
         data   <- c.downField("data").as[Data]
         reward <- c.downField("reward").as[Winston]
-      } yield Transaction.Data(id, lastTx, owner, data, reward)
+        tags   <- {
+          import TagsInTransaction.decoder
+          c.downField("tags").as[Seq[Tag.Custom]]
+        }
+      } yield Transaction.Data(id, lastTx, owner, data, reward, tags)
   }
 
   implicit lazy val dataTransactionEncoder: Encoder[Transaction.Data] =
@@ -74,7 +97,12 @@ trait Marshaller {
         ("owner", tx.owner.asJson),
         ("reward", tx.reward.asJson),
         ("quantity", Winston.Zero.asJson),
-        ("data", tx.data.asJson)
+        ("data", tx.data.asJson),
+        ("tags", {
+          import TagsInTransaction.encoder
+          tx.tags asJson
+        }
+        )
     )
 
   implicit lazy val transferTransactionEncoder: Encoder[Transaction.Transfer] =

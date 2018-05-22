@@ -250,7 +250,8 @@ class apiSpec extends WordSpec
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = maxReward
+            reward = maxReward,
+            tags = Nil
           )
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
