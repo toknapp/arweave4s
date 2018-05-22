@@ -7,4 +7,5 @@ object Query {
   case class Exact(tag: Tag) extends Query
 
   def transactionHistory(a: Address) = Or(Exact(Tag.From(a)), Exact(Tag.To(a)))
+  def transactionsWithTag(t: Tag) = Exact(t)
 }

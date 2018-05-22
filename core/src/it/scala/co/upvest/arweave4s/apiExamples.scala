@@ -3,19 +3,22 @@ package co.upvest.arweave4s
 import java.util.concurrent.Executors
 
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston, Query}
+import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston, Query, Tag, Signed}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries, LoneElement}
-import org.scalatest.concurrent.Eventually
+import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries, LoneElement, Inside}
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.tagobjects.{Slow, Retryable}
 import cats.Id
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
+
+import cats.instances.future._
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually
-  with BlockchainPatience with Retries with LoneElement {
+  with BlockchainPatience with Retries with LoneElement
+  with Inside with ScalaFutures {
   import ApiTestUtil._
 
   override def withFixture(test: NoArgTest) = {
@@ -83,28 +86,47 @@ class apiExamples extends WordSpec
 
       implicit val ec = apiExamples.ec
 
-      Given("some test data that will last forever")
-
+      Given("some test data that will last forever and a tag to find it")
       val testData = Data("Hi Mom!".getBytes("UTF-8"))
+      val tag = Tag.Custom(
+        name = randomBytes(12),
+        value = randomBytes(24)
+      )
 
       And("a wallet")
       val wallet = TestAccount.wallet
 
-      Then("a transaction should be successful")
+      Then("a transaction should be successfully submitted")
+      val f = for {
+        price  <- api.price.estimate(testData)
+        lastTx <- api.address.lastTx(wallet)
+        stx = Transaction.Data(
+          id     = Transaction.Id.generate(),
+          lastTx = lastTx,
+          owner  = wallet,
+          data   = testData,
+          reward = Winston.AR, // TODO: correct price estimation
+          tags   = tag :: Nil
+        ).sign(wallet)
+        ()     <- api.tx.submit(stx)
+      } yield stx
 
-      for {
-        price    <- api.price.estimate(testData)
-        lastTx   <- api.address.lastTx(wallet)
-        ()       <- api.tx.submit(
-          Transaction.Data(
-            id     = Transaction.Id.generate(),
-            lastTx = lastTx,
-            owner  = wallet,
-            data   = testData,
-            reward = price,
-            tags   = Nil
-        ).sign(wallet))
-      } yield ()
+      whenReady(f) { stx =>
+        And("eventually get accepted")
+        eventually {
+          whenReady(api.tx.get[Future, Future](stx.id)) { ts =>
+            inside(ts) {
+              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
+                t.id shouldBe stx.id
+            }
+          }
+        }
+
+        Then("it should be findable with the tag")
+        whenReady(api.arql(Query.transactionsWithTag(tag))) { txs =>
+          txs.toList.loneElement shouldBe stx.id
+        }
+      }
     }
   }
 }
