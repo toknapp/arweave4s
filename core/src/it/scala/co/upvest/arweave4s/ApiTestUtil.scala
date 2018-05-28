@@ -28,7 +28,6 @@ object ApiTestUtil {
     lazy val address = wallet.address
   }
 
-
   def randomWinstons(
     upperBound: Winston = Winston.AR,
     lowerBound: Winston = Winston.Zero): Winston = Winston(
@@ -44,9 +43,12 @@ object ApiTestUtil {
   def randomPositiveLong(upperBound: Long, lowerBound: Long): Long =
     (Random.nextLong().abs % (upperBound - lowerBound)) + lowerBound
 
-  def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data = {
-    val bs = new Array[Byte](randomPositiveLong(upperBound, lowerBound).toInt)
+  def randomBytes(n: Int) = {
+    val bs = new Array[Byte](n)
     Random.nextBytes(bs)
-    Data(bs)
+    bs
   }
+
+  def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data =
+    Data(randomBytes(randomPositiveLong(upperBound, lowerBound).toInt))
 }

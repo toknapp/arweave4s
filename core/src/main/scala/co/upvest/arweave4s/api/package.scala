@@ -257,5 +257,17 @@ package object api {
     ): F[Winston] = estimateForBytes(t.signingData.length)
   }
 
+  object arql {
+    def apply[F[_], G[_]](q: Query)(implicit
+      c: AbstractConfig[F, G], jh: JsonHandler[F]
+    ): F[Seq[Transaction.Id]] = {
+      val req = sttp
+        .body(q)
+        .post(uri"${c.host}/arql")
+        .response(asJson[Seq[Transaction.Id]])
+      jh(c.i(c.backend send req))
+    }
+  }
+
   private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption
 }
