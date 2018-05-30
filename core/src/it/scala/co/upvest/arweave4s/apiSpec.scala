@@ -2,7 +2,7 @@ package co.upvest.arweave4s
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston, Signed}
+import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{Inside, Matchers, WordSpec, Retries}
 import org.scalatest.concurrent.{ScalaFutures, Eventually}
@@ -143,7 +143,6 @@ class apiSpec extends WordSpec
           val owner = Wallet.generate()
 
           val utx = Transaction.Transfer(
-            Transaction.Id.generate(),
             run { address.lastTx(owner) },
             owner,
             Wallet.generate(),
@@ -161,27 +160,21 @@ class apiSpec extends WordSpec
         "return a valid transaction by id" taggedAs(Slow, Retryable) in {
           val owner = TestAccount.wallet
 
-          val id = Transaction.Id.generate()
-          val utx = Transaction.Transfer(
-            id,
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = Transaction.Transfer(
             run { address.lastTx(owner) },
             owner,
             Wallet.generate(),
             quantity = randomWinstons(upperBound = Winston("100000")),
-            reward = maxReward
-          )
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = utx.copy(reward =
-            run { price estimate utx } + extraReward
+            reward = run { price estimateTransfer } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
           eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
-              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
-                t.id shouldBe id
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+              case Transaction.WithStatus.Accepted(t) =>
+                t.id shouldBe stx.id
             }
           }
         }
@@ -197,45 +190,31 @@ class apiSpec extends WordSpec
           val extraReward1 = randomWinstons(upperBound = Winston("1000"))
           val extraReward2 = randomWinstons(upperBound = Winston("1000"))
 
-          val utx1 = Transaction.Transfer(
-            Transaction.Id.generate(),
+          val stx1 = Transaction.Transfer(
             run { address.lastTx(initialOwner) },
             initialOwner,
             intermediateOwner,
             quantity = quantity1,
-            reward = maxReward
-          )
-          run[Unit] {
-            tx.submit(
-              utx1.copy(
-                reward = run { price estimate utx1 } + extraReward1
-              ).sign(initialOwner)
-            )
-          } shouldBe (())
+            reward = run { price estimateTransfer } + extraReward1
+          ).sign(initialOwner)
+          run[Unit] { tx submit stx1 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](utx1.id) } should
+            run[Transaction.WithStatus]{ tx.get[F, G](stx1.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
 
-          val utx2 = Transaction.Transfer(
-            Transaction.Id.generate(),
+          val stx2 = Transaction.Transfer(
             run { address.lastTx(intermediateOwner) },
             intermediateOwner,
             lastOwner,
             quantity = quantity2,
-            reward = maxReward
-          )
-          run[Unit] {
-            tx.submit(
-              utx2.copy(
-                reward = run { price estimate utx2 } + extraReward2
-              ).sign(intermediateOwner)
-            )
-          } shouldBe (())
+            reward = run { price estimateTransfer } + extraReward2
+          ).sign(intermediateOwner)
+          run[Unit] { tx submit stx2 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](utx2.id) } should
+            run[Transaction.WithStatus]{ tx.get[F, G](stx2.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
         }
@@ -245,17 +224,12 @@ class apiSpec extends WordSpec
 
           val data = randomData()
 
-          val utx = Transaction.Data(
-            Transaction.Id.generate(),
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = Transaction.Data(
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = maxReward
-          )
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = utx.copy( reward =
-            run { price estimate utx } + extraReward
+            reward = run { price estimate data } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())

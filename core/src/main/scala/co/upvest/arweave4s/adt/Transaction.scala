@@ -1,11 +1,8 @@
 package co.upvest.arweave4s.adt
 
-import java.security.SecureRandom
-
 import co.upvest.arweave4s.utils.CryptoUtils
 
 trait Transaction extends Signable {
-  def id: Transaction.Id
   def lastTx: Option[Transaction.Id]
   def owner: Owner
   def reward: Winston
@@ -14,16 +11,10 @@ trait Transaction extends Signable {
 
 object Transaction {
 
-  class Id(val bytes: Array[Byte]) extends Base64EncodedBytes
+  class Id protected[Transaction] (val bytes: Array[Byte]) extends Base64EncodedBytes
 
   object Id {
     final val Length = 32
-
-    def generate(size: Int = Length, sr: SecureRandom = new SecureRandom()): Id = {
-      val repr = new Array[Byte](size)
-      sr.nextBytes(repr)
-      new Id(repr)
-    }
 
     def fromEncoded(s: String): Option[Id] =
       CryptoUtils.base64UrlDecode(s) map { new Id(_) }
@@ -43,22 +34,20 @@ object Transaction {
     *
     * owner     <- unencode(owner)
     * target    <- unencode(target)
-    * id        <- unencode(id)
     * data      <- unencode(data)
     * quantity  <- unencode(quantity)
     * reward    <- unencode(reward)
     * last_tx   <- unencode(last_tx)
     *
-    * sig_data <- owner + target + id + data + quantity + reward + last_tx
+    * sig_data <- owner + target + data + quantity + reward + last_tx
     * signature <- sign(sig_data, key)
     *
     */
-  case class Data(id: Id, lastTx: Option[Id], owner: Owner, data: Base64EncodedBytes, reward: Winston) extends Transaction {
+  case class Data(lastTx: Option[Id], owner: Owner, data: Base64EncodedBytes, reward: Winston) extends Transaction {
     val tpe: Type = Type.Data
     lazy val signingData = Array.concat(
       owner.bytes,
       Array.empty,
-      id.bytes,
       data.bytes,
       Winston.Zero.toString.getBytes,
       reward.toString.getBytes,
@@ -66,12 +55,11 @@ object Transaction {
     )
   }
 
-  case class Transfer(id: Id, lastTx: Option[Id], owner: Owner, target: Address, quantity: Winston, reward: Winston) extends Transaction {
+  case class Transfer(lastTx: Option[Id], owner: Owner, target: Address, quantity: Winston, reward: Winston) extends Transaction {
     val tpe: Type = Type.Transfer
     lazy val signingData = Array.concat(
       owner.bytes,
       target.bytes,
-      id.bytes,
       Array.empty,
       quantity.toString.getBytes,
       reward.toString.getBytes,
@@ -84,5 +72,9 @@ object Transaction {
     case class NotFound(id: Id) extends WithStatus
     case class Pending(id: Id) extends WithStatus
     case class Accepted(stx: Signed[Transaction]) extends WithStatus
+  }
+
+  implicit class SignedTransaction[T <: Transaction](stx: Signed[T]) {
+    def id: Id = new Id(CryptoUtils.sha256(stx.signature.bytes))
   }
 }

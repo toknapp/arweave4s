@@ -37,9 +37,8 @@ class apiExamples extends WordSpec
       val wallet: Wallet = TestAccount.wallet
       And("that it has enough funds in it")
       val reward = randomWinstons()
-      // TODO: val requiredFunds = reward + quantity
-      //       api.address.balance(wallet) should be >= requiredFunds
-      val requiredFunds = Winston(reward.amount + quantity.amount)
+      val requiredFunds = reward + quantity
+      // TODO api.address.balance(wallet) should be >= requiredFunds
       api.address.balance(wallet).amount should be >= requiredFunds.amount
 
       Given("a freshly generated wallet")
@@ -51,7 +50,6 @@ class apiExamples extends WordSpec
       When("a transfer is submitted")
       val lastTx = api.address.lastTx[Id, Id](wallet) // TODO: why don't type-inference work here?
       val stx = Transaction.Transfer(
-        Transaction.Id.generate(),
         lastTx,
         wallet,
         beneficiary,
@@ -88,7 +86,6 @@ class apiExamples extends WordSpec
         lastTx   <- api.address.lastTx(wallet)
         ()       <- api.tx.submit(
           Transaction.Data(
-            id     = Transaction.Id.generate(),
             lastTx = lastTx,
             owner  = wallet,
             data   = testData,
