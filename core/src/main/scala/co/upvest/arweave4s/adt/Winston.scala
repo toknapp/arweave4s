@@ -8,7 +8,13 @@ case class Winston(amount: BigInt) {
   override def toString: String = amount.toString
 
   def +(o: Winston): Winston = Winston(amount + o.amount)
-  def <(o: Winston): Boolean = amount < o.amount
+
+  def -(o: Winston): Winston =
+    if (Winston.ordering.lt(this, o)) {
+      Winston.Zero
+    } else {
+      Winston(amount - o.amount)
+    }
 }
 
 object Winston {
@@ -22,4 +28,6 @@ object Winston {
     val empty = Zero
     def combine(a: Winston, b: Winston) = a + b
   }
+
+  implicit val ordering: Ordering[Winston] = Ordering.by { _.amount }
 }

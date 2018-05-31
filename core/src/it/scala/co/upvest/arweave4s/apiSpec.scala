@@ -130,10 +130,11 @@ class apiSpec extends WordSpec
           val q = randomPositiveBigInt(100, 0)
           val y = x * q
 
+          val z = run[Winston] { price.estimateForBytes(0) }.amount
           val px = run[Winston] { price.estimateForBytes(x) }.amount
           val py = run[Winston] { price.estimateForBytes(y) }.amount
 
-          py / px shouldBe q
+          (py - z) / (px - z) shouldBe q
         }
       }
 
@@ -141,19 +142,16 @@ class apiSpec extends WordSpec
 
         "submit a transfer transaction" taggedAs(Retryable) in {
           val owner = Wallet.generate()
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
 
-          val utx = Transaction.Transfer(
+          val stx = Transaction.Transfer(
             run { address.lastTx(owner) },
             owner,
             Wallet.generate(),
             quantity = randomWinstons(),
-            reward = maxReward
-          )
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = utx.copy(reward =
-            run { price estimate utx } + extraReward
+            reward = run { price estimateTransfer } + extraReward
           ).sign(owner)
+
           run[Unit] { tx.submit(stx) } shouldBe (())
         }
 
