@@ -121,11 +121,14 @@ class apiSpec extends WordSpec
 
       "tre price api" should {
         "return a valid (positive) price" in {
-          run[Winston] { price.estimateForBytes(BigInt(10)) }
-            .amount should be > BigInt(0)
+          run { price.estimateForBytes(BigInt(10)) } should be > Winston.Zero
         }
 
-        "return a price proportionate in amount of bytes" taggedAs(Retryable) in {
+        "return a valid (positive) price for transfer transactions" in {
+          run { price.estimateTransfer } should be > Winston.Zero
+        }
+
+        "return a price (at least) linear in amount of bytes" taggedAs(Retryable) in {
           val x = randomPositiveBigInt(10000, 0)
           val q = randomPositiveBigInt(100, 0)
           val y = x * q
@@ -134,7 +137,7 @@ class apiSpec extends WordSpec
           val px = run[Winston] { price.estimateForBytes(x) }.amount
           val py = run[Winston] { price.estimateForBytes(y) }.amount
 
-          (py - z) / (px - z) shouldBe q
+          (py - z) / (px - z) should be >= q
         }
       }
 
@@ -146,7 +149,7 @@ class apiSpec extends WordSpec
           // for unknown addresses:
           //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
           //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
- 
+
           val extraReward = randomWinstons(upperBound = Winston("1000"))
 
           val stx = Transaction.Transfer(
