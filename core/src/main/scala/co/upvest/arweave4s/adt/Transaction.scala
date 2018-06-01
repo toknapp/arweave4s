@@ -43,7 +43,7 @@ object Transaction {
     * signature <- sign(sig_data, key)
     *
     */
-  case class Data(lastTx: Option[Id], owner: Owner, data: Base64EncodedBytes, reward: Winston) extends Transaction {
+  case class Data(lastTx: Option[Id], owner: Owner, data: Base64EncodedBytes, reward: Winston, tags: Seq[Tag.Custom]) extends Transaction {
     val tpe: Type = Type.Data
     lazy val signingData = Array.concat(
       owner.bytes,

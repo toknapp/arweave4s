@@ -247,7 +247,8 @@ class apiSpec extends WordSpec
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = run { price estimate data } + extraReward
+            reward = run { price estimate data } + extraReward,
+            tags = Nil
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
