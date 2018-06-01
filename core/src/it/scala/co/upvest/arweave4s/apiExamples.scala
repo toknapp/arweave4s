@@ -38,8 +38,7 @@ class apiExamples extends WordSpec
       And("that it has enough funds in it")
       val reward = randomWinstons()
       val requiredFunds = reward + quantity
-      // TODO api.address.balance(wallet) should be >= requiredFunds
-      api.address.balance(wallet).amount should be >= requiredFunds.amount
+      api.address.balance(wallet) should be >= requiredFunds
 
       Given("a freshly generated wallet")
       val beneficiary = Wallet.generate()
