@@ -15,6 +15,9 @@ case class Winston(amount: BigInt) {
     } else {
       Winston(amount - o.amount)
     }
+
+  def *(o: Winston): Winston = Winston(amount * o.amount)
+  def *(n: Int): Winston = Winston(n * amount)
 }
 
 object Winston {
@@ -30,4 +33,10 @@ object Winston {
   }
 
   implicit val ordering: Ordering[Winston] = Ordering.by { _.amount }
+
+  object syntax {
+    implicit class IntSyntax(n: Int) {
+      def *(o: Winston) = o * n
+    }
+  }
 }

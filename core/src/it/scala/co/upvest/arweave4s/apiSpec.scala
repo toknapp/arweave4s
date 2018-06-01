@@ -141,7 +141,12 @@ class apiSpec extends WordSpec
       "the transaction api" should {
 
         "submit a transfer transaction" taggedAs(Retryable) in {
-          val owner = Wallet.generate()
+          val owner = TestAccount.wallet
+          // use our test wallet here since Arweave rejects transactions signed
+          // for unknown addresses:
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
+ 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
 
           val stx = Transaction.Transfer(
@@ -218,7 +223,11 @@ class apiSpec extends WordSpec
         }
 
         "submit a data transaction" taggedAs(Retryable) in {
-          val owner = Wallet.generate()
+          val owner = TestAccount.wallet
+          // use our test wallet here since Arweave rejects transactions signed
+          // for unknown addresses:
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
 
           val data = randomData()
 
