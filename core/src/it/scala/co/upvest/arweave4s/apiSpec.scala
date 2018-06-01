@@ -128,16 +128,24 @@ class apiSpec extends WordSpec
           run { price.estimateTransfer } should be > Winston.Zero
         }
 
-        "return a price (at least) linear in amount of bytes" taggedAs(Retryable) in {
-          val x = randomPositiveBigInt(10000, 0)
-          val q = randomPositiveBigInt(100, 0)
-          val y = x * q
+        "return a price that increases" taggedAs(Retryable) in {
+          val x = randomPositiveBigInt(100000, 1)
+          val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
 
-          val z = run[Winston] { price.estimateForBytes(0) }.amount
+          val p0 = run[Winston] { price.estimateForBytes(0) }.amount
           val px = run[Winston] { price.estimateForBytes(x) }.amount
           val py = run[Winston] { price.estimateForBytes(y) }.amount
 
-          (py - z) / (px - z) should be >= q
+          p0 should be < px
+          px should be < py
+        }
+
+        "return a deterministic price" taggedAs(Retryable) in {
+          val x = randomPositiveBigInt(100000, 0)
+          val p = run[Winston] { price.estimateForBytes(x) }.amount
+          val q = run[Winston] { price.estimateForBytes(x) }.amount
+
+          p shouldBe q
         }
       }
 
