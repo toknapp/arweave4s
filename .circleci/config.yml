@@ -27,14 +27,30 @@ sbt-build: &sbt-build
           - ~/.ivy2
           - ~/.sbt
 
-collect-logs: &collect-logs
+collect-docker-compose-logs: &collect-docker-compose-logs
   run:
     name: Collect logs
     command: |
-      mkdir logs
+      mkdir -p logs
       while true; do
         docker-compose logs --follow --no-color > logs/docker-compose
         cp --force --backup=numbered logs/docker-compose logs/docker-compose
+        sleep 1s
+      done
+    background: true
+
+collect-arweave-logs: &collect-arweave-logs
+  run:
+    name: Collect logs
+    command: |
+      mkdir -p logs
+      set +o errexit
+      while [ $(docker-compose ps --quiet arweave | wc -l) = 0 ]; do
+        sleep 1s
+      done
+      while true; do
+        docker-compose exec arweave /bin/sh -c "tail -n +1 -f logs/*log" > logs/arweave
+        cp --force --backup=numbered logs/arweave logs/arweave
         sleep 1s
       done
     background: true
@@ -59,7 +75,8 @@ jobs:
             git submodule sync
             git submodule update --init --remote
       - run: docker-compose build --no-cache
-      - *collect-logs
+      - *collect-docker-compose-logs
+      - *collect-arweave-logs
       - run:
           name: Set scale factor of ScalaTest's spans
           command: echo "SPAN_SCALE_FACTOR=10.0" >> .env
