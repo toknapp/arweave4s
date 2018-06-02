@@ -108,7 +108,10 @@ class apiExamples extends WordSpec
         ()       <- api.tx.submit(stx)
       } yield stx
 
+
       whenReady(f) { stx =>
+        waitForDataTransaction(stx)
+
         And("eventually get accepted")
         eventually {
           whenReady(api.tx.get[Future, Future](stx.id)) { ts =>

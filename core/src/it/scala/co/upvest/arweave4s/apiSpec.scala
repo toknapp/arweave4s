@@ -13,8 +13,7 @@ import cats.arrow.FunctionK
 import cats.instances.try_._
 import cats.instances.future._
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 class apiSpec extends WordSpec
@@ -38,8 +37,6 @@ class apiSpec extends WordSpec
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   val invalidBlockHeight = BigInt(Long.MaxValue)
-
-  val maxReward = Winston.AR
 
   implicit val idRunner: Id ~> Id = FunctionK.id
 
@@ -151,27 +148,7 @@ class apiSpec extends WordSpec
 
       "the transaction api" should {
 
-        "submit a transfer transaction" taggedAs(Retryable) in {
-          val owner = TestAccount.wallet
-          // use our test wallet here since Arweave rejects transactions signed
-          // for unknown addresses:
-          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
-          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-
-          val stx = Transaction.Transfer(
-            run { address.lastTx(owner) },
-            owner,
-            Wallet.generate(),
-            quantity = randomWinstons(),
-            reward = run { price estimateTransfer } + extraReward
-          ).sign(owner)
-
-          run[Unit] { tx.submit(stx) } shouldBe (())
-        }
-
-        "return a valid transaction by id" taggedAs(Slow, Retryable) in {
+        "submit a valid transfer transaction" taggedAs(Slow, Retryable) in {
           val owner = TestAccount.wallet
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
@@ -252,6 +229,15 @@ class apiSpec extends WordSpec
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
+
+          waitForDataTransaction(stx)
+
+          eventually {
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+              case Transaction.WithStatus.Accepted(t) =>
+                t.id shouldBe stx.id
+            }
+          }
         }
       }
     }

@@ -51,7 +51,8 @@ object Transaction {
       data.bytes,
       Winston.Zero.toString.getBytes,
       reward.toString.getBytes,
-      lastTx map { _.bytes } getOrElse Array.empty
+      lastTx map { _.bytes } getOrElse Array.empty,
+      tags.map{ t => t.name ++ t.value }.flatten.toArray
     )
   }
 
