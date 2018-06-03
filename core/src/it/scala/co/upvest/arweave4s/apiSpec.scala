@@ -2,7 +2,7 @@ package co.upvest.arweave4s
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston, Signed}
+import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{Inside, Matchers, WordSpec, Retries}
 import org.scalatest.concurrent.{ScalaFutures, Eventually}
@@ -13,8 +13,7 @@ import cats.arrow.FunctionK
 import cats.instances.try_._
 import cats.instances.future._
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 class apiSpec extends WordSpec
@@ -38,8 +37,6 @@ class apiSpec extends WordSpec
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   val invalidBlockHeight = BigInt(Long.MaxValue)
-
-  val maxReward = Winston.AR
 
   implicit val idRunner: Id ~> Id = FunctionK.id
 
@@ -121,67 +118,54 @@ class apiSpec extends WordSpec
 
       "tre price api" should {
         "return a valid (positive) price" in {
-          run[Winston] { price.estimateForBytes(BigInt(10)) }
-            .amount should be > BigInt(0)
+          run { price.estimateForBytes(BigInt(10)) } should be > Winston.Zero
         }
 
-        "return a price proportionate in amount of bytes" taggedAs(Retryable) in {
-          val x = randomPositiveBigInt(10000, 0)
-          val q = randomPositiveBigInt(100, 0)
-          val y = x * q
+        "return a valid (positive) price for transfer transactions" in {
+          run { price.estimateTransfer } should be > Winston.Zero
+        }
 
+        "return a price that increases" taggedAs(Retryable) in {
+          val x = randomPositiveBigInt(100000, 1)
+          val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
+
+          val p0 = run[Winston] { price.estimateForBytes(0) }.amount
           val px = run[Winston] { price.estimateForBytes(x) }.amount
           val py = run[Winston] { price.estimateForBytes(y) }.amount
 
-          py / px shouldBe q
+          p0 should be < px
+          px should be < py
+        }
+
+        "return a deterministic price" taggedAs(Retryable) in {
+          val x = randomPositiveBigInt(100000, 0)
+          val p = run[Winston] { price.estimateForBytes(x) }.amount
+          val q = run[Winston] { price.estimateForBytes(x) }.amount
+
+          p shouldBe q
         }
       }
 
       "the transaction api" should {
 
-        "submit a transfer transaction" taggedAs(Retryable) in {
-          val owner = Wallet.generate()
-
-          val utx = Transaction.Transfer(
-            Transaction.Id.generate(),
-            run { address.lastTx(owner) },
-            owner,
-            Wallet.generate(),
-            quantity = randomWinstons(),
-            reward = maxReward
-          )
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = utx.copy(reward =
-            run { price estimate utx } + extraReward
-          ).sign(owner)
-          run[Unit] { tx.submit(stx) } shouldBe (())
-        }
-
-        "return a valid transaction by id" taggedAs(Slow, Retryable) in {
+        "submit a valid transfer transaction" taggedAs(Slow, Retryable) in {
           val owner = TestAccount.wallet
 
-          val id = Transaction.Id.generate()
-          val utx = Transaction.Transfer(
-            id,
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = Transaction.Transfer(
             run { address.lastTx(owner) },
             owner,
             Wallet.generate(),
             quantity = randomWinstons(upperBound = Winston("100000")),
-            reward = maxReward
-          )
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = utx.copy(reward =
-            run { price estimate utx } + extraReward
+            reward = run { price estimateTransfer } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
 
           eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](id) }) {
-              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
-                t.id shouldBe id
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+              case Transaction.WithStatus.Accepted(t) =>
+                t.id shouldBe stx.id
             }
           }
         }
@@ -197,68 +181,63 @@ class apiSpec extends WordSpec
           val extraReward1 = randomWinstons(upperBound = Winston("1000"))
           val extraReward2 = randomWinstons(upperBound = Winston("1000"))
 
-          val utx1 = Transaction.Transfer(
-            Transaction.Id.generate(),
+          val stx1 = Transaction.Transfer(
             run { address.lastTx(initialOwner) },
             initialOwner,
             intermediateOwner,
             quantity = quantity1,
-            reward = maxReward
-          )
-          run[Unit] {
-            tx.submit(
-              utx1.copy(
-                reward = run { price estimate utx1 } + extraReward1
-              ).sign(initialOwner)
-            )
-          } shouldBe (())
+            reward = run { price estimateTransfer } + extraReward1
+          ).sign(initialOwner)
+          run[Unit] { tx submit stx1 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](utx1.id) } should
+            run[Transaction.WithStatus]{ tx.get[F, G](stx1.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
 
-          val utx2 = Transaction.Transfer(
-            Transaction.Id.generate(),
+          val stx2 = Transaction.Transfer(
             run { address.lastTx(intermediateOwner) },
             intermediateOwner,
             lastOwner,
             quantity = quantity2,
-            reward = maxReward
-          )
-          run[Unit] {
-            tx.submit(
-              utx2.copy(
-                reward = run { price estimate utx2 } + extraReward2
-              ).sign(intermediateOwner)
-            )
-          } shouldBe (())
+            reward = run { price estimateTransfer } + extraReward2
+          ).sign(intermediateOwner)
+          run[Unit] { tx submit stx2 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](utx2.id) } should
+            run[Transaction.WithStatus]{ tx.get[F, G](stx2.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
         }
 
         "submit a data transaction" taggedAs(Retryable) in {
-          val owner = Wallet.generate()
+          val owner = TestAccount.wallet
+          // use our test wallet here since Arweave rejects transactions signed
+          // for unknown addresses:
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
 
           val data = randomData()
 
-          val utx = Transaction.Data(
-            Transaction.Id.generate(),
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = Transaction.Data(
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = maxReward
-          )
-
-          val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = utx.copy( reward =
-            run { price estimate utx } + extraReward
+            reward = run { price estimate data } + extraReward,
+            tags = Nil
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
+
+          waitForDataTransaction(stx)
+
+          eventually {
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+              case Transaction.WithStatus.Accepted(t) =>
+                t.id shouldBe stx.id
+            }
+          }
         }
       }
     }

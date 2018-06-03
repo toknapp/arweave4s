@@ -1,7 +1,10 @@
 version: '2.2'
 services:
   arweave:
-    build: arweave
+    build:
+      context: arweave
+      args:
+        ERLC_OPTS: "-DFIXED_DIFF=4"
     ports:
       - "1984:1984"
     command: no_auto_join init mine peer 127.0.0.1:9

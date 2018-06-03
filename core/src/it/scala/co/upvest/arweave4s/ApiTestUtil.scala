@@ -1,9 +1,10 @@
 package co.upvest.arweave4s
 
-import co.upvest.arweave4s.adt.{Wallet, Winston, Data}
+import co.upvest.arweave4s.adt.{Wallet, Winston, Data, Transaction}
 import co.upvest.arweave4s.utils.CryptoUtils
 
 import scala.util.{Try, Random}
+import scala.concurrent.duration._
 import scala.io.Source
 
 object ApiTestUtil {
@@ -28,6 +29,10 @@ object ApiTestUtil {
     lazy val address = wallet.address
   }
 
+  def waitForDataTransaction(t: Transaction.Data): Unit = {
+    // https://github.com/ArweaveTeam/arweave/blob/d6109b7ad7d824fcea8a540b055c6fb6602b1c81/src/ar_node.erl#L1461
+    Thread.sleep(((30 seconds) + (t.data.size * 300 milliseconds) / 1000).toMillis)
+  }
 
   def randomWinstons(
     upperBound: Winston = Winston.AR,
@@ -44,9 +49,12 @@ object ApiTestUtil {
   def randomPositiveLong(upperBound: Long, lowerBound: Long): Long =
     (Random.nextLong().abs % (upperBound - lowerBound)) + lowerBound
 
-  def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data = {
-    val bs = new Array[Byte](randomPositiveLong(upperBound, lowerBound).toInt)
+  def randomBytes(n: Int) = {
+    val bs = new Array[Byte](n)
     Random.nextBytes(bs)
-    Data(bs)
+    bs
   }
+
+  def randomData(upperBound: Long = 1000000, lowerBound: Long = 0): Data =
+    Data(randomBytes(randomPositiveLong(upperBound, lowerBound).toInt))
 }
