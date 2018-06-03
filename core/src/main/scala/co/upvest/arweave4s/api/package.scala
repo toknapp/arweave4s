@@ -252,9 +252,17 @@ package object api {
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Winston] = estimateForBytes(d.bytes.length)
 
-    def estimate[F[_], G[_], T <: Signable](t: T)(implicit
+    def estimate[F[_], G[_]](t: Transaction)(implicit
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = estimateForBytes(t.signingData.length)
+    ): F[Winston] =
+      t match {
+        case dt: Transaction.Data => estimateForBytes(dt.data.bytes.length)
+        case _: Transaction.Transfer => estimateTransfer()
+      }
+
+    def estimateTransfer[F[_], G[_]]()(implicit
+      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
+    ): F[Winston] = estimateForBytes(BigInt(0))
   }
 
   object arql {

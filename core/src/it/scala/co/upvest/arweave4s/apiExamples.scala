@@ -3,7 +3,7 @@ package co.upvest.arweave4s
 import java.util.concurrent.Executors
 
 import com.softwaremill.sttp.HttpURLConnectionBackend
-import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston, Query, Tag, Signed}
+import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston, Query, Tag}
 import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries, LoneElement, Inside}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
@@ -40,10 +40,8 @@ class apiExamples extends WordSpec
       val wallet: Wallet = TestAccount.wallet
       And("that it has enough funds in it")
       val reward = randomWinstons()
-      // TODO: val requiredFunds = reward + quantity
-      //       api.address.balance(wallet) should be >= requiredFunds
-      val requiredFunds = Winston(reward.amount + quantity.amount)
-      api.address.balance(wallet).amount should be >= requiredFunds.amount
+      val requiredFunds = reward + quantity
+      api.address.balance(wallet) should be >= requiredFunds
 
       Given("a freshly generated wallet")
       val beneficiary = Wallet.generate()
@@ -54,7 +52,6 @@ class apiExamples extends WordSpec
       When("a transfer is submitted")
       val lastTx = api.address.lastTx[Id, Id](wallet) // TODO: why don't type-inference work here?
       val stx = Transaction.Transfer(
-        Transaction.Id.generate(),
         lastTx,
         wallet,
         beneficiary,
@@ -96,27 +93,30 @@ class apiExamples extends WordSpec
       And("a wallet")
       val wallet = TestAccount.wallet
 
-      Then("a transaction should be successfully submitted")
+      Then("a transaction should be successful")
+
       val f = for {
-        price  <- api.price.estimate(testData)
-        lastTx <- api.address.lastTx(wallet)
+        price    <- api.price.estimate(testData)
+        lastTx   <- api.address.lastTx(wallet)
         stx = Transaction.Data(
-          id     = Transaction.Id.generate(),
           lastTx = lastTx,
           owner  = wallet,
           data   = testData,
-          reward = Winston.AR, // TODO: correct price estimation
+          reward = price,
           tags   = tag :: Nil
         ).sign(wallet)
-        ()     <- api.tx.submit(stx)
+        ()       <- api.tx.submit(stx)
       } yield stx
 
+
       whenReady(f) { stx =>
+        waitForDataTransaction(stx)
+
         And("eventually get accepted")
         eventually {
           whenReady(api.tx.get[Future, Future](stx.id)) { ts =>
             inside(ts) {
-              case Transaction.WithStatus.Accepted(Signed(t, _)) =>
+              case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
           }

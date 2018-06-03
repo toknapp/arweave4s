@@ -5,7 +5,7 @@ import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.utils.{CirceComplaints, EmptyStringAsNone, CryptoUtils}
 import io.circe.Decoder.Result
 import io.circe
-import io.circe.{Decoder, HCursor, Encoder, Json, JsonObject}
+import io.circe.{Decoder, HCursor, Encoder, Json}
 import io.circe.syntax._
 
 trait Marshaller {
@@ -109,7 +109,6 @@ trait Marshaller {
   implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
     override def apply(c: HCursor): Result[Transaction.Data] =
       for {
-        id     <- c.downField("id").as[Transaction.Id]
         lastTx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
         owner  <- c.downField("owner").as[Owner]
         data   <- c.downField("data").as[Data]
@@ -118,10 +117,10 @@ trait Marshaller {
           import TagsInTransaction.decoder
           c.downField("tags").as[Seq[Tag.Custom]]
         }
-      } yield Transaction.Data(id, lastTx, owner, data, reward, tags)
+      } yield Transaction.Data(lastTx, owner, data, reward, tags)
   }
 
-  implicit lazy val dataTransactionEncoder: Encoder[Transaction.Data] =
+  implicit lazy val dataTransactionEncoder: Encoder[Signed[Transaction.Data]] =
     tx =>
       Json.obj(
         ("id", tx.id.asJson),
@@ -134,11 +133,11 @@ trait Marshaller {
         ("tags", {
           import TagsInTransaction.encoder
           tx.tags asJson
-        }
-        )
-    )
+        }),
+        ("signature", tx.signature.asJson)
+      )
 
-  implicit lazy val transferTransactionEncoder: Encoder[Transaction.Transfer] =
+  implicit lazy val transferTransactionEncoder: Encoder[Signed[Transaction.Transfer]] =
     tx =>
       Json.obj(
         ("id", tx.id.asJson),
@@ -147,25 +146,26 @@ trait Marshaller {
         ("owner", tx.owner.asJson),
         ("target", tx.target.asJson),
         ("quantity", tx.quantity.asJson),
-        ("reward", tx.reward.asJson)
+        ("reward", tx.reward.asJson),
+        ("signature", tx.signature.asJson)
     )
 
-  implicit lazy val transactionEncoder: Encoder[Transaction] = {
-    case t: Transaction.Transfer => t.asJson
-    case t: Transaction.Data => t.asJson
-  }
+  implicit lazy val transactionEncoder: Encoder[Signed[Transaction]] = stx =>
+    stx.t match {
+      case t: Transaction.Transfer => stx.copy(t = t).asJson
+      case t: Transaction.Data => stx.copy(t = t).asJson
+    }
 
   implicit lazy val transferTransactionDecoder =
     new Decoder[Transaction.Transfer] {
       override def apply(c: HCursor): Result[Transaction.Transfer] =
         for {
-          id       <- c.downField("id").as[Transaction.Id]
           lastTx   <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
           owner    <- c.downField("owner").as[Owner]
           target   <- c.downField("target").as[Address]
           quantity <- c.downField("quantity").as[Winston]
           reward   <- c.downField("reward").as[Winston]
-        } yield Transaction.Transfer(id, lastTx, owner, target, quantity, reward)
+        } yield Transaction.Transfer(lastTx, owner, target, quantity, reward)
     }
 
   implicit lazy val transactionDecoder = new Decoder[Transaction] {
@@ -189,12 +189,6 @@ trait Marshaller {
         sig <- c.downField("signature").as[Signature]
         t   <- c.as[T]
       } yield Signed[T](t, sig)
-
-  implicit def signedEncoder[T <: Signable: Encoder]: Encoder[Signed[T]] =
-    s =>
-      s.t.asJson.withObject { (jo: JsonObject) =>
-        Json.fromJsonObject(("signature", s.signature.asJson) +: jo)
-    }
 
   implicit lazy val walletDecoder = new Decoder[WalletResponse] {
     override def apply(c: HCursor): Result[WalletResponse] =
