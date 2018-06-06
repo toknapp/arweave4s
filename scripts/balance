@@ -5,7 +5,7 @@ set -o errexit
 make --quiet
 
 ADDRESS=
-HOST=
+HOST=$ARWEAVE_NODE
 while getopts "a:h:" opt; do
     case $opt in
         a) ADDRESS="$OPTARG" ;;

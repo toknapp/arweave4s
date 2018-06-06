@@ -8,7 +8,7 @@ make --quiet
 WALLET=
 TO=
 QUANTITY=
-HOST=
+HOST=$ARWEAVE_NODE
 while getopts "t:w:q:h:" opt; do
     case $opt in
         w) WALLET="$OPTARG" ;;
