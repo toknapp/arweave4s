@@ -27,6 +27,7 @@ esac
 ${DOCKER-docker} run \
     -v $wallet_fn:/wallet.json:ro \
     --rm \
+    --net=host \
     arweave-scripts transfer \
     --to "$TO" \
     --quantity "$QUANTITY" \

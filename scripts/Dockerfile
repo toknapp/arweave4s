@@ -1,6 +1,7 @@
-FROM debian
+FROM debian:stretch-slim
 
-RUN apt-get update && apt-get install -y wget default-jre
+RUN apt-get update && mkdir -p /usr/share/man/man1 \
+    && apt-get install -y --no-install-recommends wget default-jre-headless
 RUN wget -O /usr/bin/amm https://github.com/lihaoyi/Ammonite/releases/download/1.1.2/2.12-1.1.2
 RUN chmod +x /usr/bin/amm
 

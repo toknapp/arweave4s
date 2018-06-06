@@ -15,6 +15,6 @@ while getopts "a:h:" opt; do
     esac
 done
 
-${DOCKER-docker} run --rm \
+${DOCKER-docker} run --rm --net=host \
     arweave-scripts \
     balance --address "$ADDRESS" --host "$HOST"

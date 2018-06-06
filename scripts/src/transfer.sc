@@ -11,7 +11,7 @@ import cats.Id
 @main
 def main(
   to: String,
-  quantity: Int,
+  quantity: String,
   host: String,
   wallet: String
 ) = {
@@ -23,7 +23,7 @@ def main(
     api.address.lastTx[Id, Id](w),
     w,
     target = Address.fromEncoded(to).get,
-    quantity = Winston.AR * quantity,
+    quantity = Winston(quantity),
     reward = api.price.estimateTransfer[Id, Id]
   ).sign(w)
 
