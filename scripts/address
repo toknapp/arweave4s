@@ -6,7 +6,12 @@ make --quiet
 
 WALLET=$1
 
+case "$(uname -s)" in
+    Linux) wallet_fn=$(readlink -f "$WALLET" || echo "$WALLET");;
+    Darwin) wallet_fn=$(readlink "$WALLET" || echo "$(pwd)/$WALLET");;
+esac
+
 ${DOCKER-docker} run \
-    -v $(readlink -f "$WALLET"):/wallet.json:ro \
+    -v $wallet_fn:/wallet.json:ro \
     --rm \
     arweave-scripts address /wallet.json
