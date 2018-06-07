@@ -24,10 +24,8 @@ case class Wallet(pub: RSAPublicKey, priv: RSAPrivateCrtKey) {
 }
 
 object Wallet extends WalletMarshallers {
-  // at the (previous!) time of writing the following public exponent is enforced, see:
-  // - https://github.com/ArweaveTeam/arweave/blob/18a7aeafa97b54a444ca53fadaf9c94b6075a87c/src/ar_wallet.erl#L74
-  // - https://github.com/ArweaveTeam/arweave/blob/18a7aeafa97b54a444ca53fadaf9c94b6075a87c/src/ar_wallet.erl#L3
-  // TODO: add reference to the new exponet
+  // at the time of writing the following public exponent is enforced, see:
+  // https://github.com/ArweaveTeam/arweave/commit/0bf8993e4fd3f756c925931ee119c0843221ec5f
   final val PublicExponentUsedByArweave = new BigInteger("65537")
 
   def generate(
