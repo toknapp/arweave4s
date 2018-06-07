@@ -9,7 +9,7 @@ import java.nio.file.{Files, Path, Paths}
 import co.upvest.arweave4s.utils.UnsignedBigIntMarshallers
 import io.circe.parser._
 import io.circe.syntax._
-import io.circe.{Decoder, DecodingFailure, Encoder, Json}
+import io.circe.{Decoder, Encoder, Json}
 
 import scala.io.Source
 import scala.language.implicitConversions
@@ -82,10 +82,6 @@ trait WalletMarshallers {
 
   implicit lazy val keyfileToWalletDecoder: Decoder[Wallet] = c =>
     for {
-      _ <- c.downField("kty").as[String] flatMap {
-        case "RSA" => Right(())
-        case _     => Left(DecodingFailure("unknown kty", Nil))
-      }
       e  <- c.downField("e").as[BigInteger]
       n  <- c.downField("n").as[BigInteger]
       d  <- c.downField("d").as[BigInteger]
