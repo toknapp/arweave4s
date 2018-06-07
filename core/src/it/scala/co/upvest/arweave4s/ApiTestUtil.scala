@@ -14,7 +14,7 @@ object ApiTestUtil {
   object TestAccount {
     lazy val wallet: Wallet = (
         for {
-          s <- Try { Source fromResource "keyfile.json" }.toOption
+          s <- Try { Source fromResource "arweave_keyfile_ADECEEQHldVB55AQRg6cq_hhFGKnJiVKN0pRuvp3Sms.json" }.toOption
           w <- Wallet load s
         } yield w
       ) orElse (

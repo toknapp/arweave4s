@@ -10,8 +10,8 @@ import scala.io.Source
 class WalletSpec extends WordSpec with Matchers with Inside {
   "Wallet" should {
     "be able to read a keyfile" in {
-      val s = Source.fromResource("archain_TESTNET_key0d61m0EorUmlTiwzta__V1tLMUjhBLZFIsx4CZzaIqg.json").mkString
-      val Some(expected) = Address.fromEncoded("0d61m0EorUmlTiwzta__V1tLMUjhBLZFIsx4CZzaIqg")
+      val s = Source.fromResource("arweave_keyfile_J1ahU758MJXKLUgvbIt-iFRZjBzFc2caSIcUmIJwIdg.json").mkString
+      val Some(expected) = Address.fromEncoded("J1ahU758MJXKLUgvbIt-iFRZjBzFc2caSIcUmIJwIdg")
 
       import WalletMarshallers._
       inside(decode[Wallet](s)) {

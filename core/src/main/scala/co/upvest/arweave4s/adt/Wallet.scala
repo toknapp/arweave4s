@@ -9,7 +9,7 @@ import java.nio.file.{Files, Path, Paths}
 import co.upvest.arweave4s.utils.UnsignedBigIntMarshallers
 import io.circe.parser._
 import io.circe.syntax._
-import io.circe.{Decoder, DecodingFailure, Encoder, Json}
+import io.circe.{Decoder, Encoder, Json}
 
 import scala.io.Source
 import scala.language.implicitConversions
@@ -25,9 +25,8 @@ case class Wallet(pub: RSAPublicKey, priv: RSAPrivateCrtKey) {
 
 object Wallet extends WalletMarshallers {
   // at the time of writing the following public exponent is enforced, see:
-  // - https://github.com/ArweaveTeam/arweave/blob/18a7aeafa97b54a444ca53fadaf9c94b6075a87c/src/ar_wallet.erl#L74
-  // - https://github.com/ArweaveTeam/arweave/blob/18a7aeafa97b54a444ca53fadaf9c94b6075a87c/src/ar_wallet.erl#L3
-  final val PublicExponentUsedByArweave = new BigInteger("17489")
+  // https://github.com/ArweaveTeam/arweave/commit/0bf8993e4fd3f756c925931ee119c0843221ec5f
+  final val PublicExponentUsedByArweave = new BigInteger("65537")
 
   def generate(
       sr: SecureRandom = new SecureRandom(),
@@ -83,10 +82,6 @@ trait WalletMarshallers {
 
   implicit lazy val keyfileToWalletDecoder: Decoder[Wallet] = c =>
     for {
-      _ <- c.downField("kty").as[String] flatMap {
-        case "RSA" => Right(())
-        case _     => Left(DecodingFailure("unknown kty", Nil))
-      }
       e  <- c.downField("e").as[BigInteger]
       n  <- c.downField("n").as[BigInteger]
       d  <- c.downField("d").as[BigInteger]
