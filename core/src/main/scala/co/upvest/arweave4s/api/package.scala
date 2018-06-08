@@ -217,6 +217,7 @@ package object api {
       c.i(c.backend send req) >>= { rsp =>
         (rsp.code, rsp.body) match {
           case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
+          case (410, _) => Transaction.WithStatus.Gone(txId).pure widen
           case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
           case (_, Right(str)) =>
             jh(
@@ -273,6 +274,16 @@ package object api {
         .body(q)
         .post(uri"${c.host}/arql")
         .response(asJson[Seq[Transaction.Id]])
+      jh(c.i(c.backend send req))
+    }
+  }
+
+  object info {
+    def apply[F[_], G[_]]()(implicit
+      c: AbstractConfig[F, G], jh: JsonHandler[F]
+    ): F[Info] = {
+      val req = sttp.get(uri"${c.host}/info")
+        .response(asJson[Info])
       jh(c.i(c.backend send req))
     }
   }

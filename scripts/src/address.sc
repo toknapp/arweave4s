@@ -3,7 +3,7 @@
 import ammonite.ops._
 import co.upvest.arweave4s.adt._
 
-import $ivy.`co.upvest::arweave4s-core:0.9.0`
+import $ivy.`co.upvest::arweave4s-core:0.10.0`
 
 @main
 def main(wallet: String) {
