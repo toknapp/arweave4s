@@ -72,6 +72,7 @@ object Transaction {
   object WithStatus {
     case class NotFound(id: Id) extends WithStatus
     case class Pending(id: Id) extends WithStatus
+    case class Gone(id: Id) extends WithStatus
     case class Accepted(stx: Signed[Transaction]) extends WithStatus
   }
 

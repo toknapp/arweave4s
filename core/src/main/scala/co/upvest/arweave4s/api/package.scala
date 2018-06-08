@@ -217,6 +217,7 @@ package object api {
       c.i(c.backend send req) >>= { rsp =>
         (rsp.code, rsp.body) match {
           case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
+          case (410, _) => Transaction.WithStatus.Gone(txId).pure widen
           case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
           case (_, Right(str)) =>
             jh(
