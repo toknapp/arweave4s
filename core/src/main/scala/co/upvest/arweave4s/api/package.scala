@@ -277,5 +277,15 @@ package object api {
     }
   }
 
+  object info {
+    def apply[F[_], G[_]]()(implicit
+      c: AbstractConfig[F, G], jh: JsonHandler[F]
+    ): F[Info] = {
+      val req = sttp.get(uri"${c.host}/info")
+        .response(asJson[Info])
+      jh(c.i(c.backend send req))
+    }
+  }
+
   private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption
 }
