@@ -2,7 +2,7 @@
 
 import ammonite.ops._
 
-import $ivy.`co.upvest::arweave4s-core:0.9.0`
+import $ivy.`co.upvest::arweave4s-core:0.10.0`
 import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.api
 import com.softwaremill.sttp.HttpURLConnectionBackend
