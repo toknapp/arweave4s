@@ -237,7 +237,7 @@ trait Marshaller {
 
   implicit lazy val blockEncoder: Encoder[Block] = b => Json.obj(
     "nonce" := b.nonce,
-    "prev_block" := b.previousBlock,
+    "previous_block" := b.previousBlock,
     "timestamp" := b.timestamp,
     "last_retarget" := b.lastRetarget,
     "diff" := b.diff,
