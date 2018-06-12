@@ -190,46 +190,65 @@ trait Marshaller {
         t   <- c.as[T]
       } yield Signed[T](t, sig)
 
-  implicit lazy val walletDecoder = new Decoder[WalletResponse] {
-    override def apply(c: HCursor): Result[WalletResponse] =
-      for {
-        addr    <- c.downField("wallet").as[Address]
-        quant   <- c.downField("quantity").as[Winston]
-        last_tx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
-      } yield WalletResponse(addr, quant, last_tx)
-  }
+  implicit lazy val walletDecoder: Decoder[WalletResponse] = c => for {
+    addr    <- c.downField("wallet").as[Address]
+    quant   <- c.downField("quantity").as[Winston]
+    last_tx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
+  } yield WalletResponse(addr, quant, last_tx)
 
-  implicit lazy val blockDecoder = new Decoder[Block] {
-    override def apply(c: HCursor): Result[Block] =
-      for {
-        nonce         <- c.downField("nonce").as[String]
-        prev_block    <- c.downField("previous_block").as[Block.Hash]
-        timestamp     <- c.downField("timestamp").as[Long]
-        last_retarget <- c.downField("last_retarget").as[Long]
-        diff          <- c.downField("diff").as[Int]
-        height        <- c.downField("height").as[BigInt]
-        hash          <- c.downField("hash").as[Block.Hash]
-        indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]
-        txs           <- c.downField("txs").as[Seq[Transaction.Id]]
-        hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
-        wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
-        reward_addr   <- c.downField("reward_addr").as[String]
-      } yield
-        Block(
-          nonce = nonce,
-          previousBlock = prev_block,
-          timestamp = timestamp,
-          lastRetarget = last_retarget,
-          diff = diff,
-          height = height,
-          hash = hash,
-          indepHash = indep_hash,
-          txs = txs,
-          hashList = hash_list,
-          walletList = wallet_list,
-          rewardAddr = reward_addr
-        )
-  }
+  implicit lazy val walletEncoder: Encoder[WalletResponse] = w => Json.obj(
+    "wallet" := w.address,
+    "quantity" := w.quantity,
+    "last_tx" -> w.last_tx.noneAsEmptyString
+  )
+
+  implicit lazy val blockDecoder: Decoder[Block] = c =>
+    for {
+      nonce         <- c.downField("nonce").as[String]
+      prev_block    <- c.downField("previous_block").as[Block.IndepHash]
+      timestamp     <- c.downField("timestamp").as[Long]
+      last_retarget <- c.downField("last_retarget").as[Long]
+      diff          <- c.downField("diff").as[Int]
+      height        <- c.downField("height").as[BigInt]
+      hash          <- c.downField("hash").as[Block.Hash]
+      indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]
+      txs           <- c.downField("txs").as[Seq[Transaction.Id]]
+      hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
+      wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
+      rewaddr       =  c.downField("reward_addr")
+      reward_addr   <- rewaddr.as[String] flatMap {
+        case "unclaimed" => Right(None)
+        case _ => rewaddr.as[Address] map Some.apply
+      }
+    } yield Block(
+      nonce = nonce,
+      previousBlock = prev_block,
+      timestamp = timestamp,
+      lastRetarget = last_retarget,
+      diff = diff,
+      height = height,
+      hash = hash,
+      indepHash = indep_hash,
+      txs = txs,
+      hashList = hash_list,
+      walletList = wallet_list,
+      rewardAddr = reward_addr
+    )
+
+  implicit lazy val blockEncoder: Encoder[Block] = b => Json.obj(
+    "nonce" := b.nonce,
+    "prev_block" := b.previousBlock,
+    "timestamp" := b.timestamp,
+    "last_retarget" := b.lastRetarget,
+    "diff" := b.diff,
+    "height" := b.height,
+    "hash" := b.hash,
+    "indep_hash" := b.indepHash,
+    "txs" := b.txs,
+    "hash_list" := b.hashList,
+    "wallet_list" := b.walletList,
+    "reward_addr" -> (b.rewardAddr map {_.asJson} getOrElse "unclaimed".asJson)
+  )
 }
 
 object Marshaller extends Marshaller
