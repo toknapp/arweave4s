@@ -238,7 +238,7 @@ package object api {
       sh(c.i(c.backend send req))
     }
 
-    def pending[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
+    def pending[F[_]: Monad, G[_]]()(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Seq[Transaction.Id]] =
       jh(c.i(
