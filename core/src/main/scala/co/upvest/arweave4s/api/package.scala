@@ -237,6 +237,13 @@ package object api {
         .mapResponse { _ => () }
       sh(c.i(c.backend send req))
     }
+
+    def pending[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
+      c: AbstractConfig[F, G], jh: JsonHandler[F]
+    ): F[Seq[Transaction.Id]] =
+      jh(c.i(
+        c.backend send sttp.get(uri"${c.host}/tx/pending").response(asJson)
+      ))
   }
 
   object price {
