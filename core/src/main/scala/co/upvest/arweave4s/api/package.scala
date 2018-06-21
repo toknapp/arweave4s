@@ -1,20 +1,20 @@
 package co.upvest.arweave4s
 
-import cats.{Id, MonadError, ~>, Monad}
 import cats.arrow.FunctionK
 import cats.evidence.As
-import cats.syntax.functor._
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
-
+import cats.syntax.functor._
+import cats.{Functor, Id, Monad, MonadError, ~>}
 import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.utils.EmptyStringAsNone
 import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{Response, SttpBackend, UriContext, sttp, asString}
+import com.softwaremill.sttp.{RequestT, Response, SttpBackend, UriContext, asString, sttp}
 import io.circe
 import io.circe.parser.decode
 
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
 import scala.util.Try
@@ -27,19 +27,20 @@ package object api {
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
 
   trait AbstractConfig[F[_], G[_]] {
-    def host: String
+    def hosts: List[String]
+    def retries: Int
     def backend: SttpBackend[G, _]
     def i: G ~> F
   }
 
   case class Config[F[_]](
-    host: String, backend: SttpBackend[F, _]
+    hosts: List[String], backend: SttpBackend[F, _], retries: Int
   ) extends AbstractConfig[F, F] {
     override val i = FunctionK.id
   }
 
   case class FullConfig[F[_], G[_]](
-    host: String, backend: SttpBackend[G, _], i: G ~> F
+    hosts: List[String], backend: SttpBackend[G, _], i: G ~> F, retries: Int
   ) extends AbstractConfig[F, G]
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])
@@ -50,6 +51,8 @@ package object api {
     extends Failure("Decoding failure", Some(t))
   case object InvalidEncoding
     extends Failure("invalid encoding", None) // TODO: more informative
+
+
 
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](
@@ -155,29 +158,61 @@ package object api {
   object future extends FutureInstances
 
   object block {
-    def current[F[_], G[_]]()(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Block] = {
-      val req = sttp
-        .get(uri"${c.host}/current_block")
-        .response(asJson[Block])
-      jh(c.i(c.backend send req))
-    }
 
-    def get[F[_], G[_]](ih: Block.IndepHash)(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Block] = {
+    def lazyProcessRequests[F[_], G[_], A](c: AbstractConfig[F, G],
+                                           f: (String, List[String]) => RequestT[cats.Id, Either[io.circe.Error, A], Nothing],
+                                           params: List[String]
+                                          )(implicit FT: Functor[F]): List[F[Response[Either[circe.Error, A]]]] =
+      scala.util.Random
+        .shuffle(c.hosts.toStream
+          .map(List.fill(c.retries)(_))
+        ).flatten
+        .map (h => c.i(c.backend send f(h, params)))
+        .foldLeft(mutable.ListBuffer.empty[(F[Response[Either[io.circe.Error,A]]], Boolean)]) {
+        case (accu, e) =>
+          FT.map(e) { rr =>
+            rr.body match {
+              case Right(_) =>
+                accu += ((e, true))
+              case Left(_) =>
+                accu += ((e, false))
+            }
+          }
+          accu
+      }.takeWhile(_._2 == false)
+        .map(_._1)
+        .toList
+
+
+    def current[F[_], G[_]]()(implicit
+      c: AbstractConfig[F, G], jh: JsonHandler[F], FT: Functor[F]
+    ): List[F[Block]] = lazyProcessRequests[F,G,Block](
+        c,
+        {(h, _) => sttp
+            .get(uri"$h/current_block")
+            .response(asJson[Block])
+        },
+        Nil
+      ).map(jh.apply _)
+
+
+    def get[F[_], G[_]](ih: Block.IndepHash)
+      (implicit c: AbstractConfig[F, G], jh: JsonHandler[F]): F[Block] = {
+
       val req = sttp
-        .get(uri"${c.host}/block/hash/$ih")
+        .get(uri"${c.hosts}/block/hash/$ih")
         .response(asJson[Block])
       jh(c.i(c.backend send req))
-    }
+      }
+
+
+
 
     def get[F[_], G[_]](height: BigInt)(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Block] = {
       val req = sttp
-        .get(uri"${c.host}/block/height/$height")
+        .get(uri"${c.hosts}/block/height/$height")
         .response(asJson[Block])
       jh(c.i(c.backend send req))
     }
@@ -188,7 +223,7 @@ package object api {
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Option[Transaction.Id]] = {
       val req = sttp
-        .get(uri"${c.host}/wallet/$address/last_tx")
+        .get(uri"${c.hosts}/wallet/$address/last_tx")
         .mapResponse { s =>
           EmptyStringAsNone.of(s).toOption match {
             case None => Some(None)
@@ -202,7 +237,7 @@ package object api {
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Winston] = {
       val req = sttp
-        .get(uri"${c.host}/wallet/$address/balance")
+        .get(uri"${c.hosts}/wallet/$address/balance")
         .mapResponse(winstonMapper)
       esh(c.i(c.backend send req))
     }
@@ -212,7 +247,7 @@ package object api {
     def get[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Transaction.WithStatus] = {
-      val req = sttp.get(uri"${c.host}/tx/$txId").response(asString)
+      val req = sttp.get(uri"${c.hosts}/tx/$txId").response(asString)
 
       c.i(c.backend send req) >>= { rsp =>
         (rsp.code, rsp.body) match {
@@ -233,7 +268,7 @@ package object api {
     ): F[Unit] = {
       val req = sttp
         .body(tx)
-        .post(uri"${c.host}/tx")
+        .post(uri"${c.hosts}/tx")
         .mapResponse { _ => () }
       sh(c.i(c.backend send req))
     }
@@ -242,7 +277,7 @@ package object api {
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Seq[Transaction.Id]] =
       jh(c.i(
-        c.backend send sttp.get(uri"${c.host}/tx/pending").response(asJson)
+        c.backend send sttp.get(uri"${c.hosts}/tx/pending").response(asJson)
       ))
   }
 
@@ -251,7 +286,7 @@ package object api {
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Winston] = {
       val req = sttp
-        .get(uri"${c.host}/price/$bytes")
+        .get(uri"${c.hosts}/price/$bytes")
         .mapResponse(winstonMapper)
       esh(c.i(c.backend send req))
     }
@@ -279,7 +314,7 @@ package object api {
     ): F[Seq[Transaction.Id]] = {
       val req = sttp
         .body(q)
-        .post(uri"${c.host}/arql")
+        .post(uri"${c.hosts}/arql")
         .response(asJson[Seq[Transaction.Id]])
       jh(c.i(c.backend send req))
     }
@@ -289,7 +324,7 @@ package object api {
     def apply[F[_], G[_]]()(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Info] = {
-      val req = sttp.get(uri"${c.host}/info")
+      val req = sttp.get(uri"${c.hosts}/info")
         .response(asJson[Info])
       jh(c.i(c.backend send req))
     }
