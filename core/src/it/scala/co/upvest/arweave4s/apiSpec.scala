@@ -22,13 +22,13 @@ class apiSpec extends WordSpec
   import ApiTestUtil._
   import api._
 
-  val idConfig = Config(hosts = TestHost :: Nil, HttpURLConnectionBackend(), retries = 1)
-  val tryConfig = Config(hosts = TestHost :: Nil, TryHttpURLConnectionBackend(), retries = 1)
+  val idConfig = Config(hosts = TestHost, HttpURLConnectionBackend(), retries = 1)
+  val tryConfig = Config(hosts = TestHost, TryHttpURLConnectionBackend(), retries = 1)
 
   implicit val ec = ExecutionContext.global
 
   val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
-      hosts = TestHost :: Nil,
+      hosts = TestHost,
       AsyncHttpClientFutureBackend(),
       i = new (Future ~> EitherT[Future,Failure, ?]) {
         override def apply[A](fa: Future[A]) = EitherT liftF fa
@@ -72,175 +72,174 @@ class apiSpec extends WordSpec
 
       "the block api" should {
         "return the current block" in {
-          block.current() shouldBe a[List[Block]]
-          //run[List[Block]] { block.current() } shouldBe a[List[Block]]
+          run[Block] { block.current() } shouldBe a[Block]
         }
 
-//        "return a valid block by hash" in {
-//          val b = run[Block] { block.current() }
-//          run[Block] { block.get(b.indepHash) } shouldBe a[List[Block]]
-//        }
-//
-//        "return a valid block by height" in {
-//          run[Block] { block.get(BigInt(1)) } shouldBe a[List[Block]]
-//        }
-//
-//        "fail when a block does not exist (by hash)" in {
-//          assertThrows[HttpFailure] { run { block.get(invalidBlockHash) } }
-//        }
-//
-//        "fail when a block does not exist (by height)" in {
-//          assertThrows[HttpFailure] { run { block.get(invalidBlockHeight) } }
-//        }
-//      }
-//
-//      "the wallet api" should {
-//        val arbitraryWallet = Wallet.generate()
-//
-//        "return last transaction id" in {
-//          inside(run { address.lastTx(TestAccount.address) }) {
-//            case Some(txId) => txId shouldBe a[Transaction.Id]
-//          }
-//        }
-//
-//        "return none when no last transaction" in {
-//          run[Option[Transaction.Id]] { address.lastTx(arbitraryWallet) } shouldBe empty
-//        }
-//
-//        "return a positive balance" in {
-//          run[Winston] { address.balance(TestAccount.address) }
-//            .amount should be > BigInt(0)
-//        }
-//
-//        "return a zero balance" in {
-//          run[Winston] { address.balance(arbitraryWallet) } shouldBe Winston.Zero
-//
-//        }
-//      }
-//
-//      "tre price api" should {
-//        "return a valid (positive) price" in {
-//          run { price.estimateForBytes(BigInt(10)) } should be > Winston.Zero
-//        }
-//
-//        "return a valid (positive) price for transfer transactions" in {
-//          run { price.estimateTransfer } should be > Winston.Zero
-//        }
-//
-//        "return a price that increases" taggedAs(Retryable) in {
-//          val x = randomPositiveBigInt(100000, 1)
-//          val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
-//
-//          val p0 = run[Winston] { price.estimateForBytes(0) }.amount
-//          val px = run[Winston] { price.estimateForBytes(x) }.amount
-//          val py = run[Winston] { price.estimateForBytes(y) }.amount
-//
-//          p0 should be < px
-//          px should be < py
-//        }
-//
-//        "return a deterministic price" taggedAs(Retryable) in {
-//          val x = randomPositiveBigInt(100000, 0)
-//          val p = run[Winston] { price.estimateForBytes(x) }.amount
-//          val q = run[Winston] { price.estimateForBytes(x) }.amount
-//
-//          p shouldBe q
-//        }
-//      }
-//
-//      "the transaction api" should {
-//
-//        "submit a valid transfer transaction" taggedAs(Slow, Retryable) in {
-//          val owner = TestAccount.wallet
-//
-//          val extraReward = randomWinstons(upperBound = Winston("1000"))
-//          val stx = Transaction.Transfer(
-//            run { address.lastTx(owner) },
-//            owner,
-//            Wallet.generate(),
-//            quantity = randomWinstons(upperBound = Winston("100000")),
-//            reward = run { price estimateTransfer } + extraReward
-//          ).sign(owner)
-//
-//          run[Unit] { tx.submit(stx) } shouldBe (())
-//
-//          eventually {
-//            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
-//              case Transaction.WithStatus.Accepted(t) =>
-//                t.id shouldBe stx.id
-//            }
-//          }
-//        }
-//
-//        "transfer ARs to and from a generated wallet" taggedAs(Slow, Retryable) in {
-//          val initialOwner = TestAccount.wallet
-//          val intermediateOwner = Wallet.generate()
-//          val lastOwner = Wallet.generate()
-//
-//          val quantity1 = Winston.AR
-//          val quantity2 = randomWinstons(upperBound = Winston("10000000"))
-//
-//          val extraReward1 = randomWinstons(upperBound = Winston("1000"))
-//          val extraReward2 = randomWinstons(upperBound = Winston("1000"))
-//
-//          val stx1 = Transaction.Transfer(
-//            run { address.lastTx(initialOwner) },
-//            initialOwner,
-//            intermediateOwner,
-//            quantity = quantity1,
-//            reward = run { price estimateTransfer } + extraReward1
-//          ).sign(initialOwner)
-//          run[Unit] { tx submit stx1 } shouldBe (())
-//
-//          eventually {
-//            run[Transaction.WithStatus]{ tx.get[F, G](stx1.id) } should
-//              matchPattern { case Transaction.WithStatus.Accepted(_) => }
-//          }
-//
-//          val stx2 = Transaction.Transfer(
-//            run { address.lastTx(intermediateOwner) },
-//            intermediateOwner,
-//            lastOwner,
-//            quantity = quantity2,
-//            reward = run { price estimateTransfer } + extraReward2
-//          ).sign(intermediateOwner)
-//          run[Unit] { tx submit stx2 } shouldBe (())
-//
-//          eventually {
-//            run[Transaction.WithStatus]{ tx.get[F, G](stx2.id) } should
-//              matchPattern { case Transaction.WithStatus.Accepted(_) => }
-//          }
-//        }
-//
-//        "submit a data transaction" taggedAs(Retryable) in {
-//          val owner = TestAccount.wallet
-//          // use our test wallet here since Arweave rejects transactions signed
-//          // for unknown addresses:
-//          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
-//          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
-//
-//          val data = randomData()
-//
-//          val extraReward = randomWinstons(upperBound = Winston("1000"))
-//          val stx = Transaction.Data(
-//            run { address.lastTx(owner) },
-//            owner,
-//            data,
-//            reward = run { price estimate data } + extraReward,
-//            tags = Nil
-//          ).sign(owner)
-//
-//          run[Unit] { tx.submit(stx) } shouldBe (())
-//
-//          waitForDataTransaction(stx)
-//
-//          eventually {
-//            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
-//              case Transaction.WithStatus.Accepted(t) =>
-//                t.id shouldBe stx.id
-//            }
-//          }
-//        }
+        "return a valid block by hash" in {
+          val b = run[Block] { block.current() }
+          run[Block] { block.get(b.indepHash) } shouldBe a[Block]
+        }
+
+        "return a valid block by height" in {
+          run[Block] { block.get(BigInt(1)) } shouldBe a[Block]
+        }
+
+        "fail when a block does not exist (by hash)" in {
+          assertThrows[HttpFailure] { run { block.get(invalidBlockHash) } }
+        }
+
+        "fail when a block does not exist (by height)" in {
+          assertThrows[HttpFailure] { run { block.get(invalidBlockHeight) } }
+        }
+      }
+
+      "the wallet api" should {
+        val arbitraryWallet = Wallet.generate()
+
+        "return last transaction id" in {
+          inside(run { address.lastTx(TestAccount.address) }) {
+            case Some(txId) => txId shouldBe a[Transaction.Id]
+          }
+        }
+
+        "return none when no last transaction" in {
+          run[Option[Transaction.Id]] { address.lastTx(arbitraryWallet) } shouldBe empty
+        }
+
+        "return a positive balance" in {
+          run[Winston] { address.balance(TestAccount.address) }
+            .amount should be > BigInt(0)
+        }
+
+        "return a zero balance" in {
+          run[Winston] { address.balance(arbitraryWallet) } shouldBe Winston.Zero
+
+        }
+      }
+
+      "tre price api" should {
+        "return a valid (positive) price" in {
+          run { price.estimateForBytes(BigInt(10)) } should be > Winston.Zero
+        }
+
+        "return a valid (positive) price for transfer transactions" in {
+          run { price.estimateTransfer } should be > Winston.Zero
+        }
+
+        "return a price that increases" taggedAs(Retryable) in {
+          val x = randomPositiveBigInt(100000, 1)
+          val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
+
+          val p0 = run[Winston] { price.estimateForBytes(0) }.amount
+          val px = run[Winston] { price.estimateForBytes(x) }.amount
+          val py = run[Winston] { price.estimateForBytes(y) }.amount
+
+          p0 should be < px
+          px should be < py
+        }
+
+        "return a deterministic price" taggedAs(Retryable) in {
+          val x = randomPositiveBigInt(100000, 0)
+          val p = run[Winston] { price.estimateForBytes(x) }.amount
+          val q = run[Winston] { price.estimateForBytes(x) }.amount
+
+          p shouldBe q
+        }
+      }
+
+      "the transaction api" should {
+
+        "submit a valid transfer transaction" taggedAs(Slow, Retryable) in {
+          val owner = TestAccount.wallet
+
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = Transaction.Transfer(
+            run { address.lastTx(owner) },
+            owner,
+            Wallet.generate(),
+            quantity = randomWinstons(upperBound = Winston("100000")),
+            reward = run { price estimateTransfer } + extraReward
+          ).sign(owner)
+
+          run[Unit] { tx.submit(stx) } shouldBe (())
+
+          eventually {
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+              case Transaction.WithStatus.Accepted(t) =>
+                t.id shouldBe stx.id
+            }
+          }
+        }
+
+        "transfer ARs to and from a generated wallet" taggedAs(Slow, Retryable) in {
+          val initialOwner = TestAccount.wallet
+          val intermediateOwner = Wallet.generate()
+          val lastOwner = Wallet.generate()
+
+          val quantity1 = Winston.AR
+          val quantity2 = randomWinstons(upperBound = Winston("10000000"))
+
+          val extraReward1 = randomWinstons(upperBound = Winston("1000"))
+          val extraReward2 = randomWinstons(upperBound = Winston("1000"))
+
+          val stx1 = Transaction.Transfer(
+            run { address.lastTx(initialOwner) },
+            initialOwner,
+            intermediateOwner,
+            quantity = quantity1,
+            reward = run { price estimateTransfer } + extraReward1
+          ).sign(initialOwner)
+          run[Unit] { tx submit stx1 } shouldBe (())
+
+          eventually {
+            run[Transaction.WithStatus]{ tx.get[F, G](stx1.id) } should
+              matchPattern { case Transaction.WithStatus.Accepted(_) => }
+          }
+
+          val stx2 = Transaction.Transfer(
+            run { address.lastTx(intermediateOwner) },
+            intermediateOwner,
+            lastOwner,
+            quantity = quantity2,
+            reward = run { price estimateTransfer } + extraReward2
+          ).sign(intermediateOwner)
+          run[Unit] { tx submit stx2 } shouldBe (())
+
+          eventually {
+            run[Transaction.WithStatus]{ tx.get[F, G](stx2.id) } should
+              matchPattern { case Transaction.WithStatus.Accepted(_) => }
+          }
+        }
+
+        "submit a data transaction" taggedAs(Retryable) in {
+          val owner = TestAccount.wallet
+          // use our test wallet here since Arweave rejects transactions signed
+          // for unknown addresses:
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L92
+          //   https://github.com/ArweaveTeam/arweave/blob/ed46d7f48c8a22751571eeb541b9fc95e423c243/src/ar_tx.erl#L178
+
+          val data = randomData()
+
+          val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val stx = Transaction.Data(
+            run { address.lastTx(owner) },
+            owner,
+            data,
+            reward = run { price estimate data } + extraReward,
+            tags = Nil
+          ).sign(owner)
+
+          run[Unit] { tx.submit(stx) } shouldBe (())
+
+          waitForDataTransaction(stx)
+
+          eventually {
+            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+              case Transaction.WithStatus.Accepted(t) =>
+                t.id shouldBe stx.id
+            }
+          }
+        }
       }
     }
 

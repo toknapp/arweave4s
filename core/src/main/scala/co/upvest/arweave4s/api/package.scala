@@ -8,13 +8,12 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Functor, Id, Monad, MonadError, ~>}
 import co.upvest.arweave4s.adt._
-import co.upvest.arweave4s.utils.EmptyStringAsNone
+import co.upvest.arweave4s.utils.{EmptyStringAsNone, RequestHandling}
 import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{RequestT, Response, SttpBackend, UriContext, asString, sttp}
+import com.softwaremill.sttp.{Response, SttpBackend, Uri, UriContext, asString, sttp}
 import io.circe
 import io.circe.parser.decode
 
-import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
 import scala.util.Try
@@ -27,20 +26,22 @@ package object api {
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
 
   trait AbstractConfig[F[_], G[_]] {
-    def hosts: List[String]
-    def retries: Int
+    def hosts: String
     def backend: SttpBackend[G, _]
     def i: G ~> F
+    def retries: Int
+    lazy val uris: List[Uri] = hosts.split(",").map(h => uri"$h").to[List]
   }
 
+
   case class Config[F[_]](
-    hosts: List[String], backend: SttpBackend[F, _], retries: Int
+    hosts: String, backend: SttpBackend[F, _], retries: Int
   ) extends AbstractConfig[F, F] {
     override val i = FunctionK.id
   }
 
   case class FullConfig[F[_], G[_]](
-    hosts: List[String], backend: SttpBackend[G, _], i: G ~> F, retries: Int
+    hosts: String, backend: SttpBackend[G, _], i: G ~> F, retries: Int
   ) extends AbstractConfig[F, G]
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])
@@ -51,6 +52,7 @@ package object api {
     extends Failure("Decoding failure", Some(t))
   case object InvalidEncoding
     extends Failure("invalid encoding", None) // TODO: more informative
+
 
 
 
@@ -159,41 +161,17 @@ package object api {
 
   object block {
 
-    def lazyProcessRequests[F[_], G[_], A](c: AbstractConfig[F, G],
-                                           f: (String, List[String]) => RequestT[cats.Id, Either[io.circe.Error, A], Nothing],
-                                           params: List[String]
-                                          )(implicit FT: Functor[F]): List[F[Response[Either[circe.Error, A]]]] =
-      scala.util.Random
-        .shuffle(c.hosts.toStream
-          .map(List.fill(c.retries)(_))
-        ).flatten
-        .map (h => c.i(c.backend send f(h, params)))
-        .foldLeft(mutable.ListBuffer.empty[(F[Response[Either[io.circe.Error,A]]], Boolean)]) {
-        case (accu, e) =>
-          FT.map(e) { rr =>
-            rr.body match {
-              case Right(_) =>
-                accu += ((e, true))
-              case Left(_) =>
-                accu += ((e, false))
-            }
-          }
-          accu
-      }.takeWhile(_._2 == false)
-        .map(_._1)
-        .toList
+    def currentM[F[_], G[_]]()(implicit c: AbstractConfig[F, G],
+                               jh: JsonHandler[F],
+                               FT: Functor[F]): List[F[Block]] = RequestHandling
+      .process[F,G,Block](
+        "current_block" :: Nil,
+        sttp.get
+    ).map(jh.apply _)
 
-
-    def current[F[_], G[_]]()(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F], FT: Functor[F]
-    ): List[F[Block]] = lazyProcessRequests[F,G,Block](
-        c,
-        {(h, _) => sttp
-            .get(uri"$h/current_block")
-            .response(asJson[Block])
-        },
-        Nil
-      ).map(jh.apply _)
+    def current[F[_], G[_]]()(implicit c: AbstractConfig[F, G],
+                              jh: JsonHandler[F],
+                              FT: Functor[F]): F[Block] = currentM.head
 
 
     def get[F[_], G[_]](ih: Block.IndepHash)
@@ -204,8 +182,6 @@ package object api {
         .response(asJson[Block])
       jh(c.i(c.backend send req))
       }
-
-
 
 
     def get[F[_], G[_]](height: BigInt)(implicit
