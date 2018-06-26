@@ -10,8 +10,7 @@ import org.scalatest.tagobjects.{Slow, Retryable}
 import cats.{Id, ~>, Monad}
 import cats.data.EitherT
 import cats.arrow.FunctionK
-import cats.instances.try_._
-import cats.instances.future._
+import cats.implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -28,7 +27,7 @@ class apiSpec extends WordSpec
   implicit val ec = ExecutionContext.global
 
   val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
-      hosts = TestHost,
+      hosts = TestHosts,
       AsyncHttpClientFutureBackend(),
       i = new (Future ~> EitherT[Future,Failure, ?]) {
         override def apply[A](fa: Future[A]) = EitherT liftF fa

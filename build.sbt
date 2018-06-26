@@ -60,6 +60,7 @@ lazy val library =
     val kindProjector       = "org.spire-math"             %% "kind-projector"                   % Version.kindProjector
     val logback             = "ch.qos.logback"             %  "logback-classic"                  % Version.logback
 
+
     // All exclusions that should be applied to every module
     val exclusions = Seq()
   }
