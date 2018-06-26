@@ -176,13 +176,15 @@ package object api {
           case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
           case (_, Right(str)) =>
             jh(
-              rsp.copy(body = rsp.body map decode[Signed[Transaction]]).pure
+              rsp.copy(rawErrorBody = rsp.body.map(decode[Signed[Transaction]])
+                .left
+                .map(_.getBytes("UTF-8")))
+                .pure
             ) map Transaction.WithStatus.Accepted
-          case (_, Left(l)) => jh(rsp.copy(body = Left(l)).pure)
+          case (_, Left(l)) => jh(rsp.copy(rawErrorBody = Left(l getBytes "UTF-8")).pure)
         }
       }
     }
-
     def submit[F[_], G[_]](tx: Signed[Transaction])(implicit
       c: AbstractConfig[F, G], sh: SuccessHandler[F]
     ): F[Unit] = {
