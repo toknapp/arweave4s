@@ -21,4 +21,4 @@
 
         $ git push origin feature-x
 
-6.  Open a pull request.
+6.  Open a pull request. Pull requests should be small enough to review in one day.
