@@ -116,31 +116,53 @@ class apiSpec extends WordSpec
         }
       }
 
-      "tre price api" should {
-        "return a valid (positive) price" in {
-          run { price.estimateForBytes(BigInt(10)) } should be > Winston.Zero
+      "the price api" should {
+        val oldAddress = TestAccount.address
+        val newAddress = Wallet.generate().address
+
+        "return a valid (positive) price for a data transaction" in {
+          run { price.dataTransaction(randomData()) } should be > Winston.Zero
         }
 
-        "return a valid (positive) price for transfer transactions" in {
-          run { price.estimateTransfer } should be > Winston.Zero
+        "return a valid (positive) price for transfer transactions (for an existing address)" in {
+          run {
+            price.transferTransactionTo(oldAddress)
+          } should be > Winston.Zero
         }
 
-        "return a price that increases" taggedAs(Retryable) in {
-          val x = randomPositiveBigInt(100000, 1)
-          val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
-
-          val p0 = run[Winston] { price.estimateForBytes(0) }.amount
-          val px = run[Winston] { price.estimateForBytes(x) }.amount
-          val py = run[Winston] { price.estimateForBytes(y) }.amount
-
-          p0 should be < px
-          px should be < py
+        "return a valid (positive) price for transfer transactions (for a new address)" in {
+          run {
+            price.transferTransactionTo(newAddress)
+          } should be > Winston.Zero
         }
+
+        "transfering to an existing wallet should have a lower price" in {
+          run[Winston] { address.balance(oldAddress) }
+            .amount should be > BigInt(0)
+
+          run[Winston] { address.balance(newAddress) } shouldBe Winston.Zero
+
+          val o = run { price.transferTransactionTo(oldAddress) }
+          val n = run { price.transferTransactionTo(newAddress) }
+          o.amount should be < n.amount
+        }
+
+        //"return a price that increases" taggedAs(Retryable) in {
+          //val x = randomPositiveBigInt(100000, 1)
+          //val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
+
+          //val p0 = run[Winston] { price.estimateForBytes(0) }.amount
+          //val px = run[Winston] { price.estimateForBytes(x) }.amount
+          //val py = run[Winston] { price.estimateForBytes(y) }.amount
+
+          //p0 should be < px
+          //px should be < py
+        //}
 
         "return a deterministic price" taggedAs(Retryable) in {
-          val x = randomPositiveBigInt(100000, 0)
-          val p = run[Winston] { price.estimateForBytes(x) }.amount
-          val q = run[Winston] { price.estimateForBytes(x) }.amount
+          val d = randomData()
+          val p = run[Winston] { price.dataTransaction(d) }
+          val q = run[Winston] { price.dataTransaction(d) }
 
           p shouldBe q
         }
@@ -152,12 +174,13 @@ class apiSpec extends WordSpec
           val owner = TestAccount.wallet
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val target = Wallet.generate()
           val stx = Transaction.Transfer(
             run { address.lastTx(owner) },
             owner,
-            Wallet.generate(),
+            target,
             quantity = randomWinstons(upperBound = Winston("100000")),
-            reward = run { price estimateTransfer } + extraReward
+            reward = run { price transferTransactionTo target } + extraReward
           ).sign(owner)
 
           run[Unit] { tx.submit(stx) } shouldBe (())
@@ -186,7 +209,8 @@ class apiSpec extends WordSpec
             initialOwner,
             intermediateOwner,
             quantity = quantity1,
-            reward = run { price estimateTransfer } + extraReward1
+            reward = run { price transferTransactionTo intermediateOwner }
+              + extraReward1
           ).sign(initialOwner)
           run[Unit] { tx submit stx1 } shouldBe (())
 
@@ -200,7 +224,8 @@ class apiSpec extends WordSpec
             intermediateOwner,
             lastOwner,
             quantity = quantity2,
-            reward = run { price estimateTransfer } + extraReward2
+            reward = run { price transferTransactionTo lastOwner }
+              + extraReward2
           ).sign(intermediateOwner)
           run[Unit] { tx submit stx2 } shouldBe (())
 
@@ -224,7 +249,7 @@ class apiSpec extends WordSpec
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = run { price estimate data } + extraReward,
+            reward = run { price dataTransaction data } + extraReward,
             tags = Nil
           ).sign(owner)
 
