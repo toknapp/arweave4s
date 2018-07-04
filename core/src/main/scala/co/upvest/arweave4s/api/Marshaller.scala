@@ -2,14 +2,23 @@ package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.Transaction
 import co.upvest.arweave4s.adt._
-import co.upvest.arweave4s.utils.{CirceComplaints, EmptyStringAsNone, CryptoUtils}
+import co.upvest.arweave4s.utils.{CirceComplaints, CryptoUtils, EmptyStringAsNone}
 import io.circe.Decoder.Result
 import io.circe
-import io.circe.{Decoder, HCursor, Encoder, Json}
+import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.syntax._
+
+import scala.util.Try
 
 trait Marshaller {
   import CirceComplaints._, EmptyStringAsNone._
+
+   val mapEmptyTxId: String => Option[Option[Transaction.Id]] = (s: String) => EmptyStringAsNone.of(s).toOption match {
+    case None => Some(None)
+    case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
+  }
+
+  val winstonMapper = (s: String) => Try { Winston.apply(s) } toOption
 
   implicit lazy val infoDecoder: Decoder[Info] = (c: HCursor) => for {
     network   <- c.downField("network").as[String]
@@ -44,7 +53,20 @@ trait Marshaller {
     (c: HCursor) => c.as[String] map Data.fromEncoded orComplain
 
   implicit lazy val transactionIdDecoder: Decoder[Transaction.Id] =
-    c => c.as[String] map Transaction.Id.fromEncoded orComplain
+    c => if(c.downField("tx_id_injected").succeeded) {
+      println("Tx id injected")
+      c.downField("tx_id_injected").as[String] map Transaction.Id.fromEncoded orComplain
+    } else {
+      c.as[String] map Transaction.Id.fromEncoded orComplain
+    }
+
+
+//  implicit lazy val transactionIdDecoderOpt: Decoder[EmptyStringAsNone[Transaction.Id]] = (c: HCursor) => {
+//    println(c)
+//    val df = c.downField("id")
+//    df.as[EmptyStringAsNone[Transaction.Id]]
+//  }
+
 
   implicit def base64EncodedBytesEncoder[T <: Base64EncodedBytes]: Encoder[T] =
     bs => Json.fromString(bs.toString)

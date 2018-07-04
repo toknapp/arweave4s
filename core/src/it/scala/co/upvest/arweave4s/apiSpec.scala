@@ -27,7 +27,7 @@ class apiSpec extends WordSpec
   implicit val ec = ExecutionContext.global
 
   val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
-      hosts = TestHosts,
+      hosts = TestHost,
       AsyncHttpClientFutureBackend(),
       i = new (Future ~> EitherT[Future,Failure, ?]) {
         override def apply[A](fa: Future[A]) = EitherT liftF fa

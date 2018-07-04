@@ -4,6 +4,7 @@ import cats.Functor
 import co.upvest.arweave4s.adt.Block
 import co.upvest.arweave4s.utils.RequestHandling
 import com.softwaremill.sttp.sttp
+import io.circe.parser.decode
 
 object block {
 
@@ -14,7 +15,7 @@ object block {
                              FT: Functor[F]): List[F[Block]] = RequestHandling
     .process[F,G,Block](
       "current_block" :: Nil,
-      sttp.get
+      sttp.get(_).mapResponse(decode[Block])
     ).map(jh.apply _)
 
   def current[F[_], G[_]]()(implicit c: AbstractConfig[F, G],
@@ -28,7 +29,7 @@ object block {
                       ): List[F[Block]] = RequestHandling.
     process[F, G, Block](
       "block" :: "hash" :: ih.toString :: Nil,
-      sttp.get
+      sttp.get(_).mapResponse(decode[Block])
     ).map(jh.apply _)
 
   def get[F[_], G[_]](ih: Block.IndepHash)
@@ -44,7 +45,7 @@ object block {
                        FT: Functor[F]): List[F[Block]] = RequestHandling.
     process[F, G, Block](
       "block" :: "height" :: height.toString :: Nil,
-      sttp.get
+      sttp.get(_).mapResponse(decode[Block])
     ).map(jh.apply _)
 
   def get[F[_], G[_]](height: BigInt)

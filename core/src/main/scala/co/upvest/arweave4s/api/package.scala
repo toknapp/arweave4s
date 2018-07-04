@@ -16,7 +16,6 @@ import io.circe.parser.decode
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
-import scala.util.Try
 
 package object api {
 
@@ -160,9 +159,6 @@ package object api {
 
   object future extends FutureInstances
 
-
-
-
   object tx {
     def get[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
@@ -252,5 +248,4 @@ package object api {
     }
   }
 
-  private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption
 }
