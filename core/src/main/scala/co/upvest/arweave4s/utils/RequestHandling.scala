@@ -12,8 +12,8 @@ object RequestHandling {
 
   type RespF[F[_], A] = F[Response[Either[io.circe.Error, A]]]
 
-  def process[F[_] : Functor, G[_], A](p: List[String],
-                                                fReq: Uri => RequestT[cats.Id, Either[io.circe.Error, A], Nothing]
+  def process[F[_] : Functor, G[_], T, S](p: List[String],
+                                                fReq: Uri => RequestT[cats.Id, T, S]
                                                )
                                                (implicit c: AbstractConfig[F, G]): List[RespF[F, A]] = {
     import cats.syntax.functor._

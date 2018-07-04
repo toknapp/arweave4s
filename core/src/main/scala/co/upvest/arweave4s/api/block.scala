@@ -13,12 +13,12 @@ object block {
   def currentM[F[_], G[_]]()(implicit c: AbstractConfig[F, G],
                              jh: JsonHandler[F],
                              FT: Functor[F]): List[F[Block]] = RequestHandling
-    .process[F,G,Block](
+    .process[F, G, Block](
       "current_block" :: Nil,
       sttp.get(_).mapResponse(decode[Block])
     ).map(jh.apply _)
 
-  def current[F[_], G[_]]()(implicit c: AbstractConfig[F, G],
+  def current[F[_], G_]]()[(implicit c: AbstractConfig[F, G],
                             jh: JsonHandler[F],
                             FT: Functor[F]): F[Block] = currentM.head
 

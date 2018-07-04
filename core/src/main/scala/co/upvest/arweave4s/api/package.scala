@@ -1,19 +1,20 @@
 package co.upvest.arweave4s
 
 import cats.arrow.FunctionK
+import cats.data.NonEmptyList
 import cats.evidence.As
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.{Id, Monad, MonadError, ~>}
+import cats.{Functor, Id, Monad, MonadError, ~>}
 import co.upvest.arweave4s.adt._
-
 import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{Response, SttpBackend, Uri, UriContext, asString, sttp}
+import com.softwaremill.sttp.{Request, Response, SttpBackend, Uri, UriContext, asString, sttp}
 import io.circe
 import io.circe.parser.decode
 
+import scala.util.{Random => r}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
 
@@ -32,6 +33,29 @@ package object api {
     def retries: Int
     lazy val uris: List[Uri] = hosts.split(",").map(h => uri"$h").to[List]
   }
+
+  class MultipleHostsBackend[R[_]: Functor, S, G[_]](b: SttpBackend[G, S], uris: List[Uri])(
+    implicit M: MonadError[R, NonEmptyList[Throwable]],
+    i : G ~> R
+  ) {
+
+     def send[T](request: Request[T, S]): R[Response[T]] = r.shuffle(uris)
+       .toStream.map { uri =>
+       b send request.copy(uri = uri.copy(path = uri.path ++ request.uri.path))
+     }.map(i.apply _)
+    .foldLeft(List.empty[R[Either[Throwable,Response[T]]]]) {
+      (b, a) => a.map {
+        case Left(_) =>
+
+        case Right(_) =>
+          return a :: b
+      }
+
+    }
+
+     def close(): Unit = ???
+  }
+
 
 
   case class Config[F[_]](
@@ -99,7 +123,7 @@ package object api {
 
   trait IdInstances {
     implicit def idJsonHandler: JsonHandler[Id] =
-      new (λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id){
+      new (λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id) {
         override def apply[A](rsp: Id[Response[Either[circe.Error, A]]]): A = rsp.body match {
           case Left(_) => throw HttpFailure(rsp)
           case Right(Left(e)) => throw DecodingFailure(e)
