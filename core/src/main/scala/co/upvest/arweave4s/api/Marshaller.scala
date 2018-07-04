@@ -15,9 +15,19 @@ trait Marshaller {
     network   <- c.downField("network").as[String]
     version   <- c.downField("version").as[Int]
     height    <- c.downField("height").as[BigInt]
+    current   <- c.downField("current").as[Block.IndepHash]
     blocks    <- c.downField("blocks").as[BigInt]
     peers     <- c.downField("peers").as[Int]
-  } yield Info(network, version, height, blocks, peers)
+    ql        <- c.downField("queue_length").as[Int]
+  } yield Info(
+    network = network,
+    version = version,
+    height = height,
+    current = current,
+    blocks = blocks,
+    peers = peers,
+    queueLength = ql
+  )
 
   implicit lazy val peersDecoder: Decoder[Peer] =
     (c: HCursor) => c.as[String].map(Peer.apply)

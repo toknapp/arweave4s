@@ -2,7 +2,7 @@ package co.upvest.arweave4s
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
+import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston, Info}
 import co.upvest.arweave4s.utils.BlockchainPatience
 import org.scalatest.{Inside, Matchers, WordSpec, Retries}
 import org.scalatest.concurrent.{ScalaFutures, Eventually}
@@ -68,6 +68,12 @@ class apiSpec extends WordSpec
     run: F ~> Id): Unit = {
 
       implicit val _ = c
+
+      "the info api" should {
+        "return a valid structure" in {
+          run { api.info() } shouldBe an[Info]
+        }
+      }
 
       "the block api" should {
         "return the current block" in {
