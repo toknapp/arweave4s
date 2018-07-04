@@ -14,10 +14,15 @@
 4.  Make one or more atomic commits, and ensure that each commit has a
     descriptive commit message.
 
-5.  Run tests, and address any errors.
+5. Update existing Spec or create one.    
 
-6.  Push:
+6.  Run tests, and address any errors.
+
+  $ sbt test
+  $ sbt integration-test
+
+7.  Push:
 
         $ git push origin feature-x
 
-7.  Open a pull request against develop.
+8.  Open a pull request against develop.
