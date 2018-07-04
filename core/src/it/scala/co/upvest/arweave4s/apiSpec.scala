@@ -137,27 +137,14 @@ class apiSpec extends WordSpec
         }
 
         "transfering to an existing wallet should have a lower price" in {
-          run[Winston] { address.balance(oldAddress) }
-            .amount should be > BigInt(0)
+          run { address.balance(oldAddress) } should be > Winston.Zero
 
           run[Winston] { address.balance(newAddress) } shouldBe Winston.Zero
 
           val o = run { price.transferTransactionTo(oldAddress) }
           val n = run { price.transferTransactionTo(newAddress) }
-          o.amount should be < n.amount
+          o should be < n
         }
-
-        //"return a price that increases" taggedAs(Retryable) in {
-          //val x = randomPositiveBigInt(100000, 1)
-          //val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
-
-          //val p0 = run[Winston] { price.estimateForBytes(0) }.amount
-          //val px = run[Winston] { price.estimateForBytes(x) }.amount
-          //val py = run[Winston] { price.estimateForBytes(y) }.amount
-
-          //p0 should be < px
-          //px should be < py
-        //}
 
         "return a deterministic price" taggedAs(Retryable) in {
           val d = randomData()
