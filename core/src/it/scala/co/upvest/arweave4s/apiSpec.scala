@@ -71,16 +71,16 @@ class apiSpec extends WordSpec
 
       "the block api" should {
         "return the current block" in {
-          run[Block] { block.current() } shouldBe a[Block]
+          run { block.current() } shouldBe a[Block]
         }
 
         "return a valid block by hash" in {
-          val b = run[Block] { block.current() }
-          run[Block] { block.get(b.indepHash) } shouldBe a[Block]
+          val b = run { block.current() }
+          run { block.get(b.indepHash) } shouldBe a[Block]
         }
 
         "return a valid block by height" in {
-          run[Block] { block.get(BigInt(1)) } shouldBe a[Block]
+          run { block.get(BigInt(1)) } shouldBe a[Block]
         }
 
         "fail when a block does not exist (by hash)" in {
@@ -102,16 +102,15 @@ class apiSpec extends WordSpec
         }
 
         "return none when no last transaction" in {
-          run[Option[Transaction.Id]] { address.lastTx(arbitraryWallet) } shouldBe empty
+          run { address.lastTx(arbitraryWallet) } shouldBe empty
         }
 
         "return a positive balance" in {
-          run[Winston] { address.balance(TestAccount.address) }
-            .amount should be > BigInt(0)
+          run { address.balance(TestAccount.address) } should be > Winston.Zero
         }
 
         "return a zero balance" in {
-          run[Winston] { address.balance(arbitraryWallet) } shouldBe Winston.Zero
+          run { address.balance(arbitraryWallet) } shouldBe Winston.Zero
 
         }
       }
@@ -139,7 +138,7 @@ class apiSpec extends WordSpec
         "transfering to an existing wallet should have a lower price" in {
           run { address.balance(oldAddress) } should be > Winston.Zero
 
-          run[Winston] { address.balance(newAddress) } shouldBe Winston.Zero
+          run { address.balance(newAddress) } shouldBe Winston.Zero
 
           val o = run { price.transferTransactionTo(oldAddress) }
           val n = run { price.transferTransactionTo(newAddress) }
@@ -148,8 +147,8 @@ class apiSpec extends WordSpec
 
         "return a deterministic price" taggedAs(Retryable) in {
           val d = randomData()
-          val p = run[Winston] { price.dataTransaction(d) }
-          val q = run[Winston] { price.dataTransaction(d) }
+          val p = run { price.dataTransaction(d) }
+          val q = run { price.dataTransaction(d) }
 
           p shouldBe q
         }
@@ -170,10 +169,10 @@ class apiSpec extends WordSpec
             reward = run { price transferTransactionTo target } + extraReward
           ).sign(owner)
 
-          run[Unit] { tx.submit(stx) } shouldBe (())
+          run { tx.submit(stx) } shouldBe (())
 
           eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+            inside(run { tx.get[F, G](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
@@ -199,10 +198,10 @@ class apiSpec extends WordSpec
             reward = run { price transferTransactionTo intermediateOwner }
               + extraReward1
           ).sign(initialOwner)
-          run[Unit] { tx submit stx1 } shouldBe (())
+          run { tx submit stx1 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](stx1.id) } should
+            run { tx.get[F, G](stx1.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
 
@@ -214,10 +213,10 @@ class apiSpec extends WordSpec
             reward = run { price transferTransactionTo lastOwner }
               + extraReward2
           ).sign(intermediateOwner)
-          run[Unit] { tx submit stx2 } shouldBe (())
+          run { tx submit stx2 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](stx2.id) } should
+            run { tx.get[F, G](stx2.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
         }
@@ -240,12 +239,12 @@ class apiSpec extends WordSpec
             tags = Nil
           ).sign(owner)
 
-          run[Unit] { tx.submit(stx) } shouldBe (())
+          run { tx.submit(stx) } shouldBe (())
 
           waitForDataTransaction(stx)
 
           eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+            inside(run { tx.get[F, G](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
