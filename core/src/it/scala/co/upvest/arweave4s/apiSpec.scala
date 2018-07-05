@@ -30,11 +30,7 @@ class apiSpec extends WordSpec
   val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
   val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
   val futConfig = Config(host = TestHost, AsyncHttpClientFutureBackend())
-
-  val futureConfig = AdvancedConfig[EitherT[Future, Failure, ?], Future](
-    futConfig,
-    i = lift
-  )
+  val futureConfig = Backend.lift(futConfig, lift)
 
   val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
     AsyncHttpClientFutureBackend(),

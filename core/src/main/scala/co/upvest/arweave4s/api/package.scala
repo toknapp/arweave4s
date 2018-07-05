@@ -21,11 +21,16 @@ package object api {
 
   trait Backend[F[_]] {
     def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]]
+
   }
 
   object Backend {
     implicit def fromMHB[R[_], G[_]](mhb: MultipleHostsBackend[R, G]): Backend[R] = new Backend[R] {
       def apply[T](r: PartialRequest[T, Nothing]): R[Response[T]] = mhb(r)
+    }
+
+    def lift[F[_], G[_]](backend: Backend[G], i: G ~> F) = new Backend[F] {
+      override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = i(backend(r))
     }
   }
 
@@ -33,10 +38,6 @@ package object api {
     override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = {
       backend send completeRequest[T, Nothing](r, host)
     }
-  }
-
-  case class AdvancedConfig[F[_], G[_]](backend: Backend[G], i: G ~> F) extends Backend[F] {
-    override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = i(backend(r))
   }
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])
