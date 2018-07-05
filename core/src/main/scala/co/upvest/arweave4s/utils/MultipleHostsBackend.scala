@@ -1,20 +1,18 @@
 package co.upvest.arweave4s.utils
 
 import cats.data.NonEmptyList
-import cats.{Id, MonadError, ~>}
 import cats.syntax.either._
 import cats.syntax.flatMap._
-
-import com.softwaremill.sttp.{RequestT, Request, Response, SttpBackend, Uri, Empty}
-import com.softwaremill.sttp.{Method => SMethod}
+import cats.{MonadError, ~>}
+import com.softwaremill.sttp.{Request, Response, SttpBackend, Uri}
 
 import scala.util.Random
-import scala.collection.immutable.Seq
 
 class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyList[Uri],
                                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
-                                           implicit R: MonadError[R, NonEmptyList[Throwable]], i : G ~> R) extends SttpBackend[R, S] {
-  import MultipleHostsBackend._
+                                           implicit R: MonadError[R, NonEmptyList[Throwable]],
+                                           i : G ~> R) extends SttpBackend[R, S] {
+  import SttpExtensions._
 
   private val G = b.responseMonad
 
@@ -60,6 +58,13 @@ class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyLi
 
 object MultipleHostsBackend {
 
+  def apply[R[_], S, G[_]](b: SttpBackend[G, S],
+                           uris: NonEmptyList[Uri],
+                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])
+                          (implicit R: MonadError[R, NonEmptyList[Throwable]],
+                           i: G ~> R): MultipleHostsBackend[R, S, G] =
+    new MultipleHostsBackend(b, uris, permute)
+
   val uniform: NonEmptyList[Uri] => NonEmptyList[Uri] = { nl =>
     val l = Random.shuffle(nl.toList)
     NonEmptyList(l.head, l.tail)
@@ -69,40 +74,4 @@ object MultipleHostsBackend {
     _ >>= { e =>
       NonEmptyList(e, List.fill(n)(e))
     }
-
-  type PartialRequest[T, S] = RequestT[PartialU, T, S]
-
-  sealed trait PartialU[A]
-  object PartialU {
-    case class Method(m: SMethod) extends PartialU[SMethod]
-    case class PathQueryFragment(
-      path: Seq[String],
-      qf: Seq[Uri.QueryFragment],
-      f: Option[String]
-    ) extends PartialU[Uri]
-
-    implicit def toMethod(pu: PartialU[SMethod]): SMethod = pu
-    implicit def fromMethod(m: SMethod): PartialU[SMethod] = Method(m)
-    implicit def toPQF(pu: PartialU[Uri]): PathQueryFragment = pu
-  }
-
-  def completeRequest[T, S](pr: PartialRequest[T, S], u: Uri): Request[T, S] =
-    pr.copy[Id, T, S](
-      method = pr.method,
-      uri = u.copy(
-        path = u.path ++ pr.uri.path,
-        queryFragments = pr.uri.qf,
-        fragment = pr.uri.f
-      )
-    )
-
-  object syntax {
-    implicit class RequestBuilders[T, S](u: RequestT[Empty, T, S]) {
-      def get(path: Seq[String]): PartialRequest[T, S] =
-        u.copy[PartialU, T, S](
-          uri = PartialU.PathQueryFragment(path, Nil, None),
-          method = SMethod.GET
-        )
-    }
-  }
 }

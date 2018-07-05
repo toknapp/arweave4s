@@ -2,18 +2,18 @@ package co.upvest.arweave4s
 
 import java.util.concurrent.Executors
 
-import com.softwaremill.sttp.HttpURLConnectionBackend
-import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston, Query, Tag}
+import com.softwaremill.sttp.{HttpURLConnectionBackend}
+import co.upvest.arweave4s.adt.{Data, Query, Tag, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{GivenWhenThen, Matchers, WordSpec, Retries, LoneElement, Inside}
+import org.scalatest.{GivenWhenThen, Inside, LoneElement, Matchers, Retries, WordSpec}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.tagobjects.{Slow, Retryable}
+import org.scalatest.tagobjects.{Retryable, Slow}
 import cats.Id
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 
-import scala.concurrent.{Future, ExecutionContext}
-
+import scala.concurrent.{ExecutionContext, Future}
 import cats.instances.future._
+import com.softwaremill.sttp.UriContext
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually
@@ -30,8 +30,7 @@ class apiExamples extends WordSpec
 
   "An api axample" should {
     "be able to use Id" taggedAs(Slow, Retryable) in {
-
-      implicit val c = api.Config(host = TestHost, HttpURLConnectionBackend(), retries = 1)
+      implicit val c = api.Config(host = uri"$TestHost", HttpURLConnectionBackend())
       import api.id._
       Given("an amount of Winstons to transfer")
       val quantity = Winston("100000")
@@ -42,7 +41,6 @@ class apiExamples extends WordSpec
       val reward = randomWinstons()
       val requiredFunds = reward + quantity
       api.address.balance(wallet) should be >= requiredFunds
-
       Given("a freshly generated wallet")
       val beneficiary = Wallet.generate()
 
@@ -50,7 +48,7 @@ class apiExamples extends WordSpec
       api.address.balance(beneficiary) shouldBe Winston.Zero
 
       When("a transfer is submitted")
-      val lastTx = api.address.lastTx[Id, Id](wallet) // TODO: why don't type-inference work here?
+      val lastTx = api.address.lastTx[Id](wallet) // TODO: why don't type-inference work here?
       val stx = Transaction.Transfer(
         lastTx,
         wallet,
@@ -78,7 +76,7 @@ class apiExamples extends WordSpec
 
     "be able to use for-comprehensions" taggedAs(Retryable) in {
 
-      implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend(), retries = 1)
+      implicit val c = api.Config(host = uri"$TestHost", AsyncHttpClientFutureBackend())
       import api.future._
 
       implicit val ec = apiExamples.ec
@@ -114,7 +112,7 @@ class apiExamples extends WordSpec
 
         And("eventually get accepted")
         eventually {
-          whenReady(api.tx.get[Future, Future](stx.id)) { ts =>
+          whenReady(api.tx.get[Future](stx.id)) { ts =>
             inside(ts) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id

@@ -2,15 +2,16 @@ package co.upvest.arweave4s
 
 import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston, Info}
-import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{Inside, Matchers, WordSpec, Retries}
-import org.scalatest.concurrent.{ScalaFutures, Eventually}
-import org.scalatest.tagobjects.{Slow, Retryable}
-import cats.{Id, ~>, Monad}
-import cats.data.EitherT
+import co.upvest.arweave4s.adt.{Block, Info, Transaction, Wallet, Winston}
+import co.upvest.arweave4s.utils.{BlockchainPatience, MultipleHostsBackend}
+import org.scalatest.{Inside, Matchers, Retries, WordSpec}
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.tagobjects.{Retryable, Slow}
+import cats.{Id, Monad, ~>}
+import cats.data.{EitherT, NonEmptyList}
 import cats.arrow.FunctionK
 import cats.implicits._
+import com.softwaremill.sttp.UriContext
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -20,20 +21,35 @@ class apiSpec extends WordSpec
   with Eventually with BlockchainPatience with Retries {
   import ApiTestUtil._
   import api._
-
-  val idConfig = Config(host = TestHost, HttpURLConnectionBackend(), retries = 1)
-  val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend(), retries = 1)
-
   implicit val ec = ExecutionContext.global
 
-  val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
-      host = TestHost,
-      AsyncHttpClientFutureBackend(),
-      i = new (Future ~> EitherT[Future,Failure, ?]) {
-        override def apply[A](fa: Future[A]) = EitherT liftF fa
-      },
-      retries = 1
-    )
+  implicit val lift = new (Future ~> EitherT[Future, Failure, ?]) {
+    override def apply[A](fa: Future[A]) = EitherT liftF fa
+  }
+
+  implicit val lift1 = new (Future ~> EitherT[Future, NonEmptyList[Throwable], ?]) {
+    override def apply[A](fa: Future[A]) = EitherT liftF fa
+  }
+
+  //implicit def failLift[F[_]] : MonadError[F, NonEmptyList[Throwable]] => MonadError[F, Failure]  = ???
+
+  val idConfig = Config(host = uri"$TestHost", HttpURLConnectionBackend())
+  val tryConfig = Config(host = uri"$TestHost", TryHttpURLConnectionBackend())
+  val futConfig = Config(host = uri"$TestHost", AsyncHttpClientFutureBackend())
+
+  val futureConfig = AdvancedConfig[EitherT[Future, Failure, ?], Future](
+    futConfig,
+    i = lift
+  )
+
+  //val y: MonadError[EitherT[Future, Failure, ?], Failure] = ???
+  //implicit val aa: MonadError[EitherT[Future, Failure, ?], NonEmptyList[Throwable]]  = failLift(y)
+
+  val multiHostConfig = MultipleHostsBackend[EitherT[Future, NonEmptyList[Throwable], ?], Nothing, Future](
+    AsyncHttpClientFutureBackend(),
+    NonEmptyList(uri"$TestHost", uri"$NotExistingTestHost" :: Nil),
+    MultipleHostsBackend.uniform
+  )
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   val invalidBlockHeight = BigInt(Long.MaxValue)
@@ -44,14 +60,12 @@ class apiSpec extends WordSpec
     override def apply[A](fa: Try[A]): A = fa.get
   }
 
-
   implicit val eTFRunner = new (λ[α => EitherT[Future, Failure, α]] ~> Id) {
       override def apply[A](fa: EitherT[Future, Failure, A]): A =
         whenReady(fa.value) {
           case Left(e) => throw e
           case Right(a) => a
         }
-
     }
 
   override def withFixture(test: NoArgTest) = {
@@ -61,11 +75,11 @@ class apiSpec extends WordSpec
       super.withFixture(test)
   }
 
-  def apiBehavior[F[_]: Monad, G[_]](c: AbstractConfig[F, G])(implicit
-    jh: JsonHandler[F],
-    esh: EncodedStringHandler[F],
-    sh: SuccessHandler[F],
-    run: F ~> Id): Unit = {
+  def apiBehavior[F[_]: Monad](c: Backend[F])(implicit
+                                                       jh: JsonHandler[F],
+                                                       esh: EncodedStringHandler[F],
+                                                       sh: SuccessHandler[F],
+                                                       run: F ~> Id): Unit = {
 
       implicit val _ = c
 
@@ -178,7 +192,7 @@ class apiSpec extends WordSpec
           run { tx.submit(stx) } shouldBe (())
 
           eventually {
-            inside(run { tx.get[F, G](stx.id) }) {
+            inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
@@ -207,7 +221,7 @@ class apiSpec extends WordSpec
           run { tx submit stx1 } shouldBe (())
 
           eventually {
-            run { tx.get[F, G](stx1.id) } should
+            run { tx.get[F](stx1.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
 
@@ -222,7 +236,7 @@ class apiSpec extends WordSpec
           run { tx submit stx2 } shouldBe (())
 
           eventually {
-            run { tx.get[F, G](stx2.id) } should
+            run { tx.get[F](stx2.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
         }
@@ -250,7 +264,7 @@ class apiSpec extends WordSpec
           waitForDataTransaction(stx)
 
           eventually {
-            inside(run { tx.get[F, G](stx.id) }) {
+            inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
@@ -273,6 +287,11 @@ class apiSpec extends WordSpec
     "using EitherT[Future]" should {
       import monadError._
       apiBehavior(futureConfig)
+    }
+
+    "using EitherT[Future] and as well an invalid Host" should {
+      import monadError._
+      apiBehavior[EitherT[Future, NonEmptyList[Throwable], ?]](multiHostConfig)
     }
   }
 }

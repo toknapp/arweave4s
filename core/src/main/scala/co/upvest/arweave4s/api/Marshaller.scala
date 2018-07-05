@@ -13,7 +13,12 @@ import scala.util.Try
 trait Marshaller {
   import CirceComplaints._, EmptyStringAsNone._
 
-   val mapEmptyTxId: String => Option[Option[Transaction.Id]] = (s: String) => EmptyStringAsNone.of(s).toOption match {
+   val mapEmptyTxId  = (s: String) => EmptyStringAsNone.of(s).toOption match {
+    case None => Some(None)
+    case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
+  }
+
+  val mapEmptyString = (s: String) => EmptyStringAsNone.of(s).toOption match {
     case None => Some(None)
     case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
   }
@@ -39,44 +44,31 @@ trait Marshaller {
   )
 
   implicit lazy val peersDecoder: Decoder[Peer] =
-    (c: HCursor) => c.as[String].map(Peer.apply)
+    _.as[String].map(Peer.apply)
 
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
-    (c: HCursor) => (c.as[String] map Block.Hash.fromEncoded) orComplain
+    _.as[String] map Block.Hash.fromEncoded orComplain
 
   implicit lazy val blockIndepHashDecoder: Decoder[Block.IndepHash] =
-    (c: HCursor) => c.as[String] map Block.IndepHash.fromEncoded orComplain
+    _.as[String] map Block.IndepHash.fromEncoded orComplain
 
   implicit lazy val addressDecoder: Decoder[Address] =
-    (c: HCursor) => c.as[String] map Address.fromEncoded orComplain
+    _.as[String] map Address.fromEncoded orComplain
 
   implicit lazy val winstonDecoder: Decoder[Winston] =
-    (c: HCursor) => c.as[BigInt] map Winston.apply
+    _.as[BigInt] map Winston.apply
 
   implicit lazy val signatureDecoder: Decoder[Signature] =
-    (c: HCursor) => c.as[String] map Signature.fromEncoded orComplain
+    _.as[String] map Signature.fromEncoded orComplain
 
   implicit lazy val ownerDecoder: Decoder[Owner] =
-    (c: HCursor) => c.as[String] map Owner.fromEncoded orComplain
+    _.as[String] map Owner.fromEncoded orComplain
 
   implicit lazy val dataDecoder: Decoder[Data] =
-    (c: HCursor) => c.as[String] map Data.fromEncoded orComplain
+    _.as[String] map Data.fromEncoded orComplain
 
   implicit lazy val transactionIdDecoder: Decoder[Transaction.Id] =
-    c => if(c.downField("tx_id_injected").succeeded) {
-      println("Tx id injected")
-      c.downField("tx_id_injected").as[String] map Transaction.Id.fromEncoded orComplain
-    } else {
-      c.as[String] map Transaction.Id.fromEncoded orComplain
-    }
-
-
-//  implicit lazy val transactionIdDecoderOpt: Decoder[EmptyStringAsNone[Transaction.Id]] = (c: HCursor) => {
-//    println(c)
-//    val df = c.downField("id")
-//    df.as[EmptyStringAsNone[Transaction.Id]]
-//  }
-
+    _.as[String] map Transaction.Id.fromEncoded orComplain
 
   implicit def base64EncodedBytesEncoder[T <: Base64EncodedBytes]: Encoder[T] =
     bs => Json.fromString(bs.toString)

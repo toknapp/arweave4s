@@ -1,32 +1,24 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.{Address, Transaction, Winston}
-import co.upvest.arweave4s.utils.EmptyStringAsNone
-import com.softwaremill.sttp.{UriContext, sttp}
+import com.softwaremill.sttp.sttp
 
 object address {
-  import Marshaller.winstonMapper
 
-  def lastTx[F[_], G[_]](address: Address)(implicit
-                                           c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-  ): F[Option[Transaction.Id]] = {
-    val req = sttp
-      .get(uri"${c.host}/wallet/$address/last_tx")
-      .mapResponse { s =>
-        EmptyStringAsNone.of(s).toOption match {
-          case None => Some(None)
-          case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
-        }
-      }
-    esh(c.i(c.backend send req))
-  }
+  import Marshaller._
+  import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 
-  def balance[F[_], G[_]](address: Address)(implicit
-                                            c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-  ): F[Winston] = {
-    val req = sttp
-      .get(uri"${c.host}/wallet/$address/balance")
-      .mapResponse(winstonMapper)
-    esh(c.i(c.backend send req))
-  }
+  def lastTx[F[_]](address: Address)(implicit send: Backend[F], esh: EncodedStringHandler[F]): F[Option[Transaction.Id]] =
+    esh (
+      send(sttp.get("wallet" :: s"$address" :: "last_tx" :: Nil)
+        .mapResponse(mapEmptyString))
+    )
+
+  def balance[F[_]](address: Address)(implicit send: Backend[F], esh: EncodedStringHandler[F]): F[Winston] =
+    esh(
+      send(
+        sttp.get("wallet" :: s"$address" :: "balance" :: Nil)
+          .mapResponse(winstonMapper)
+      )
+    )
 }
