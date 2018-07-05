@@ -1,9 +1,8 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.{Query, Transaction}
-import com.softwaremill.sttp.circe.asJson
+import com.softwaremill.sttp.circe.{asJson, _}
 import com.softwaremill.sttp.sttp
-import com.softwaremill.sttp.circe._
 
 object arql {
 

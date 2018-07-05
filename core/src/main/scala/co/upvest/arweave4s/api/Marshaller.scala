@@ -1,22 +1,17 @@
 package co.upvest.arweave4s.api
 
-import co.upvest.arweave4s.adt.Transaction
-import co.upvest.arweave4s.adt._
+import co.upvest.arweave4s.adt.{Transaction, _}
 import co.upvest.arweave4s.utils.{CirceComplaints, CryptoUtils, EmptyStringAsNone}
-import io.circe.Decoder.Result
 import io.circe
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.Decoder.Result
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder, HCursor, Json}
 
 import scala.util.Try
 
 trait Marshaller {
-  import CirceComplaints._, EmptyStringAsNone._
-
-   val mapEmptyTxId  = (s: String) => EmptyStringAsNone.of(s).toOption match {
-    case None => Some(None)
-    case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
-  }
+  import CirceComplaints._
+  import EmptyStringAsNone._
 
   val mapEmptyString = (s: String) => EmptyStringAsNone.of(s).toOption match {
     case None => Some(None)
@@ -147,31 +142,31 @@ trait Marshaller {
   implicit lazy val dataTransactionEncoder: Encoder[Signed[Transaction.Data]] =
     tx =>
       Json.obj(
-        ("id", tx.id.asJson),
-        ("last_tx", tx.lastTx.noneAsEmptyString),
-        ("target", Json.fromString("")),
-        ("owner", tx.owner.asJson),
-        ("reward", tx.reward.asJson),
-        ("quantity", Winston.Zero.asJson),
-        ("data", tx.data.asJson),
-        ("tags", {
+        "id"        := tx.id,
+        "last_tx"   -> tx.lastTx.noneAsEmptyString,
+        "target"    := Json.fromString(""),
+        "owner"     := tx.owner,
+        "reward"    := tx.reward,
+        "quantity"  := Winston.Zero,
+        "data"      := tx.data,
+        "tags"      -> {
           import TagsInTransaction.encoder
-          tx.tags asJson
-        }),
-        ("signature", tx.signature.asJson)
+          tx.tags.asJson
+        },
+        "signature" := tx.signature
       )
 
   implicit lazy val transferTransactionEncoder: Encoder[Signed[Transaction.Transfer]] =
     tx =>
       Json.obj(
-        ("id", tx.id.asJson),
-        ("last_tx", tx.lastTx.noneAsEmptyString),
-        ("data", Json.fromString("")),
-        ("owner", tx.owner.asJson),
-        ("target", tx.target.asJson),
-        ("quantity", tx.quantity.asJson),
-        ("reward", tx.reward.asJson),
-        ("signature", tx.signature.asJson)
+        "id"        := tx.id,
+        "last_tx"   -> tx.lastTx.noneAsEmptyString,
+        "data"      -> Json.fromString(""),
+        "owner"     := tx.owner,
+        "target"    := tx.target,
+        "quantity"  := tx.quantity,
+        "reward"    := tx.reward,
+        "signature" := tx.signature
     )
 
   implicit lazy val transactionEncoder: Encoder[Signed[Transaction]] = stx =>
@@ -260,18 +255,18 @@ trait Marshaller {
     )
 
   implicit lazy val blockEncoder: Encoder[Block] = b => Json.obj(
-    "nonce" := b.nonce,
+    "nonce"          := b.nonce,
     "previous_block" := b.previousBlock,
-    "timestamp" := b.timestamp,
-    "last_retarget" := b.lastRetarget,
-    "diff" := b.diff,
-    "height" := b.height,
-    "hash" := b.hash,
-    "indep_hash" := b.indepHash,
-    "txs" := b.txs,
-    "hash_list" := b.hashList,
-    "wallet_list" := b.walletList,
-    "reward_addr" -> (b.rewardAddr map {_.asJson} getOrElse "unclaimed".asJson)
+    "timestamp"      := b.timestamp,
+    "last_retarget"  := b.lastRetarget,
+    "diff"           := b.diff,
+    "height"         := b.height,
+    "hash"           := b.hash,
+    "indep_hash"     := b.indepHash,
+    "txs"            := b.txs,
+    "hash_list"      := b.hashList,
+    "wallet_list"    := b.walletList,
+    "reward_addr"    -> (b.rewardAddr map {_.asJson} getOrElse "unclaimed".asJson)
   )
 }
 
