@@ -2,18 +2,18 @@ package co.upvest.arweave4s
 
 import java.util.concurrent.Executors
 
-import com.softwaremill.sttp.{HttpURLConnectionBackend}
+import cats.Id
+import cats.instances.future._
 import co.upvest.arweave4s.adt.{Data, Query, Tag, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{GivenWhenThen, Inside, LoneElement, Matchers, Retries, WordSpec}
+import com.softwaremill.sttp.HttpURLConnectionBackend
+import com.softwaremill.sttp.UriContext
+import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.tagobjects.{Retryable, Slow}
-import cats.Id
-import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
+import org.scalatest.{GivenWhenThen, Inside, LoneElement, Matchers, Retries, WordSpec}
 
 import scala.concurrent.{ExecutionContext, Future}
-import cats.instances.future._
-import com.softwaremill.sttp.UriContext
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually

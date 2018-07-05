@@ -1,17 +1,17 @@
 package co.upvest.arweave4s
 
-import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
-import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
+import cats.arrow.FunctionK
+import cats.data.{EitherT, NonEmptyList}
+import cats.implicits._
+import cats.{Id, Monad, ~>}
 import co.upvest.arweave4s.adt.{Block, Info, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.{BlockchainPatience, MultipleHostsBackend}
-import org.scalatest.{Inside, Matchers, Retries, WordSpec}
+import com.softwaremill.sttp.UriContext
+import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
+import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.tagobjects.{Retryable, Slow}
-import cats.{Id, Monad, ~>}
-import cats.data.{EitherT, NonEmptyList}
-import cats.arrow.FunctionK
-import cats.implicits._
-import com.softwaremill.sttp.UriContext
+import org.scalatest.{Inside, Matchers, Retries, WordSpec}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
