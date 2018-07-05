@@ -66,11 +66,12 @@ class apiSpec extends WordSpec
       super.withFixture(test)
   }
 
-  def apiBehavior[F[_]: Monad](c: Backend[F])(implicit
-                                                       jh: JsonHandler[F],
-                                                       esh: EncodedStringHandler[F],
-                                                       sh: SuccessHandler[F],
-                                                       run: F ~> Id): Unit = {
+  def apiBehavior[F[_]: Monad](c: Backend[F])(
+    implicit jh: JsonHandler[F],
+    esh: EncodedStringHandler[F],
+    sh: SuccessHandler[F],
+    run: F ~> Id
+  ): Unit = {
 
       implicit val _ = c
 

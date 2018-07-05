@@ -9,15 +9,13 @@ import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{asString, sttp}
 import io.circe.parser.decode
 
-import scala.language.{higherKinds, postfixOps}
-
 object tx {
 
   import Marshaller._
   import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 
   def get[F[_] : Monad](txId: Transaction.Id)(implicit send: Backend[F], jh: JsonHandler[F]):
-    F[Transaction.WithStatus] = send(sttp.get("tx" :: txId.toString :: Nil)
+    F[Transaction.WithStatus] = send(sttp.get("tx" :: s"$txId" :: Nil)
       .response(asString)) >>= { rsp =>
         (rsp.code, rsp.body) match {
           case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
@@ -48,5 +46,4 @@ object tx {
           .response(asJson))
       )
 }
-
 

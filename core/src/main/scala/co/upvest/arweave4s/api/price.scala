@@ -10,7 +10,7 @@ object price {
 
   def transferTransactionTo[F[_]](recipient: Address)(implicit send: Backend[F], esh: EncodedStringHandler[F]):
     F[Winston] = esh(
-      send(sttp.get("price" :: "0" :: recipient.toString :: Nil)
+      send(sttp.get("price" :: "0" :: s"$recipient" :: Nil)
         .mapResponse(winstonMapper)
       )
   )
