@@ -80,6 +80,13 @@ class apiSpec extends WordSpec
           run { block.current() } shouldBe a[Block]
         }
 
+        "return the correct block reported as current in the info api" in {
+          val i = run { api.info() }
+          val b = run { block.get(i.current) }
+          b.indepHash shouldBe i.current
+          b.height shouldBe i.height
+        }
+
         "return a valid block by hash" in {
           val b = run { block.current() }
           run { block.get(b.indepHash) } shouldBe a[Block]
