@@ -40,9 +40,9 @@ class apiSpec extends WordSpec
     i = lift
   )
 
-  import api.Backend.f
+  import api.Backend.injectMultipleFailures
 
-  val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Nothing, Future](
+  val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
     AsyncHttpClientFutureBackend(),
     NonEmptyList(uri"$TestHost", uri"$NotExistingTestHost" :: Nil),
     MultipleHostsBackend.uniform

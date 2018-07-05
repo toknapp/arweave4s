@@ -21,25 +21,30 @@ package object api {
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
 
   trait Backend[F[_]] {
-    def apply[T, S](r: PartialRequest[T, S]): F[Response[T]]
+    def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]]
   }
 
   object Backend {
-    implicit def fromMHB[R[_], S, G[_]](mhb: MultipleHostsBackend[R, S, G]): Backend[R] = ???
+    implicit def fromMHB[R[_], G[_]](mhb: MultipleHostsBackend[R, G]): Backend[R] = new Backend[R] {
+      def apply[T](r: PartialRequest[T, Nothing]): R[Response[T]] = mhb(r)
+    }
 
-    implicit def f[F[_]](
+    implicit def injectMultipleFailures[F[_]](
       implicit me: MonadError[F, Failure]
-    ): MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] = ???
+    ): MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] = new MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] {
+      def apply[A](nel: NonEmptyList[Throwable]): F[A] =
+        me raiseError MultipleUnderlyingFailures(nel)
+    }
   }
 
-  case class Config[F[_]](host: Uri, backend: SttpBackend[F, _]) extends Backend[F] {
-   override def apply[T, S](r: PartialRequest[T, S]): F[Response[T]] = {
-     backend send SttpExtensions.completeRequest[T, Nothing](r.asInstanceOf[PartialRequest[T, Nothing]], host)
+  case class Config[F[_]](host: Uri, backend: SttpBackend[F, Nothing]) extends Backend[F] {
+   override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = {
+     backend send SttpExtensions.completeRequest[T, Nothing](r, host)
    }
  }
 
   case class AdvancedConfig[F[_], G[_]](backend: Backend[G], i: G ~> F) extends Backend[F] {
-    override def apply[T, S](r: PartialRequest[T, S]): F[Response[T]] = i(backend(r))
+    override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = i(backend(r))
   }
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])

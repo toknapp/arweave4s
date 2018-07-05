@@ -8,7 +8,7 @@ import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 
 import scala.util.Random
 
-class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyList[Uri],
+class MultipleHostsBackend[R[_], G[_]](b: SttpBackend[G, Nothing], uris: NonEmptyList[Uri],
                                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
                                            implicit
                                            R: Monad[R],
@@ -19,7 +19,7 @@ class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyLi
 
   private val G = b.responseMonad
 
-  def apply[T](req: PartialRequest[T, S]): R[Response[T]] = {
+  def apply[T](req: PartialRequest[T, Nothing]): R[Response[T]] = {
     def f(u: Uri): R[Either[Throwable, Response[T]]] = i(
       G.handleError (
         G.map (b send completeRequest(req, u)) { _.asRight[Throwable] }
