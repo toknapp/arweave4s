@@ -1,25 +1,45 @@
 version: 2
 
+setup-git: &setup-git
+  run:
+    name: "Configuring git"
+    command: |
+      git config --global user.signingkey 4BFE56CB1EAEFD90
+      git config --global user.email ivan@upvest.co
+      git config --global user.name "Upvest/Arweave4s"
+      git branch -u origin/$CIRCLE_BRANCH
+
+setup-gpg: &setup-gpg
+  run:
+    name: "Configuring gpg"
+    command: |
+      if [ -n "$IMPORT_SIGNING_KEY" ]; then
+        mkdir ~/.sbt/gpg
+        echo $PGPKEY | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
+        gpg --batch --allow-secret-key-import --import ~/.sbt/gpg/secring.asc
+      fi
+
+cleanup-gpg: &cleanup-gpg
+  run:
+    name: "Cleaning up gpg"
+    command: |
+      rm -f ~/.sbt/gpg/secring.asc
+      rm -rf ~/.gnupg
+
 sbt-build: &sbt-build
   docker:
     - image: upvest/scala-sbt-docker-k8:stable
   steps:
-    - run: mkdir ~/.sbt/gpg
-    - run: echo $PGPKEY | base64 --decode --ignore-garbage > ~/.sbt/gpg/secring.asc
-    - run: gpg --batch --allow-secret-key-import --import ~/.sbt/gpg/secring.asc
-    - run: git config --global user.signingkey 4BFE56CB1EAEFD90
-    - run: git config --global user.email ivan@upvest.co
-    - run: git config --global user.name "Upvest/Arweave4s"
     - checkout
-    - run: git branch -u origin/$CIRCLE_BRANCH
+    - *setup-git
+    - *setup-gpg
     - setup_remote_docker:
         docker_layer_caching: true
         version: 17.09.0-ce
     - restore_cache:
         key: sbt-deps-{{ checksum "build.sbt" }}
     - run: sbt -Xms512m -Xmx2g -XX:+UseConcMarkSweepGC -XX:ReservedCodeCacheSize=256m -XX:+CMSClassUnloadingEnabled -Djava.awt.headless=true -no-colors -batch "$SBT_COMMAND"
-    - run: rm ~/.sbt/gpg/secring.asc
-    - run: rm -rf ~/.gnupg
+    - *cleanup-gpg
     - save_cache:
         key: sbt-deps-{{ checksum "build.sbt" }}
         paths:
@@ -73,7 +93,7 @@ jobs:
           name: Update submodules
           command: |
             git submodule sync
-            git submodule update --init --remote
+            git submodule update --init --remote --recursive
       - run: docker-compose build --no-cache
       - *collect-docker-compose-logs
       - *collect-arweave-logs
@@ -91,12 +111,14 @@ jobs:
     <<: *sbt-build
     resource_class: large
     environment:
+      IMPORT_SIGNING_KEY: "1"
       SBT_COMMAND: "; project core; release with-defaults"
 
   release-snapshot:
     <<: *sbt-build
     resource_class: large
     environment:
+      IMPORT_SIGNING_KEY: "1"
       SBT_COMMAND: "core/publishSigned"
 
 workflows:

@@ -96,7 +96,7 @@ class apiExamples extends WordSpec
       Then("a transaction should be successful")
 
       val f = for {
-        price    <- api.price.estimate(testData)
+        price    <- api.price.dataTransaction(testData)
         lastTx   <- api.address.lastTx(wallet)
         stx = Transaction.Data(
           lastTx = lastTx,

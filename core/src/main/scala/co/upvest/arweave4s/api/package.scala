@@ -199,30 +199,22 @@ package object api {
   }
 
   object price {
-    def estimateForBytes[F[_], G[_]](bytes: BigInt)(implicit
+
+    def transferTransactionTo[F[_], G[_]](recipient: Address)(implicit
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Winston] = {
-      val req = sttp
-        .get(uri"${c.host}/price/$bytes")
+      val req = sttp.get(uri"${c.host}/price/0/$recipient")
         .mapResponse(winstonMapper)
       esh(c.i(c.backend send req))
     }
 
-    def estimate[F[_], G[_]](d: Data)(implicit
+    def dataTransaction[F[_], G[_]](d: Data)(implicit
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = estimateForBytes(d.bytes.length)
-
-    def estimate[F[_], G[_]](t: Transaction)(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] =
-      t match {
-        case dt: Transaction.Data => estimateForBytes(dt.data.bytes.length)
-        case _: Transaction.Transfer => estimateTransfer()
-      }
-
-    def estimateTransfer[F[_], G[_]]()(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = estimateForBytes(BigInt(0))
+    ): F[Winston] = {
+      val req = sttp.get(uri"${c.host}/price/${d.bytes.length}")
+        .mapResponse(winstonMapper)
+      esh(c.i(c.backend send req))
+    }
   }
 
   object arql {
