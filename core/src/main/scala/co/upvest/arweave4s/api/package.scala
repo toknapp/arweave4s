@@ -7,16 +7,17 @@ import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.{Functor, Id, Monad, MonadError, ~>}
+import cats.{Id, Monad, MonadError, ~>}
 import co.upvest.arweave4s.adt._
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{Request, Response, SttpBackend, Uri, UriContext, asString, sttp}
 import io.circe
 import io.circe.parser.decode
+import cats.syntax.either._
 
-import scala.util.{Random => r}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
+import scala.util.Random
 
 package object api {
 
@@ -27,45 +28,19 @@ package object api {
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
 
   trait AbstractConfig[F[_], G[_]] {
-    def hosts: String
+    def host: String
     def backend: SttpBackend[G, _]
     def i: G ~> F
-    def retries: Int
-    lazy val uris: List[Uri] = hosts.split(",").map(h => uri"$h").to[List]
   }
-
-  class MultipleHostsBackend[R[_]: Functor, S, G[_]](b: SttpBackend[G, S], uris: List[Uri])(
-    implicit M: MonadError[R, NonEmptyList[Throwable]],
-    i : G ~> R
-  ) {
-
-     def send[T](request: Request[T, S]): R[Response[T]] = r.shuffle(uris)
-       .toStream.map { uri =>
-       b send request.copy(uri = uri.copy(path = uri.path ++ request.uri.path))
-     }.map(i.apply _)
-    .foldLeft(List.empty[R[Either[Throwable,Response[T]]]]) {
-      (b, a) => a.map {
-        case Left(_) =>
-
-        case Right(_) =>
-          return a :: b
-      }
-
-    }
-
-     def close(): Unit = ???
-  }
-
-
 
   case class Config[F[_]](
-    hosts: String, backend: SttpBackend[F, _], retries: Int
+                           host: String, backend: SttpBackend[F, _], retries: Int
   ) extends AbstractConfig[F, F] {
     override val i = FunctionK.id
   }
 
   case class FullConfig[F[_], G[_]](
-    hosts: String, backend: SttpBackend[G, _], i: G ~> F, retries: Int
+                                     host: String, backend: SttpBackend[G, _], i: G ~> F, retries: Int
   ) extends AbstractConfig[F, G]
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])
@@ -187,7 +162,7 @@ package object api {
     def get[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Transaction.WithStatus] = {
-      val req = sttp.get(uri"${c.hosts}/tx/$txId").response(asString)
+      val req = sttp.get(uri"${c.host}/tx/$txId").response(asString)
 
       c.i(c.backend send req) >>= { rsp =>
         (rsp.code, rsp.body) match {
@@ -210,7 +185,7 @@ package object api {
     ): F[Unit] = {
       val req = sttp
         .body(tx)
-        .post(uri"${c.hosts}/tx")
+        .post(uri"${c.host}/tx")
         .mapResponse { _ => () }
       sh(c.i(c.backend send req))
     }
@@ -219,7 +194,7 @@ package object api {
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Seq[Transaction.Id]] =
       jh(c.i(
-        c.backend send sttp.get(uri"${c.hosts}/tx/pending").response(asJson)
+        c.backend send sttp.get(uri"${c.host}/tx/pending").response(asJson)
       ))
   }
 
@@ -228,7 +203,7 @@ package object api {
       c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
     ): F[Winston] = {
       val req = sttp
-        .get(uri"${c.hosts}/price/$bytes")
+        .get(uri"${c.host}/price/$bytes")
         .mapResponse(winstonMapper)
       esh(c.i(c.backend send req))
     }
@@ -256,7 +231,7 @@ package object api {
     ): F[Seq[Transaction.Id]] = {
       val req = sttp
         .body(q)
-        .post(uri"${c.hosts}/arql")
+        .post(uri"${c.host}/arql")
         .response(asJson[Seq[Transaction.Id]])
       jh(c.i(c.backend send req))
     }
@@ -266,7 +241,7 @@ package object api {
     def apply[F[_], G[_]]()(implicit
       c: AbstractConfig[F, G], jh: JsonHandler[F]
     ): F[Info] = {
-      val req = sttp.get(uri"${c.hosts}/info")
+      val req = sttp.get(uri"${c.host}/info")
         .response(asJson[Info])
       jh(c.i(c.backend send req))
     }

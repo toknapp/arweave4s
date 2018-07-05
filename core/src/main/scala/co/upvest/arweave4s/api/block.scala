@@ -1,55 +1,35 @@
 package co.upvest.arweave4s.api
 
-import cats.Functor
 import co.upvest.arweave4s.adt.Block
-import co.upvest.arweave4s.utils.RequestHandling
-import com.softwaremill.sttp.sttp
-import io.circe.parser.decode
+import com.softwaremill.sttp.circe.asJson
+import com.softwaremill.sttp.{UriContext, sttp}
 
 object block {
+  def current[F[_], G[_]]()(implicit
+                            c: AbstractConfig[F, G], jh: JsonHandler[F]
+  ): F[Block] = {
+    val req = sttp
+      .get(uri"${c.host}/current_block")
+      .response(asJson[Block])
+    jh(c.i(c.backend send req))
+  }
 
-  import Marshaller._
+  def get[F[_], G[_]](ih: Block.IndepHash)(implicit
+                                           c: AbstractConfig[F, G], jh: JsonHandler[F]
+  ): F[Block] = {
+    val req = sttp
+      .get(uri"${c.host}/block/hash/$ih")
+      .response(asJson[Block])
+    jh(c.i(c.backend send req))
+  }
 
-  def currentM[F[_], G[_]]()(implicit c: AbstractConfig[F, G],
-                             jh: JsonHandler[F],
-                             FT: Functor[F]): List[F[Block]] = RequestHandling
-    .process[F, G, Block](
-      "current_block" :: Nil,
-      sttp.get(_).mapResponse(decode[Block])
-    ).map(jh.apply _)
-
-  def current[F[_], G_]]()[(implicit c: AbstractConfig[F, G],
-                            jh: JsonHandler[F],
-                            FT: Functor[F]): F[Block] = currentM.head
-
-  def getM[F[_], G[_]](ih: Block.IndepHash)
-                      (implicit c: AbstractConfig[F, G],
-                       jh: JsonHandler[F],
-                       FT: Functor[F]
-                      ): List[F[Block]] = RequestHandling.
-    process[F, G, Block](
-      "block" :: "hash" :: ih.toString :: Nil,
-      sttp.get(_).mapResponse(decode[Block])
-    ).map(jh.apply _)
-
-  def get[F[_], G[_]](ih: Block.IndepHash)
-                     (implicit c: AbstractConfig[F, G],
-                      jh: JsonHandler[F],
-                      FT: Functor[F]): F[Block] = getM(ih).head
-
-
-
-  def getM[F[_], G[_]](height: BigInt)
-                      (implicit c: AbstractConfig[F, G],
-                       jh: JsonHandler[F],
-                       FT: Functor[F]): List[F[Block]] = RequestHandling.
-    process[F, G, Block](
-      "block" :: "height" :: height.toString :: Nil,
-      sttp.get(_).mapResponse(decode[Block])
-    ).map(jh.apply _)
-
-  def get[F[_], G[_]](height: BigInt)
-                     (implicit c: AbstractConfig[F, G],
-                      jh: JsonHandler[F],
-                      FT: Functor[F]): F[Block] = getM(height).head
+  def get[F[_], G[_]](height: BigInt)(implicit
+                                      c: AbstractConfig[F, G], jh: JsonHandler[F]
+  ): F[Block] = {
+    val req = sttp
+      .get(uri"${c.host}/block/height/$height")
+      .response(asJson[Block])
+    jh(c.i(c.backend send req))
+  }
 }
+

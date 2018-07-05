@@ -31,7 +31,7 @@ class apiExamples extends WordSpec
   "An api axample" should {
     "be able to use Id" taggedAs(Slow, Retryable) in {
 
-      implicit val c = api.Config(hosts = TestHost, HttpURLConnectionBackend(), retries = 1)
+      implicit val c = api.Config(host = TestHost, HttpURLConnectionBackend(), retries = 1)
       import api.id._
       Given("an amount of Winstons to transfer")
       val quantity = Winston("100000")
@@ -78,7 +78,7 @@ class apiExamples extends WordSpec
 
     "be able to use for-comprehensions" taggedAs(Retryable) in {
 
-      implicit val c = api.Config(hosts = TestHost, AsyncHttpClientFutureBackend(), retries = 1)
+      implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend(), retries = 1)
       import api.future._
 
       implicit val ec = apiExamples.ec

@@ -21,13 +21,13 @@ class apiSpec extends WordSpec
   import ApiTestUtil._
   import api._
 
-  val idConfig = Config(hosts = TestHost, HttpURLConnectionBackend(), retries = 1)
-  val tryConfig = Config(hosts = TestHost, TryHttpURLConnectionBackend(), retries = 1)
+  val idConfig = Config(host = TestHost, HttpURLConnectionBackend(), retries = 1)
+  val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend(), retries = 1)
 
   implicit val ec = ExecutionContext.global
 
   val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
-      hosts = TestHost,
+      host = TestHost,
       AsyncHttpClientFutureBackend(),
       i = new (Future ~> EitherT[Future,Failure, ?]) {
         override def apply[A](fa: Future[A]) = EitherT liftF fa
