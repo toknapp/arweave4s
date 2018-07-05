@@ -17,18 +17,19 @@ object tx {
   def get[F[_] : Monad](txId: Transaction.Id)(implicit send: Backend[F], jh: JsonHandler[F]):
     F[Transaction.WithStatus] = send(sttp.get("tx" :: s"$txId" :: Nil)
       .response(asString)) >>= { rsp =>
-        (rsp.code, rsp.body) match {
-          case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
-          case (410, _) => Transaction.WithStatus.Gone(txId).pure widen
-          case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
-          case (_, Right(str)) =>
-            jh(
-              rsp.copy(rawErrorBody = rsp.body.map(decode[Signed[Transaction]])
-                .left
-                .map(_.getBytes("UTF-8")))
-                .pure
-            ) map Transaction.WithStatus.Accepted
-          case (_, Left(l)) => jh(rsp.copy(rawErrorBody = Left(l getBytes "UTF-8")).pure)
+        rsp.code match {
+          case 404 => Transaction.WithStatus.NotFound(txId).pure widen
+          case 410 => Transaction.WithStatus.Gone(txId).pure widen
+          case 202 => Transaction.WithStatus.Pending(txId).pure widen
+          case _ => jh(
+            Monad[F] pure rsp.copy(
+              rawErrorBody = rsp.rawErrorBody
+                .map (
+                  decode[Signed[Transaction]](_)
+                  map Transaction.WithStatus.Accepted.apply
+                )
+              )
+          )
         }
   }
 
