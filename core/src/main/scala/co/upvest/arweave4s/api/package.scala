@@ -7,7 +7,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.{Id, MonadError, ~>}
 import co.upvest.arweave4s.utils.SttpExtensions.PartialRequest
-import co.upvest.arweave4s.utils.MultipleHostsBackend
+import co.upvest.arweave4s.utils.{MultipleHostsBackend, RaiseError}
 import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 import io.circe
 
@@ -31,10 +31,10 @@ package object api {
   }
 
   case class Config[F[_]](host: Uri, backend: SttpBackend[F, Nothing]) extends Backend[F] {
-   override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = {
-     backend send SttpExtensions.completeRequest[T, Nothing](r, host)
-   }
- }
+    override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = {
+      backend send SttpExtensions.completeRequest[T, Nothing](r, host)
+    }
+  }
 
   case class AdvancedConfig[F[_], G[_]](backend: Backend[G], i: G ~> F) extends Backend[F] {
     override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = i(backend(r))
@@ -46,7 +46,7 @@ package object api {
   object Failure {
     implicit def injectMultipleFailures[F[_]](
       implicit me: MonadError[F, Failure]
-    ): MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] = new MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] {
+    ): RaiseError[F, NonEmptyList[Throwable]] = new RaiseError[F, NonEmptyList[Throwable]] {
       def apply[A](nel: NonEmptyList[Throwable]): F[A] =
         me raiseError MultipleUnderlyingFailures(nel)
     }

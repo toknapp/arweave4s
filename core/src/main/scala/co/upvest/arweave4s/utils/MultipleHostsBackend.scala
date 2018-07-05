@@ -12,7 +12,7 @@ class MultipleHostsBackend[R[_], G[_]](b: SttpBackend[G, Nothing], uris: NonEmpt
                                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
                                            implicit
                                            R: Monad[R],
-                                           raiseError: MultipleHostsBackend.RaiseError[R, NonEmptyList[Throwable]],
+                                           raiseError: RaiseError[R, NonEmptyList[Throwable]],
                                            i: G ~> R
                                            ) {
   import SttpExtensions._
@@ -46,11 +46,6 @@ class MultipleHostsBackend[R[_], G[_]](b: SttpBackend[G, Nothing], uris: NonEmpt
 }
 
 object MultipleHostsBackend {
-
-  trait RaiseError[F[_], E] {
-    def apply[A](e: E): F[A]
-  }
-
   val uniform: NonEmptyList[Uri] => NonEmptyList[Uri] = { nl =>
     val l = Random.shuffle(nl.toList)
     NonEmptyList(l.head, l.tail)
