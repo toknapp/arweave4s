@@ -43,7 +43,9 @@ object tx {
   def pending[F[_] : Monad]()(implicit send: Backend[F], jh: JsonHandler[F]):
     F[Seq[Transaction.Id]] =
       jh(
-        send(sttp.get("tx" :: "pending" :: Nil) response asJson)
+        send(
+          sttp.get("tx" :: "pending" :: Nil) response asJson
+        )
       )
 }
 

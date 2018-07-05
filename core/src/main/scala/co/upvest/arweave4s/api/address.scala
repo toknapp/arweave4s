@@ -9,9 +9,11 @@ object address {
   import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 
   def lastTx[F[_]](address: Address)(implicit send: Backend[F], esh: EncodedStringHandler[F]): F[Option[Transaction.Id]] =
-    esh (
-      send(sttp.get("wallet" :: s"$address" :: "last_tx" :: Nil)
-        .mapResponse(mapEmptyString))
+    esh(
+      send(
+        sttp.get("wallet" :: s"$address" :: "last_tx" :: Nil)
+          .mapResponse(mapEmptyString)
+      )
     )
 
   def balance[F[_]](address: Address)(implicit send: Backend[F], esh: EncodedStringHandler[F]): F[Winston] =
