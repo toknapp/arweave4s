@@ -41,12 +41,12 @@ lazy val core = (project in file("core"))
 lazy val library =
   new {
     object Version {
-      val circe         = "0.9.3"
+      val circe         = "0.10.0-M1"
       val scalaCheck    = "1.13.5"
       val scalaTest     = "3.0.5"
-      val sttp          = "1.1.12"
+      val sttp          = "1.2.1"
       val spongyCastle  = "1.58.0.0"
-      val kindProjector = "0.9.6"
+      val kindProjector = "0.9.7"
       val logback       = "1.2.3"
     }
     val circeCore           = "io.circe"                   %% "circe-core"                       % Version.circe
@@ -59,6 +59,7 @@ lazy val library =
     val scalaTest           = "org.scalatest"              %% "scalatest"                        % Version.scalaTest
     val kindProjector       = "org.spire-math"             %% "kind-projector"                   % Version.kindProjector
     val logback             = "ch.qos.logback"             %  "logback-classic"                  % Version.logback
+
 
     // All exclusions that should be applied to every module
     val exclusions = Seq()
