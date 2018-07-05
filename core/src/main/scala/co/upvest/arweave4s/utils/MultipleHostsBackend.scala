@@ -11,7 +11,7 @@ import scala.util.Random
 
 class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyList[Uri],
                                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
-                                           implicit R: MonadError[R, NonEmptyList[Throwable]], i : G ~> R) {
+                                           implicit R: MonadError[R, NonEmptyList[Throwable]], i : G ~> R) extends SttpBackend[R, S] {
 
   private val G = b.responseMonad
 
@@ -44,6 +44,17 @@ class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyLi
           case Left(t) => go(NonEmptyList.one(t))(us)
         }
     }
+  }
+
+  def close(): Unit = b.close()
+
+  val responseMonad = new com.softwaremill.sttp.MonadError[R] {
+    def error[T](t: Throwable): R[T] = R raiseError NonEmptyList.one(t)
+    def flatMap[T, T2](fa: R[T])(f: T => R[T2]): R[T2] = R.flatMap(fa)(f)
+    protected def handleWrappedError[T](rt: R[T])(h: PartialFunction[Throwable,R[T]]): R[T] =
+      R.recoverWith(rt)(PartialFunction.empty)
+    def map[T, T2](fa: R[T])(f: T => T2): R[T2] = R.map(fa)(f)
+    def unit[T](t: T): R[T] = R pure t
   }
 }
 
