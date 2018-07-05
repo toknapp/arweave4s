@@ -14,10 +14,10 @@ object SttpExtensions {
   object PartialU {
     case class Method(m: SMethod) extends PartialU[SMethod]
     case class PathQueryFragment(
-                                  path: Seq[String],
-                                  qf: Seq[Uri.QueryFragment],
-                                  f: Option[String]
-                                ) extends PartialU[Uri]
+      path: Seq[String],
+      qf: Seq[Uri.QueryFragment],
+      f: Option[String]
+    ) extends PartialU[Uri]
 
     implicit def fromMethod(m: SMethod): PartialU[SMethod] = Method(m)
     implicit def toMethod(pu: PartialU[SMethod]): SMethod = pu match { case Method(m) => m }

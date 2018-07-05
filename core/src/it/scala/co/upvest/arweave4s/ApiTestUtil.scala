@@ -2,11 +2,11 @@ package co.upvest.arweave4s
 
 import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.CryptoUtils
+import com.softwaremill.sttp.{Uri, UriContext}
 
 import scala.util.{Random, Try}
 import scala.concurrent.duration._
 import scala.io.Source
-import com.softwaremill.sttp.{Uri, UriContext}
 
 object ApiTestUtil {
 

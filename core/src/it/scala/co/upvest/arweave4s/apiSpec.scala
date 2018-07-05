@@ -30,7 +30,7 @@ class apiSpec extends WordSpec
   val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
   val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
   val futConfig = Config(host = TestHost, AsyncHttpClientFutureBackend())
-  val futureConfig = Backend.lift(futConfig, lift)
+  val eitherTConfig = Backend.lift(futConfig, lift)
 
   val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
     AsyncHttpClientFutureBackend(),
@@ -62,14 +62,14 @@ class apiSpec extends WordSpec
       super.withFixture(test)
   }
 
-  def apiBehavior[F[_]: Monad](c: Backend[F])(
+  def apiBehavior[F[_]: Monad](backend: Backend[F])(
     implicit jh: JsonHandler[F],
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
     run: F ~> Id
   ): Unit = {
 
-      implicit val _ = c
+      implicit val _ = backend
 
       "the info api" should {
         "return a valid structure" in {
@@ -274,7 +274,7 @@ class apiSpec extends WordSpec
 
     "using EitherT[Future]" should {
       import monadError._
-      apiBehavior(futureConfig)
+      apiBehavior(eitherTConfig)
     }
 
     "using EitherT[Future] and as well an invalid Host" should {
