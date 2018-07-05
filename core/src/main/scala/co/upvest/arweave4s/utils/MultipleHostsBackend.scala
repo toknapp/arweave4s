@@ -8,13 +8,14 @@ import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 
 import scala.util.Random
 
-class MultipleHostsBackend[R[_], G[_]](b: SttpBackend[G, Nothing], uris: NonEmptyList[Uri],
-                                          permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
-                                           implicit
-                                           R: Monad[R],
-                                           raiseError: RaiseError[R, NonEmptyList[Throwable]],
-                                           i: G ~> R
-                                           ) {
+class MultipleHostsBackend[R[_], G[_]](
+  b: SttpBackend[G, Nothing],
+  uris: NonEmptyList[Uri],
+  permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
+    implicit R: Monad[R],
+    raiseError: RaiseError[R, NonEmptyList[Throwable]],
+    i: G ~> R) {
+
   import SttpExtensions._
 
   private val G = b.responseMonad
@@ -46,6 +47,7 @@ class MultipleHostsBackend[R[_], G[_]](b: SttpBackend[G, Nothing], uris: NonEmpt
 }
 
 object MultipleHostsBackend {
+
   val uniform: NonEmptyList[Uri] => NonEmptyList[Uri] = { nl =>
     val l = Random.shuffle(nl.toList)
     NonEmptyList(l.head, l.tail)
