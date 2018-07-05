@@ -9,10 +9,8 @@ import scala.io.Source
 
 object ApiTestUtil {
 
-  val NotExistingTestHost = "localhost:2018"
+  val NotExistingTestHost = "127.0.0.1:9"
   val TestHost = (sys.env get "TESTNET_HOST" getOrElse "localhost") + ":1984"
-  //val TestHosts = TestHost + s",$NotExistingTestHost"
-
 
   object TestAccount {
     lazy val wallet: Wallet = (

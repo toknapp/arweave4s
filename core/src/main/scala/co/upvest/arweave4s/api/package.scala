@@ -28,13 +28,6 @@ package object api {
     implicit def fromMHB[R[_], G[_]](mhb: MultipleHostsBackend[R, G]): Backend[R] = new Backend[R] {
       def apply[T](r: PartialRequest[T, Nothing]): R[Response[T]] = mhb(r)
     }
-
-    implicit def injectMultipleFailures[F[_]](
-      implicit me: MonadError[F, Failure]
-    ): MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] = new MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] {
-      def apply[A](nel: NonEmptyList[Throwable]): F[A] =
-        me raiseError MultipleUnderlyingFailures(nel)
-    }
   }
 
   case class Config[F[_]](host: Uri, backend: SttpBackend[F, Nothing]) extends Backend[F] {
@@ -49,6 +42,16 @@ package object api {
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])
     extends Exception(message, cause.orNull)
+
+  object Failure {
+    implicit def injectMultipleFailures[F[_]](
+      implicit me: MonadError[F, Failure]
+    ): MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] = new MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] {
+      def apply[A](nel: NonEmptyList[Throwable]): F[A] =
+        me raiseError MultipleUnderlyingFailures(nel)
+    }
+  }
+
   case class HttpFailure(rsp: Response[_])
     extends Failure(s"HTTP failure: $rsp", None)
   case class DecodingFailure(t: Exception)

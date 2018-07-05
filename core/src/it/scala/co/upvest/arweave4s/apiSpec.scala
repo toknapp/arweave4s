@@ -27,10 +27,6 @@ class apiSpec extends WordSpec
     override def apply[A](fa: Future[A]) = EitherT liftF fa
   }
 
-  implicit val lift1 = new (Future ~> EitherT[Future, NonEmptyList[Throwable], ?]) {
-    override def apply[A](fa: Future[A]) = EitherT liftF fa
-  }
-
   val idConfig = Config(host = uri"$TestHost", HttpURLConnectionBackend())
   val tryConfig = Config(host = uri"$TestHost", TryHttpURLConnectionBackend())
   val futConfig = Config(host = uri"$TestHost", AsyncHttpClientFutureBackend())
@@ -39,8 +35,6 @@ class apiSpec extends WordSpec
     futConfig,
     i = lift
   )
-
-  import api.Backend.injectMultipleFailures
 
   val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
     AsyncHttpClientFutureBackend(),
