@@ -23,9 +23,9 @@ class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyLi
 
   def send[T](req: Request[T, S]): R[Response[T]] = {
     def f(u: Uri): R[Either[Throwable, Response[T]]] = i(
-      G handleError (
-        G.map (b send applyUri(req, u)) _.asRight
-        ) { case t  => G unit t asLeft }
+      G.handleError (
+        G.map (b send applyUri(req, u)) { _.asRight[Throwable] }
+      ) { case t  => G unit t.asLeft[Response[T]] }
     )
 
     def go(ts: NonEmptyList[Throwable]): List[Uri] => R[Response[T]] = {

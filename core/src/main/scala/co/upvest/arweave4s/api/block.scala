@@ -5,6 +5,8 @@ import com.softwaremill.sttp.circe.asJson
 import com.softwaremill.sttp.{UriContext, sttp}
 
 object block {
+  import Marshaller._
+
   def current[F[_], G[_]]()(implicit
                             c: AbstractConfig[F, G], jh: JsonHandler[F]
   ): F[Block] = {

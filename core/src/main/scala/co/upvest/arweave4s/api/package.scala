@@ -1,7 +1,6 @@
 package co.upvest.arweave4s
 
 import cats.arrow.FunctionK
-import cats.data.NonEmptyList
 import cats.evidence.As
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
@@ -10,14 +9,12 @@ import cats.syntax.functor._
 import cats.{Id, Monad, MonadError, ~>}
 import co.upvest.arweave4s.adt._
 import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{Request, Response, SttpBackend, Uri, UriContext, asString, sttp}
+import com.softwaremill.sttp.{Response, SttpBackend, UriContext, asString, sttp}
 import io.circe
 import io.circe.parser.decode
-import cats.syntax.either._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.{higherKinds, postfixOps}
-import scala.util.Random
 
 package object api {
 
