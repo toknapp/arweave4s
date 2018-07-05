@@ -10,15 +10,15 @@ object block {
   import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 
   def current[F[_]]()(implicit send: Backend[F], jh: JsonHandler[F]): F[Block] = jh(
-    send(sttp.get("current_block" :: Nil).response(asJson[Block]))
+    send(sttp.get("current_block" :: Nil) response asJson[Block])
   )
 
   def get[F[_]](ih: Block.IndepHash)(implicit send: Backend[F], jh: JsonHandler[F]): F[Block] = jh(
-    send(sttp.get("block" :: "hash" :: s"$ih" :: Nil).response(asJson[Block]))
+    send(sttp.get("block" :: "hash" :: s"$ih" :: Nil) response asJson[Block])
   )
 
   def get[F[_]](height: BigInt)(implicit send: Backend[F], jh: JsonHandler[F]): F[Block] = jh(
-    send(sttp.get("block" :: "height" :: s"$height" :: Nil).response(asJson[Block]))
+    send(sttp.get("block" :: "height" :: s"$height" :: Nil) response asJson[Block])
   )
 }
 

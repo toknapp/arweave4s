@@ -10,10 +10,8 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.tagobjects.{Retryable, Slow}
 import cats.Id
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-
 import scala.concurrent.{ExecutionContext, Future}
 import cats.instances.future._
-import com.softwaremill.sttp.UriContext
 
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually
@@ -30,7 +28,7 @@ class apiExamples extends WordSpec
 
   "An api axample" should {
     "be able to use Id" taggedAs(Slow, Retryable) in {
-      implicit val c = api.Config(host = uri"$TestHost", HttpURLConnectionBackend())
+      implicit val c = api.Config(host = TestHost, HttpURLConnectionBackend())
       import api.id._
       Given("an amount of Winstons to transfer")
       val quantity = Winston("100000")
@@ -76,7 +74,7 @@ class apiExamples extends WordSpec
 
     "be able to use for-comprehensions" taggedAs(Retryable) in {
 
-      implicit val c = api.Config(host = uri"$TestHost", AsyncHttpClientFutureBackend())
+      implicit val c = api.Config(host = TestHost, AsyncHttpClientFutureBackend())
       import api.future._
 
       implicit val ec = apiExamples.ec

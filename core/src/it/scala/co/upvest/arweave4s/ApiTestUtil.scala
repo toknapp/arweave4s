@@ -1,16 +1,17 @@
 package co.upvest.arweave4s
 
-import co.upvest.arweave4s.adt.{Wallet, Winston, Data, Transaction}
+import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston}
 import co.upvest.arweave4s.utils.CryptoUtils
 
-import scala.util.{Try, Random}
+import scala.util.{Random, Try}
 import scala.concurrent.duration._
 import scala.io.Source
+import com.softwaremill.sttp.{Uri, UriContext}
 
 object ApiTestUtil {
 
-  val NotExistingTestHost = "127.0.0.1:9"
-  val TestHost = (sys.env get "TESTNET_HOST" getOrElse "localhost") + ":1984"
+  val NotExistingTestHost: Uri = uri"127.0.0.1:9"
+  val TestHost: Uri = uri"${(sys.env get "TESTNET_HOST" getOrElse "localhost") + ":1984"}"
 
   object TestAccount {
     lazy val wallet: Wallet = (

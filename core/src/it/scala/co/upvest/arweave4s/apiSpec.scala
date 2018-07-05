@@ -11,14 +11,13 @@ import cats.{Id, Monad, ~>}
 import cats.data.{EitherT, NonEmptyList}
 import cats.arrow.FunctionK
 import cats.implicits._
-import com.softwaremill.sttp.UriContext
-
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
   with Eventually with BlockchainPatience with Retries {
+
   import ApiTestUtil._
   import api._
   implicit val ec = ExecutionContext.global
@@ -27,9 +26,9 @@ class apiSpec extends WordSpec
     override def apply[A](fa: Future[A]) = EitherT liftF fa
   }
 
-  val idConfig = Config(host = uri"$TestHost", HttpURLConnectionBackend())
-  val tryConfig = Config(host = uri"$TestHost", TryHttpURLConnectionBackend())
-  val futConfig = Config(host = uri"$TestHost", AsyncHttpClientFutureBackend())
+  val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
+  val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
+  val futConfig = Config(host = TestHost, AsyncHttpClientFutureBackend())
 
   val futureConfig = AdvancedConfig[EitherT[Future, Failure, ?], Future](
     futConfig,
@@ -38,7 +37,7 @@ class apiSpec extends WordSpec
 
   val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
     AsyncHttpClientFutureBackend(),
-    NonEmptyList(uri"$TestHost", uri"$NotExistingTestHost" :: Nil),
+    NonEmptyList(TestHost, NotExistingTestHost :: Nil),
     MultipleHostsBackend.uniform
   )
 

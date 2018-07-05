@@ -10,6 +10,6 @@ object info  {
   import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 
   def apply[F[_]]()(implicit send: Backend[F], jh: JsonHandler[F]): F[Info] = jh(
-    send(sttp.get("info" :: Nil).response(asJson[Info]))
+    send(sttp.get("info" :: Nil) response asJson[Info])
   )
 }

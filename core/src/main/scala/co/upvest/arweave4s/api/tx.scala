@@ -15,8 +15,7 @@ object tx {
   import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 
   def get[F[_] : Monad](txId: Transaction.Id)(implicit send: Backend[F], jh: JsonHandler[F]):
-    F[Transaction.WithStatus] = send(sttp.get("tx" :: s"$txId" :: Nil)
-      .response(asString)) >>= { rsp =>
+    F[Transaction.WithStatus] = send(sttp.get("tx" :: s"$txId" :: Nil) response asString) >>= { rsp =>
         (rsp.code, rsp.body) match {
           case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
           case (410, _) => Transaction.WithStatus.Gone(txId).pure widen
@@ -42,8 +41,7 @@ object tx {
   def pending[F[_] : Monad]()(implicit send: Backend[F], jh: JsonHandler[F]):
     F[Seq[Transaction.Id]] =
       jh(
-        send(sttp.get("tx" :: "pending" :: Nil)
-          .response(asJson))
+        send(sttp.get("tx" :: "pending" :: Nil) response asJson)
       )
 }
 
