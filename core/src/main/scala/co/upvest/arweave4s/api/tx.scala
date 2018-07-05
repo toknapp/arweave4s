@@ -9,8 +9,6 @@ import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{asString, sttp}
 import io.circe.parser.decode
 
-import scala.language.{higherKinds, postfixOps}
-
 object tx {
 
   import Marshaller._
