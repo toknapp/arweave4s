@@ -3,21 +3,21 @@ package co.upvest.arweave4s.utils
 import cats.data.NonEmptyList
 import cats.syntax.either._
 import cats.syntax.flatMap._
-import cats.{MonadError, ~>}
-import com.softwaremill.sttp.{Request, Response, SttpBackend, Uri}
+import cats.{~>, Monad}
+import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 
 import scala.util.Random
 
 class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyList[Uri],
                                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])(
-                                           implicit R: MonadError[R, NonEmptyList[Throwable]],
-                                           i : G ~> R) extends SttpBackend[R, S] {
+                                           implicit
+                                           R: Monad[R],
+                                           raiseError: MultipleHostsBackend.RaiseError[R, NonEmptyList[Throwable]],
+                                           i: G ~> R
+                                           ) {
   import SttpExtensions._
 
   private val G = b.responseMonad
-
-  // NB. send just delegates to the provided backend
-  def send[T](req: Request[T, S]): R[Response[T]] = i(b.send(req))
 
   def apply[T](req: PartialRequest[T, S]): R[Response[T]] = {
     def f(u: Uri): R[Either[Throwable, Response[T]]] = i(
@@ -27,7 +27,7 @@ class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyLi
     )
 
     def go(ts: NonEmptyList[Throwable]): List[Uri] => R[Response[T]] = {
-      case Nil => R raiseError ts
+      case Nil => raiseError(ts)
       case u :: us =>
         f(u) >>= {
           case Right(rsp) => R pure rsp
@@ -43,27 +43,13 @@ class MultipleHostsBackend[R[_], S, G[_]](b: SttpBackend[G, S], uris: NonEmptyLi
         }
     }
   }
-
-  def close(): Unit = b.close()
-
-  val responseMonad = new com.softwaremill.sttp.MonadError[R] {
-    def error[T](t: Throwable): R[T] = R raiseError NonEmptyList.one(t)
-    def flatMap[T, T2](fa: R[T])(f: T => R[T2]): R[T2] = R.flatMap(fa)(f)
-    protected def handleWrappedError[T](rt: R[T])(h: PartialFunction[Throwable,R[T]]): R[T] =
-      R.recoverWith(rt)(PartialFunction.empty)
-    def map[T, T2](fa: R[T])(f: T => T2): R[T2] = R.map(fa)(f)
-    def unit[T](t: T): R[T] = R pure t
-  }
 }
 
 object MultipleHostsBackend {
 
-  def apply[R[_], S, G[_]](b: SttpBackend[G, S],
-                           uris: NonEmptyList[Uri],
-                           permute: NonEmptyList[Uri] => NonEmptyList[Uri])
-                          (implicit R: MonadError[R, NonEmptyList[Throwable]],
-                           i: G ~> R): MultipleHostsBackend[R, S, G] =
-    new MultipleHostsBackend(b, uris, permute)
+  trait RaiseError[F[_], E] {
+    def apply[A](e: E): F[A]
+  }
 
   val uniform: NonEmptyList[Uri] => NonEmptyList[Uri] = { nl =>
     val l = Random.shuffle(nl.toList)

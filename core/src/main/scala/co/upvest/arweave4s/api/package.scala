@@ -1,11 +1,13 @@
 package co.upvest.arweave4s
 
 import cats.evidence.As
+import cats.data.NonEmptyList
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.{Id, MonadError, ~>}
 import co.upvest.arweave4s.utils.SttpExtensions.PartialRequest
+import co.upvest.arweave4s.utils.MultipleHostsBackend
 import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 import io.circe
 
@@ -22,11 +24,19 @@ package object api {
     def apply[T, S](r: PartialRequest[T, S]): F[Response[T]]
   }
 
-  case class Config[F[_]](host: Uri, backend: SttpBackend[F, _]) extends Backend[F] {
-    override def apply[T, S](r: PartialRequest[T, S]): F[Response[T]] = {
-      backend send SttpExtensions.completeRequest[T, Nothing](r.asInstanceOf[PartialRequest[T, Nothing]], host)
-    }
+  object Backend {
+    implicit def fromMHB[R[_], S, G[_]](mhb: MultipleHostsBackend[R, S, G]): Backend[R] = ???
+
+    implicit def f[F[_]](
+      implicit me: MonadError[F, Failure]
+    ): MultipleHostsBackend.RaiseError[F, NonEmptyList[Throwable]] = ???
   }
+
+  case class Config[F[_]](host: Uri, backend: SttpBackend[F, _]) extends Backend[F] {
+   override def apply[T, S](r: PartialRequest[T, S]): F[Response[T]] = {
+     backend send SttpExtensions.completeRequest[T, Nothing](r.asInstanceOf[PartialRequest[T, Nothing]], host)
+   }
+ }
 
   case class AdvancedConfig[F[_], G[_]](backend: Backend[G], i: G ~> F) extends Backend[F] {
     override def apply[T, S](r: PartialRequest[T, S]): F[Response[T]] = i(backend(r))
@@ -40,6 +50,8 @@ package object api {
     extends Failure("Decoding failure", Some(t))
   case object InvalidEncoding
     extends Failure("invalid encoding", None) // TODO: more informative
+  case class MultipleUnderlyingFailures(nel: NonEmptyList[Throwable])
+    extends Failure("Multiple underlying failures, first one included.", Some(nel.head))
 
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](

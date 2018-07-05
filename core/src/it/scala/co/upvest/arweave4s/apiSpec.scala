@@ -31,8 +31,6 @@ class apiSpec extends WordSpec
     override def apply[A](fa: Future[A]) = EitherT liftF fa
   }
 
-  //implicit def failLift[F[_]] : MonadError[F, NonEmptyList[Throwable]] => MonadError[F, Failure]  = ???
-
   val idConfig = Config(host = uri"$TestHost", HttpURLConnectionBackend())
   val tryConfig = Config(host = uri"$TestHost", TryHttpURLConnectionBackend())
   val futConfig = Config(host = uri"$TestHost", AsyncHttpClientFutureBackend())
@@ -42,10 +40,9 @@ class apiSpec extends WordSpec
     i = lift
   )
 
-  //val y: MonadError[EitherT[Future, Failure, ?], Failure] = ???
-  //implicit val aa: MonadError[EitherT[Future, Failure, ?], NonEmptyList[Throwable]]  = failLift(y)
+  import api.Backend.f
 
-  val multiHostConfig = MultipleHostsBackend[EitherT[Future, NonEmptyList[Throwable], ?], Nothing, Future](
+  val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Nothing, Future](
     AsyncHttpClientFutureBackend(),
     NonEmptyList(uri"$TestHost", uri"$NotExistingTestHost" :: Nil),
     MultipleHostsBackend.uniform
@@ -291,7 +288,7 @@ class apiSpec extends WordSpec
 
     "using EitherT[Future] and as well an invalid Host" should {
       import monadError._
-      apiBehavior[EitherT[Future, NonEmptyList[Throwable], ?]](multiHostConfig)
+      apiBehavior(multiHostBackend)
     }
   }
 }
