@@ -13,11 +13,6 @@ import scala.util.Try
 trait Marshaller {
   import CirceComplaints._, EmptyStringAsNone._
 
-   val mapEmptyTxId  = (s: String) => EmptyStringAsNone.of(s).toOption match {
-    case None => Some(None)
-    case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
-  }
-
   val mapEmptyString = (s: String) => EmptyStringAsNone.of(s).toOption match {
     case None => Some(None)
     case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
