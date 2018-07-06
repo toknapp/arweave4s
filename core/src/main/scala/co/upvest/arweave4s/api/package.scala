@@ -7,7 +7,7 @@ import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
 import cats.{Id, MonadError, ~>}
 import co.upvest.arweave4s.utils.SttpExtensions.{PartialRequest, completeRequest}
-import co.upvest.arweave4s.utils.{MultipleHostsBackend, RaiseError}
+import co.upvest.arweave4s.utils.MultipleHostsBackend
 import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 import io.circe
 
@@ -44,12 +44,8 @@ package object api {
     extends Exception(message, cause.orNull)
 
   object Failure {
-    implicit def injectMultipleFailures[F[_]](
-      implicit me: MonadError[F, Failure]
-    ): RaiseError[F, NonEmptyList[Throwable]] = new RaiseError[F, NonEmptyList[Throwable]] {
-      def apply[A](nel: NonEmptyList[Throwable]): F[A] =
-        me raiseError MultipleUnderlyingFailures(nel)
-    }
+    implicit def injectMultipleFailures(nel: NonEmptyList[Throwable]): Failure =
+      MultipleUnderlyingFailures(nel)
   }
 
   case class HttpFailure(rsp: Response[_])

@@ -32,7 +32,7 @@ class apiSpec extends WordSpec
   val futConfig = Config(host = TestHost, AsyncHttpClientFutureBackend())
   val eitherTConfig = Backend.lift(futConfig, lift)
 
-  val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
+  val multiHostBackend = MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
     AsyncHttpClientFutureBackend(),
     NonEmptyList(TestHost, NotExistingTestHost :: Nil),
     MultipleHostsBackend.uniform
