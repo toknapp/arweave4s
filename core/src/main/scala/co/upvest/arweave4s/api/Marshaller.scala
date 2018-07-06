@@ -2,10 +2,13 @@ package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.{Transaction, _}
 import co.upvest.arweave4s.utils.{CirceComplaints, CryptoUtils, EmptyStringAsNone}
+import cats.syntax.option._
 import io.circe
 import io.circe.Decoder.Result
 import io.circe.syntax._
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import cats.syntax.flatMap._
+import cats.instances.either._
+import io.circe._
 
 import scala.util.Try
 
@@ -13,9 +16,10 @@ trait Marshaller {
   import CirceComplaints._
   import EmptyStringAsNone._
 
+
   val mapEmptyString = (s: String) => EmptyStringAsNone.of(s).toOption match {
     case None => Some(None)
-    case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
+    case Some(s) => Transaction.Id.fromEncoded(s) map (_.some)
   }
 
   val winstonMapper = (s: String) => Try { Winston.apply(s) } toOption
@@ -144,7 +148,7 @@ trait Marshaller {
       Json.obj(
         "id"        := tx.id,
         "last_tx"   -> tx.lastTx.noneAsEmptyString,
-        "target"    := Json.fromString(""),
+        "target"    := JsonObject.empty,
         "owner"     := tx.owner,
         "reward"    := tx.reward,
         "quantity"  := Winston.Zero,
@@ -192,7 +196,7 @@ trait Marshaller {
       (for {
         d <- c.downField("data").as[EmptyStringAsNone[Data]]
         q <- c.downField("quantity").as[Option[Winston]]
-      } yield (d.toOption, q)) flatMap {
+      } yield (d.toOption, q)) >>= {
         case (None, Some(_)) => transferTransactionDecoder(c)
         case (Some(_), Some(Winston.Zero)) => dataTransactionDecoder(c)
         case _ => Left(circe.DecodingFailure(
@@ -216,9 +220,9 @@ trait Marshaller {
   } yield WalletResponse(addr, quant, last_tx)
 
   implicit lazy val walletEncoder: Encoder[WalletResponse] = w => Json.obj(
-    "wallet" := w.address,
+    "wallet"   := w.address,
     "quantity" := w.quantity,
-    "last_tx" -> w.last_tx.noneAsEmptyString
+    "last_tx"  -> w.last_tx.noneAsEmptyString
   )
 
   implicit lazy val blockDecoder: Decoder[Block] = c =>
@@ -235,7 +239,7 @@ trait Marshaller {
       hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
       wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
       rewaddr       =  c.downField("reward_addr")
-      reward_addr   <- rewaddr.as[String] flatMap {
+      reward_addr   <- rewaddr.as[String] >>= {
         case "unclaimed" => Right(None)
         case _ => rewaddr.as[Address] map Some.apply
       }

@@ -5,6 +5,7 @@ import cats.data.NonEmptyList
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
+import cats.instances.future._
 import cats.{Id, MonadError, ~>}
 import co.upvest.arweave4s.utils.SttpExtensions.{PartialRequest, completeRequest}
 import co.upvest.arweave4s.utils.MultipleHostsBackend
@@ -21,7 +22,6 @@ package object api {
 
   trait Backend[F[_]] {
     def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]]
-
   }
 
   object Backend {
@@ -116,7 +116,6 @@ package object api {
       }
     }
 
-
     implicit def idSuccessHandler: SuccessHandler[Id] = { rsp =>
       rsp.body.right getOrElse { throw HttpFailure(rsp) }
     }
@@ -149,8 +148,8 @@ package object api {
         }
     }
 
-    implicit def futureJsonHandlerSuccessHandler(implicit ec:ExecutionContext): SuccessHandler[Future] = { frsp =>
-      frsp.flatMap { rsp =>
+    implicit def futureJsonHandlerSuccessHandler(implicit ec:ExecutionContext): SuccessHandler[Future] = {
+      _ >>= { rsp =>
         rsp.body
           .map(Future.successful)
           .getOrElse(Future.failed(HttpFailure(rsp)))
@@ -159,6 +158,4 @@ package object api {
   }
 
   object future extends FutureInstances
-
-
 }
