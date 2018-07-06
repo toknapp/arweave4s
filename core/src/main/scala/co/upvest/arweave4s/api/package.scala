@@ -1,55 +1,65 @@
 package co.upvest.arweave4s
 
-import cats.{Id, MonadError, ~>, Monad}
-import cats.arrow.FunctionK
 import cats.evidence.As
-import cats.syntax.functor._
+import cats.data.NonEmptyList
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
-
-import co.upvest.arweave4s.adt._
-import co.upvest.arweave4s.utils.EmptyStringAsNone
-import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{Response, SttpBackend, UriContext, sttp, asString}
+import cats.{Id, MonadError, ~>}
+import co.upvest.arweave4s.utils.SttpExtensions.{PartialRequest, completeRequest}
+import co.upvest.arweave4s.utils.{MultipleHostsBackend, RaiseError}
+import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 import io.circe
-import io.circe.parser.decode
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.{higherKinds, postfixOps}
-import scala.util.Try
 
 package object api {
-  import Marshaller._
 
   type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
   type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
 
-  trait AbstractConfig[F[_], G[_]] {
-    def host: String
-    def backend: SttpBackend[G, _]
-    def i: G ~> F
+  trait Backend[F[_]] {
+    def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]]
+
   }
 
-  case class Config[F[_]](
-    host: String, backend: SttpBackend[F, _]
-  ) extends AbstractConfig[F, F] {
-    override val i = FunctionK.id
+  object Backend {
+    implicit def fromMHB[R[_], G[_]](mhb: MultipleHostsBackend[R, G]): Backend[R] = new Backend[R] {
+      def apply[T](r: PartialRequest[T, Nothing]): R[Response[T]] = mhb(r)
+    }
+
+    def lift[F[_], G[_]](backend: Backend[G], i: G ~> F) = new Backend[F] {
+      override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = i(backend(r))
+    }
   }
 
-  case class FullConfig[F[_], G[_]](
-    host: String, backend: SttpBackend[G, _], i: G ~> F
-  ) extends AbstractConfig[F, G]
+  case class Config[F[_]](host: Uri, backend: SttpBackend[F, Nothing]) extends Backend[F] {
+    override def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]] = {
+      backend send completeRequest[T, Nothing](r, host)
+    }
+  }
 
   sealed abstract class Failure(message: String, cause: Option[Throwable])
     extends Exception(message, cause.orNull)
+
+  object Failure {
+    implicit def injectMultipleFailures[F[_]](
+      implicit me: MonadError[F, Failure]
+    ): RaiseError[F, NonEmptyList[Throwable]] = new RaiseError[F, NonEmptyList[Throwable]] {
+      def apply[A](nel: NonEmptyList[Throwable]): F[A] =
+        me raiseError MultipleUnderlyingFailures(nel)
+    }
+  }
+
   case class HttpFailure(rsp: Response[_])
     extends Failure(s"HTTP failure: $rsp", None)
   case class DecodingFailure(t: Exception)
     extends Failure("Decoding failure", Some(t))
   case object InvalidEncoding
     extends Failure("invalid encoding", None) // TODO: more informative
+  case class MultipleUnderlyingFailures(nel: NonEmptyList[Throwable])
+    extends Failure("Multiple underlying failures", Some(nel.head))
 
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](
@@ -94,7 +104,7 @@ package object api {
 
   trait IdInstances {
     implicit def idJsonHandler: JsonHandler[Id] =
-      new (λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id){
+      new (λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id) {
         override def apply[A](rsp: Id[Response[Either[circe.Error, A]]]): A = rsp.body match {
           case Left(_) => throw HttpFailure(rsp)
           case Right(Left(e)) => throw DecodingFailure(e)
@@ -154,139 +164,5 @@ package object api {
 
   object future extends FutureInstances
 
-  object block {
-    def current[F[_], G[_]]()(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Block] = {
-      val req = sttp
-        .get(uri"${c.host}/current_block")
-        .response(asJson[Block])
-      jh(c.i(c.backend send req))
-    }
 
-    def get[F[_], G[_]](ih: Block.IndepHash)(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Block] = {
-      val req = sttp
-        .get(uri"${c.host}/block/hash/$ih")
-        .response(asJson[Block])
-      jh(c.i(c.backend send req))
-    }
-
-    def get[F[_], G[_]](height: BigInt)(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Block] = {
-      val req = sttp
-        .get(uri"${c.host}/block/height/$height")
-        .response(asJson[Block])
-      jh(c.i(c.backend send req))
-    }
-  }
-
-  object address {
-    def lastTx[F[_], G[_]](address: Address)(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Option[Transaction.Id]] = {
-      val req = sttp
-        .get(uri"${c.host}/wallet/$address/last_tx")
-        .mapResponse { s =>
-          EmptyStringAsNone.of(s).toOption match {
-            case None => Some(None)
-            case Some(s) => Transaction.Id.fromEncoded(s) map Some.apply
-          }
-        }
-      esh(c.i(c.backend send req))
-    }
-
-    def balance[F[_], G[_]](address: Address)(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = {
-      val req = sttp
-        .get(uri"${c.host}/wallet/$address/balance")
-        .mapResponse(winstonMapper)
-      esh(c.i(c.backend send req))
-    }
-  }
-
-  object tx {
-    def get[F[_]: Monad, G[_]](txId: Transaction.Id)(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Transaction.WithStatus] = {
-      val req = sttp.get(uri"${c.host}/tx/$txId").response(asString)
-
-      c.i(c.backend send req) >>= { rsp =>
-        (rsp.code, rsp.body) match {
-          case (404, _) => Transaction.WithStatus.NotFound(txId).pure widen
-          case (410, _) => Transaction.WithStatus.Gone(txId).pure widen
-          case (202, _) => Transaction.WithStatus.Pending(txId).pure widen
-          case (_, Right(str)) =>
-            jh(
-              rsp.copy(body = rsp.body map decode[Signed[Transaction]]).pure
-            ) map Transaction.WithStatus.Accepted
-          case (_, Left(l)) => jh(rsp.copy(body = Left(l)).pure)
-        }
-      }
-    }
-
-    def submit[F[_], G[_]](tx: Signed[Transaction])(implicit
-      c: AbstractConfig[F, G], sh: SuccessHandler[F]
-    ): F[Unit] = {
-      val req = sttp
-        .body(tx)
-        .post(uri"${c.host}/tx")
-        .mapResponse { _ => () }
-      sh(c.i(c.backend send req))
-    }
-  }
-
-  object price {
-    def estimateForBytes[F[_], G[_]](bytes: BigInt)(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = {
-      val req = sttp
-        .get(uri"${c.host}/price/$bytes")
-        .mapResponse(winstonMapper)
-      esh(c.i(c.backend send req))
-    }
-
-    def estimate[F[_], G[_]](d: Data)(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = estimateForBytes(d.bytes.length)
-
-    def estimate[F[_], G[_]](t: Transaction)(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] =
-      t match {
-        case dt: Transaction.Data => estimateForBytes(dt.data.bytes.length)
-        case _: Transaction.Transfer => estimateTransfer()
-      }
-
-    def estimateTransfer[F[_], G[_]]()(implicit
-      c: AbstractConfig[F, G], esh: EncodedStringHandler[F]
-    ): F[Winston] = estimateForBytes(BigInt(0))
-  }
-
-  object arql {
-    def apply[F[_], G[_]](q: Query)(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Seq[Transaction.Id]] = {
-      val req = sttp
-        .body(q)
-        .post(uri"${c.host}/arql")
-        .response(asJson[Seq[Transaction.Id]])
-      jh(c.i(c.backend send req))
-    }
-  }
-
-  object info {
-    def apply[F[_], G[_]]()(implicit
-      c: AbstractConfig[F, G], jh: JsonHandler[F]
-    ): F[Info] = {
-      val req = sttp.get(uri"${c.host}/info")
-        .response(asJson[Info])
-      jh(c.i(c.backend send req))
-    }
-  }
-
-  private def winstonMapper(s: String) = Try { Winston.apply(s) } toOption
 }

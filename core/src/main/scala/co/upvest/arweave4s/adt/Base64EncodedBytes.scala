@@ -1,5 +1,7 @@
 package co.upvest.arweave4s.adt
 
+import java.util.Arrays
+
 import co.upvest.arweave4s.utils.CryptoUtils
 
 abstract class Base64EncodedBytes {
@@ -10,5 +12,5 @@ abstract class Base64EncodedBytes {
     case bs: Base64EncodedBytes => bs.bytes sameElements bytes
     case _                      => false
   }
-  override def hashCode(): Int = bytes.hashCode()
+  override def hashCode(): Int = Arrays.hashCode(bytes)
 }

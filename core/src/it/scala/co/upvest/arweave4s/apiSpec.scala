@@ -1,17 +1,16 @@
 package co.upvest.arweave4s
 
-import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
-import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import co.upvest.arweave4s.adt.{Block, Transaction, Wallet, Winston}
-import co.upvest.arweave4s.utils.BlockchainPatience
-import org.scalatest.{Inside, Matchers, WordSpec, Retries}
-import org.scalatest.concurrent.{ScalaFutures, Eventually}
-import org.scalatest.tagobjects.{Slow, Retryable}
-import cats.{Id, ~>, Monad}
-import cats.data.EitherT
 import cats.arrow.FunctionK
-import cats.instances.try_._
-import cats.instances.future._
+import cats.data.{EitherT, NonEmptyList}
+import cats.implicits._
+import cats.{Id, Monad, ~>}
+import co.upvest.arweave4s.adt._
+import co.upvest.arweave4s.utils.{BlockchainPatience, MultipleHostsBackend}
+import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
+import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.tagobjects.{Retryable, Slow}
+import org.scalatest.{Inside, Matchers, Retries, WordSpec}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -19,21 +18,25 @@ import scala.util.Try
 class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
   with Eventually with BlockchainPatience with Retries {
+
   import ApiTestUtil._
   import api._
+  implicit val ec = ExecutionContext.global
+
+  implicit val lift = new (Future ~> EitherT[Future, Failure, ?]) {
+    override def apply[A](fa: Future[A]) = EitherT liftF fa
+  }
 
   val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
   val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
+  val futConfig = Config(host = TestHost, AsyncHttpClientFutureBackend())
+  val eitherTConfig = Backend.lift(futConfig, lift)
 
-  implicit val ec = ExecutionContext.global
-
-  val futureConfig = FullConfig[EitherT[Future, Failure, ?], Future](
-      host = TestHost,
-      AsyncHttpClientFutureBackend(),
-      i = new (Future ~> EitherT[Future,Failure, ?]) {
-        override def apply[A](fa: Future[A]) = EitherT liftF fa
-      }
-    )
+  val multiHostBackend = new MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
+    AsyncHttpClientFutureBackend(),
+    NonEmptyList(TestHost, NotExistingTestHost :: Nil),
+    MultipleHostsBackend.uniform
+  )
 
   val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
   val invalidBlockHeight = BigInt(Long.MaxValue)
@@ -44,14 +47,12 @@ class apiSpec extends WordSpec
     override def apply[A](fa: Try[A]): A = fa.get
   }
 
-
   implicit val eTFRunner = new (λ[α => EitherT[Future, Failure, α]] ~> Id) {
       override def apply[A](fa: EitherT[Future, Failure, A]): A =
         whenReady(fa.value) {
           case Left(e) => throw e
           case Right(a) => a
         }
-
     }
 
   override def withFixture(test: NoArgTest) = {
@@ -61,26 +62,40 @@ class apiSpec extends WordSpec
       super.withFixture(test)
   }
 
-  def apiBehavior[F[_]: Monad, G[_]](c: AbstractConfig[F, G])(implicit
-    jh: JsonHandler[F],
+  def apiBehavior[F[_]: Monad](backend: Backend[F])(
+    implicit jh: JsonHandler[F],
     esh: EncodedStringHandler[F],
     sh: SuccessHandler[F],
-    run: F ~> Id): Unit = {
+    run: F ~> Id
+  ): Unit = {
 
-      implicit val _ = c
+      implicit val _ = backend
+
+      "the info api" should {
+        "return a valid structure" in {
+          run { api.info() } shouldBe an[Info]
+        }
+      }
 
       "the block api" should {
         "return the current block" in {
-          run[Block] { block.current() } shouldBe a[Block]
+          run { block.current() } shouldBe a[Block]
+        }
+
+        "return the correct block reported as current in the info api" in {
+          val i = run { api.info() }
+          val b = run { block.get(i.current) }
+          b.indepHash shouldBe i.current
+          b.height shouldBe i.height
         }
 
         "return a valid block by hash" in {
-          val b = run[Block] { block.current() }
-          run[Block] { block.get(b.indepHash) } shouldBe a[Block]
+          val b = run { block.current() }
+          run { block.get(b.indepHash) } shouldBe a[Block]
         }
 
         "return a valid block by height" in {
-          run[Block] { block.get(BigInt(1)) } shouldBe a[Block]
+          run { block.get(BigInt(1)) } shouldBe a[Block]
         }
 
         "fail when a block does not exist (by hash)" in {
@@ -102,45 +117,53 @@ class apiSpec extends WordSpec
         }
 
         "return none when no last transaction" in {
-          run[Option[Transaction.Id]] { address.lastTx(arbitraryWallet) } shouldBe empty
+          run { address.lastTx(arbitraryWallet) } shouldBe empty
         }
 
         "return a positive balance" in {
-          run[Winston] { address.balance(TestAccount.address) }
-            .amount should be > BigInt(0)
+          run { address.balance(TestAccount.address) } should be > Winston.Zero
         }
 
         "return a zero balance" in {
-          run[Winston] { address.balance(arbitraryWallet) } shouldBe Winston.Zero
+          run { address.balance(arbitraryWallet) } shouldBe Winston.Zero
 
         }
       }
 
-      "tre price api" should {
-        "return a valid (positive) price" in {
-          run { price.estimateForBytes(BigInt(10)) } should be > Winston.Zero
+      "the price api" should {
+        val oldAddress = TestAccount.address
+        val newAddress = Wallet.generate().address
+
+        "return a valid (positive) price for a data transaction" in {
+          run { price.dataTransaction(randomData()) } should be > Winston.Zero
         }
 
-        "return a valid (positive) price for transfer transactions" in {
-          run { price.estimateTransfer } should be > Winston.Zero
+        "return a valid (positive) price for transfer transactions (for an existing address)" in {
+          run {
+            price.transferTransactionTo(oldAddress)
+          } should be > Winston.Zero
         }
 
-        "return a price that increases" taggedAs(Retryable) in {
-          val x = randomPositiveBigInt(100000, 1)
-          val y = randomPositiveBigInt(100000 + x.toLong + 1, x.toLong + 1)
+        "return a valid (positive) price for transfer transactions (for a new address)" in {
+          run {
+            price.transferTransactionTo(newAddress)
+          } should be > Winston.Zero
+        }
 
-          val p0 = run[Winston] { price.estimateForBytes(0) }.amount
-          val px = run[Winston] { price.estimateForBytes(x) }.amount
-          val py = run[Winston] { price.estimateForBytes(y) }.amount
+        "transfering to an existing wallet should have a lower price" in {
+          run { address.balance(oldAddress) } should be > Winston.Zero
 
-          p0 should be < px
-          px should be < py
+          run { address.balance(newAddress) } shouldBe Winston.Zero
+
+          val o = run { price.transferTransactionTo(oldAddress) }
+          val n = run { price.transferTransactionTo(newAddress) }
+          o should be < n
         }
 
         "return a deterministic price" taggedAs(Retryable) in {
-          val x = randomPositiveBigInt(100000, 0)
-          val p = run[Winston] { price.estimateForBytes(x) }.amount
-          val q = run[Winston] { price.estimateForBytes(x) }.amount
+          val d = randomData()
+          val p = run { price.dataTransaction(d) }
+          val q = run { price.dataTransaction(d) }
 
           p shouldBe q
         }
@@ -152,18 +175,19 @@ class apiSpec extends WordSpec
           val owner = TestAccount.wallet
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
+          val target = Wallet.generate()
           val stx = Transaction.Transfer(
             run { address.lastTx(owner) },
             owner,
-            Wallet.generate(),
+            target,
             quantity = randomWinstons(upperBound = Winston("100000")),
-            reward = run { price estimateTransfer } + extraReward
+            reward = run { price transferTransactionTo target } + extraReward
           ).sign(owner)
 
-          run[Unit] { tx.submit(stx) } shouldBe (())
+          run { tx.submit(stx) } shouldBe (())
 
           eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+            inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
@@ -186,12 +210,13 @@ class apiSpec extends WordSpec
             initialOwner,
             intermediateOwner,
             quantity = quantity1,
-            reward = run { price estimateTransfer } + extraReward1
+            reward = run { price transferTransactionTo intermediateOwner }
+              + extraReward1
           ).sign(initialOwner)
-          run[Unit] { tx submit stx1 } shouldBe (())
+          run { tx submit stx1 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](stx1.id) } should
+            run { tx.get[F](stx1.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
 
@@ -200,12 +225,13 @@ class apiSpec extends WordSpec
             intermediateOwner,
             lastOwner,
             quantity = quantity2,
-            reward = run { price estimateTransfer } + extraReward2
+            reward = run { price transferTransactionTo lastOwner }
+              + extraReward2
           ).sign(intermediateOwner)
-          run[Unit] { tx submit stx2 } shouldBe (())
+          run { tx submit stx2 } shouldBe (())
 
           eventually {
-            run[Transaction.WithStatus]{ tx.get[F, G](stx2.id) } should
+            run { tx.get[F](stx2.id) } should
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
         }
@@ -224,16 +250,16 @@ class apiSpec extends WordSpec
             run { address.lastTx(owner) },
             owner,
             data,
-            reward = run { price estimate data } + extraReward,
+            reward = run { price dataTransaction data } + extraReward,
             tags = Nil
           ).sign(owner)
 
-          run[Unit] { tx.submit(stx) } shouldBe (())
+          run { tx.submit(stx) } shouldBe (())
 
           waitForDataTransaction(stx)
 
           eventually {
-            inside(run[Transaction.WithStatus]{ tx.get[F, G](stx.id) }) {
+            inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
             }
@@ -255,7 +281,12 @@ class apiSpec extends WordSpec
 
     "using EitherT[Future]" should {
       import monadError._
-      apiBehavior(futureConfig)
+      apiBehavior(eitherTConfig)
+    }
+
+    "using EitherT[Future] and as well an invalid Host" should {
+      import monadError._
+      apiBehavior(multiHostBackend)
     }
   }
 }

@@ -3,7 +3,7 @@ package co.upvest.arweave4s.adt
 import co.upvest.arweave4s.utils.CryptoUtils
 
 case class Block(nonce:         String,
-                 previousBlock: Block.Hash,
+                 previousBlock: Block.IndepHash,
                  timestamp:     Long,
                  lastRetarget:  Long,
                  diff:          Int,
@@ -15,7 +15,7 @@ case class Block(nonce:         String,
                  // hashes of the uploaded data in
                  // the block => separate the types
                  walletList:    Seq[WalletResponse],
-                 rewardAddr:    String)
+                 rewardAddr:    Option[Address])
 
 object Block {
   class Hash(val bytes: Array[Byte]) extends Base64EncodedBytes

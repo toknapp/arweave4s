@@ -4,6 +4,8 @@ case class Info(
   network: String,
   version: Int,
   height: BigInt,
+  current: Block.IndepHash,
   blocks: BigInt,
-  peers: Int
+  peers: Int,
+  queueLength: Int
 )
