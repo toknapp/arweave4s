@@ -1,6 +1,6 @@
 package co.upvest.arweave4s.utils
 
-import io.circe.{Decoder, Encoder, Json, JsonObject}
+import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax._
 import cats.instances.either._
 import cats.syntax.flatMap._
@@ -17,8 +17,8 @@ trait EmptyStringAsNoneImplicits {
     ot: Option[T]
   ) {
     def noneAsEmptyString: Json = ot match {
-      case None => JsonObject.empty.asJson
-      case Some(t) => t.asJson
+      case None => "" asJson
+      case Some(t) => t asJson
     }
   }
 

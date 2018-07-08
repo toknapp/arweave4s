@@ -148,7 +148,7 @@ trait Marshaller {
       Json.obj(
         "id"        := tx.id,
         "last_tx"   -> tx.lastTx.noneAsEmptyString,
-        "target"    := JsonObject.empty,
+        "target"    := "",
         "owner"     := tx.owner,
         "reward"    := tx.reward,
         "quantity"  := Winston.Zero,
@@ -165,7 +165,7 @@ trait Marshaller {
       Json.obj(
         "id"        := tx.id,
         "last_tx"   -> tx.lastTx.noneAsEmptyString,
-        "data"      -> Json.fromString(""),
+        "data"      := "",
         "owner"     := tx.owner,
         "target"    := tx.target,
         "quantity"  := tx.quantity,
