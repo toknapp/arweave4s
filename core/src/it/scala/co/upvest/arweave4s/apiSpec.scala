@@ -256,8 +256,6 @@ class apiSpec extends WordSpec
 
           run { tx.submit(stx) } shouldBe (())
 
-          waitForDataTransaction(stx)
-
           eventually {
             inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>

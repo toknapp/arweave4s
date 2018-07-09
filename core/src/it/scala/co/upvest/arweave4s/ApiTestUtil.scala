@@ -1,17 +1,16 @@
 package co.upvest.arweave4s
 
-import co.upvest.arweave4s.adt.{Data, Transaction, Wallet, Winston}
+import co.upvest.arweave4s.adt.{Data, Wallet, Winston}
 import co.upvest.arweave4s.utils.CryptoUtils
 import com.softwaremill.sttp.{Uri, UriContext}
 
 import scala.util.{Random, Try}
-import scala.concurrent.duration._
 import scala.io.Source
 
 object ApiTestUtil {
 
   val NotExistingTestHost: Uri = uri"127.0.0.1:9"
-  val TestHost: Uri = uri"${(sys.env get "TESTNET_HOST" getOrElse "localhost") + ":1984"}"
+  val TestHost: Uri = uri"${(sys.env get "TESTNET_HOST" getOrElse "localhost:1984")}"
 
   object TestAccount {
     lazy val wallet: Wallet = (
@@ -29,11 +28,6 @@ object ApiTestUtil {
       ) get
 
     lazy val address = wallet.address
-  }
-
-  def waitForDataTransaction(t: Transaction.Data): Unit = {
-    // https://github.com/ArweaveTeam/arweave/blob/d6109b7ad7d824fcea8a540b055c6fb6602b1c81/src/ar_node.erl#L1461
-    Thread.sleep(((30 seconds) + (t.data.size * 300 milliseconds) / 1000).toMillis)
   }
 
   def randomWinstons(
