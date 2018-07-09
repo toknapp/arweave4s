@@ -116,6 +116,12 @@ lazy val credentialSettings = Seq(
 import sbtrelease.ReleaseStateTransformations._
 import sbtrelease.Version
 
+def checkoutBranch(branch: String): ReleaseStep = { st: State =>
+  val Some(vcs) = Project.extract(st).get(releaseVcs)
+  val 0 = vcs.cmd("checkout", branch).!
+  st
+}
+
 lazy val releaseSettings = Seq(
   releaseTagName := tagName.value,
   pgpReadOnly := true,
