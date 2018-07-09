@@ -1,14 +1,27 @@
 version: '2.2'
 services:
-  arweave:
+  arweave-seed:
     build:
       context: arweave
       args:
-        ERLC_OPTS: "-DFIXED_DIFF=4"
+        ERLC_OPTS: "-DFIXED_DIFF=8"
     ports:
-      - "1984:1984"
+      - "1985:1984"
     command: no_auto_join init mine peer 127.0.0.1:9
     cpus: 0.5
+  arweave:
+    depends_on:
+      - arweave-seed
+    build:
+      context: arweave
+      args:
+        ERLC_OPTS: "-DFIXED_DIFF=8"
+    ports:
+      - "1984:1984"
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - "./arweave-server peer $$(getent hosts arweave-seed | cut -d' ' -f1)"
   it:
     build:
       context: .
