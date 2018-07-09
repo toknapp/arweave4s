@@ -49,7 +49,7 @@ package object api {
   }
 
   case class HttpFailure(rsp: Response[_])
-    extends Failure(s"HTTP failure: $rsp", None)
+    extends Failure(s"HTTP failure code=${rsp.code} ${rsp.statusText} body=${rsp.body}", None)
   case class DecodingFailure(t: Exception)
     extends Failure("Decoding failure", Some(t))
   case object InvalidEncoding
