@@ -107,8 +107,6 @@ class apiExamples extends WordSpec
 
 
       whenReady(f) { stx =>
-        waitForDataTransaction(stx)
-
         And("eventually get accepted")
         eventually {
           whenReady(api.tx.get[Future](stx.id)) { ts =>

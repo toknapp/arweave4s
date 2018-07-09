@@ -4,10 +4,13 @@ services:
     build:
       context: arweave
       args:
-        ERLC_OPTS: "-DFIXED_DIFF=4"
+        ERLC_OPTS: "-DFIXED_DIFF=4 -DFIXED_DELAY=0"
     ports:
       - "1984:1984"
-    command: no_auto_join init mine peer 127.0.0.1:9
+    entrypoint:
+      - "/bin/sh"
+      - "-c"
+      - "echo ADECEEQHldVB55AQRg6cq_hhFGKnJiVKN0pRuvp3Sms,1000000 > data/genesis_wallets.csv && ./arweave-server no_auto_join init mine peer 127.0.0.1:9"
     cpus: 0.5
   it:
     build:
@@ -17,4 +20,4 @@ services:
     depends_on:
       - arweave
     environment:
-      TESTNET_HOST: arweave
+      TESTNET_HOST: http://arweave:1984

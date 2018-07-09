@@ -94,7 +94,7 @@ jobs:
           command: |
             git submodule sync
             git submodule update --init --remote --recursive
-      - run: docker-compose build --no-cache
+      - run: docker-compose build
       - *collect-docker-compose-logs
       - *collect-arweave-logs
       - run:
