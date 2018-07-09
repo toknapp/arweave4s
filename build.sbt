@@ -127,7 +127,7 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  releaseCommitMessage := s"Bumping version\n\n[skip ci]",
+  releaseCommitMessage := "Bumping version",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -143,14 +143,15 @@ lazy val releaseSettings = Seq(
     checkSnapshotDependencies,
     inquireVersions,
     runClean,
-    runTest,
+
     setReleaseVersion,
-    commitReleaseVersion,
     tagRelease,
     publishArtifacts,
+    releaseStepCommand("sonatypeReleaseAll"),
+
+    checkoutBranch("develop"),
     setNextVersion,
     commitNextVersion,
-    releaseStepCommand("sonatypeReleaseAll"),
     pushChanges
   )
 )
