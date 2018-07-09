@@ -44,7 +44,7 @@ lazy val library =
       val circe         = "0.10.0-M1"
       val scalaCheck    = "1.13.5"
       val scalaTest     = "3.0.5"
-      val sttp          = "1.2.1"
+      val sttp          = "1.2.2"
       val spongyCastle  = "1.58.0.0"
       val kindProjector = "0.9.7"
       val logback       = "1.2.3"
@@ -116,6 +116,12 @@ lazy val credentialSettings = Seq(
 import sbtrelease.ReleaseStateTransformations._
 import sbtrelease.Version
 
+def checkoutBranch(branch: String): ReleaseStep = { st: State =>
+  val Some(vcs) = Project.extract(st).get(releaseVcs)
+  val 0 = vcs.cmd("checkout", branch).!
+  st
+}
+
 lazy val releaseSettings = Seq(
   releaseTagName := tagName.value,
   pgpReadOnly := true,
@@ -127,7 +133,7 @@ lazy val releaseSettings = Seq(
   publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  releaseCommitMessage := s"Bumping version\n\n[skip ci]",
+  releaseCommitMessage := "Bumping version",
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -143,14 +149,17 @@ lazy val releaseSettings = Seq(
     checkSnapshotDependencies,
     inquireVersions,
     runClean,
-    runTest,
+
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
     publishArtifacts,
+    releaseStepCommand("sonatypeReleaseAll"),
+    pushChanges,
+
+    checkoutBranch("develop"),
     setNextVersion,
     commitNextVersion,
-    releaseStepCommand("sonatypeReleaseAll"),
     pushChanges
   )
 )

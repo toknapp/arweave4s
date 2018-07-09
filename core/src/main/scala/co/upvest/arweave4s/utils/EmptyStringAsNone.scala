@@ -4,6 +4,7 @@ import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax._
 import cats.instances.either._
 import cats.syntax.flatMap._
+import cats.syntax.option._
 import cats.syntax.applicative._
 
 case class EmptyStringAsNone[T](toOption: Option[T]) extends AnyVal
@@ -16,22 +17,21 @@ trait EmptyStringAsNoneImplicits {
     ot: Option[T]
   ) {
     def noneAsEmptyString: Json = ot match {
-      case None => Json.fromString("")
-      case Some(t) => t.asJson
+      case None => "" asJson
+      case Some(t) => t asJson
     }
   }
 
-  implicit def emptyStringAsNoneDecoder[T: Decoder]: Decoder[EmptyStringAsNone[T]] = {
-    c => c.as[String] >>= {
+  implicit def emptyStringAsNoneDecoder[T: Decoder]: Decoder[EmptyStringAsNone[T]] = c =>
+    c.as[String] >>= {
       case "" => EmptyStringAsNone(None).pure
-      case _ => c.as[T] map { (t: T) => EmptyStringAsNone(Some(t)) }
+      case _ => c.as[T] map { (t: T) => EmptyStringAsNone(t.some) }
     }
-  }
 }
 
 object EmptyStringAsNone extends EmptyStringAsNoneImplicits {
   def of(s: String): EmptyStringAsNone[String] = s match {
     case "" => EmptyStringAsNone(None)
-    case _ => EmptyStringAsNone(Some(s))
+    case _ => EmptyStringAsNone(s.some)
   }
 }

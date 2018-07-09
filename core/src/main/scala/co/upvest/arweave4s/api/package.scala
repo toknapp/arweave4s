@@ -5,9 +5,10 @@ import cats.data.NonEmptyList
 import cats.syntax.applicative._
 import cats.syntax.applicativeError._
 import cats.syntax.flatMap._
+import cats.instances.future._
 import cats.{Id, MonadError, ~>}
 import co.upvest.arweave4s.utils.SttpExtensions.{PartialRequest, completeRequest}
-import co.upvest.arweave4s.utils.{MultipleHostsBackend, RaiseError}
+import co.upvest.arweave4s.utils.MultipleHostsBackend
 import com.softwaremill.sttp.{Response, SttpBackend, Uri}
 import io.circe
 
@@ -21,7 +22,6 @@ package object api {
 
   trait Backend[F[_]] {
     def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]]
-
   }
 
   object Backend {
@@ -44,16 +44,12 @@ package object api {
     extends Exception(message, cause.orNull)
 
   object Failure {
-    implicit def injectMultipleFailures[F[_]](
-      implicit me: MonadError[F, Failure]
-    ): RaiseError[F, NonEmptyList[Throwable]] = new RaiseError[F, NonEmptyList[Throwable]] {
-      def apply[A](nel: NonEmptyList[Throwable]): F[A] =
-        me raiseError MultipleUnderlyingFailures(nel)
-    }
+    implicit def injectMultipleFailures(nel: NonEmptyList[Throwable]): Failure =
+      MultipleUnderlyingFailures(nel)
   }
 
   case class HttpFailure(rsp: Response[_])
-    extends Failure(s"HTTP failure: $rsp", None)
+    extends Failure(s"HTTP failure code=${rsp.code} ${rsp.statusText} body=${rsp.body}", None)
   case class DecodingFailure(t: Exception)
     extends Failure("Decoding failure", Some(t))
   case object InvalidEncoding
@@ -120,7 +116,6 @@ package object api {
       }
     }
 
-
     implicit def idSuccessHandler: SuccessHandler[Id] = { rsp =>
       rsp.body.right getOrElse { throw HttpFailure(rsp) }
     }
@@ -153,8 +148,8 @@ package object api {
         }
     }
 
-    implicit def futureJsonHandlerSuccessHandler(implicit ec:ExecutionContext): SuccessHandler[Future] = { frsp =>
-      frsp.flatMap { rsp =>
+    implicit def futureJsonHandlerSuccessHandler(implicit ec:ExecutionContext): SuccessHandler[Future] = {
+      _ >>= { rsp =>
         rsp.body
           .map(Future.successful)
           .getOrElse(Future.failed(HttpFailure(rsp)))
@@ -163,6 +158,4 @@ package object api {
   }
 
   object future extends FutureInstances
-
-
 }
