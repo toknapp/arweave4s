@@ -228,7 +228,7 @@ trait Marshaller {
   implicit lazy val blockDecoder: Decoder[Block] = c =>
     for {
       nonce         <- c.downField("nonce").as[String]
-      prev_block    <- c.downField("previous_block").as[Block.IndepHash]
+      prev_block    <- c.downField("previous_block").as[EmptyStringAsNone[Block.IndepHash]]
       timestamp     <- c.downField("timestamp").as[Long]
       last_retarget <- c.downField("last_retarget").as[Long]
       diff          <- c.downField("diff").as[Int]
@@ -236,7 +236,7 @@ trait Marshaller {
       hash          <- c.downField("hash").as[Block.Hash]
       indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]
       txs           <- c.downField("txs").as[Seq[Transaction.Id]]
-      hash_list     <- c.downField("hash_list").as[Seq[Block.Hash]]
+      hash_list     <- c.downField("hash_list").as[Seq[Block.IndepHash]]
       wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
       rewaddr       =  c.downField("reward_addr")
       reward_addr   <- rewaddr.as[String] >>= {
