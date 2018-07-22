@@ -95,7 +95,9 @@ class apiSpec extends WordSpec
         }
 
         "return a valid block by height" in {
-          run { block.get(BigInt(1)) } shouldBe a[Block]
+          val b0 = run { block.get(BigInt(1)) }
+          val b1 = run { block.get(b0.indepHash) }
+          b0 shouldBe b1
         }
 
         "fail when a block does not exist (by hash)" in {
@@ -280,6 +282,9 @@ class apiSpec extends WordSpec
             inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
+                inside(t.t) {
+                  case dt: Transaction.Data => dt.data shouldBe data
+                }
             }
           }
         }
