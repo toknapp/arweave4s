@@ -113,6 +113,9 @@ class apiExamples extends WordSpec
             inside(ts) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
+                inside(t.t) {
+                  case dt: Transaction.Data => dt.data shouldBe testData
+                }
             }
           }
         }
