@@ -228,7 +228,11 @@ trait Marshaller {
   implicit lazy val blockDecoder: Decoder[Block] = c =>
     for {
       nonce         <- c.downField("nonce").as[String]
-      prev_block    <- c.downField("previous_block").as[EmptyStringAsNone[Block.IndepHash]]
+      prev_block    <- c.downField("previous_block").success match {
+        case Some(pb) =>
+          pb.as[EmptyStringAsNone[Block.IndepHash]] map { _.toOption }
+        case None => Right(None)
+      }
       timestamp     <- c.downField("timestamp").as[Long]
       last_retarget <- c.downField("last_retarget").as[Long]
       diff          <- c.downField("diff").as[Int]
