@@ -228,11 +228,7 @@ trait Marshaller {
   implicit lazy val blockDecoder: Decoder[Block] = c =>
     for {
       nonce         <- c.downField("nonce").as[String]
-      prev_block    <- c.downField("previous_block").success match {
-        case Some(pb) =>
-          pb.as[EmptyStringAsNone[Block.IndepHash]] map { _.toOption }
-        case None => Right(None)
-      }
+      prev_block    <- c.downField("previous_block").as[EmptyStringAsNone[Block.IndepHash]]
       timestamp     <- c.downField("timestamp").as[Long]
       last_retarget <- c.downField("last_retarget").as[Long]
       diff          <- c.downField("diff").as[Int]
@@ -264,7 +260,7 @@ trait Marshaller {
 
   implicit lazy val blockEncoder: Encoder[Block] = b => Json.obj(
     "nonce"          := b.nonce,
-    "previous_block" := b.previousBlock,
+    "previous_block" -> b.previousBlock.noneAsEmptyString,
     "timestamp"      := b.timestamp,
     "last_retarget"  := b.lastRetarget,
     "diff"           := b.diff,

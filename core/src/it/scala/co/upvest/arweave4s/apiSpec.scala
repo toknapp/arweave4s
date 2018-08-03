@@ -17,7 +17,8 @@ import scala.util.Try
 
 class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
-  with Eventually with BlockchainPatience with Retries {
+  with Eventually with BlockchainPatience with Retries
+  with RandomValues {
 
   import ApiTestUtil._
   import api._
