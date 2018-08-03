@@ -11,8 +11,8 @@ class BlockSpec extends WordSpec
   with GeneratorDrivenPropertyChecks with Marshaller {
   "Block" should {
     "decode its own JSON encoding" in {
-      forAll { (b: Block) =>
-        b.asJson.as[Block] === b
+      forAll { b: Block =>
+        b.asJson.as[Block] should matchPattern { case Right(`b`) => }
       }
     }
   }

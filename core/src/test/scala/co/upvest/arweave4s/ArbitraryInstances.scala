@@ -8,14 +8,15 @@ import org.scalacheck.{Arbitrary, Gen}
 trait ArbitraryInstances {
   import Arbitrary._
 
+  private def fixedBytes(n: Int): Gen[Array[Byte]] =
+    Gen.containerOfN[Array, Byte](n, arbitrary[Byte])
+
   implicit val blockHash: Arbitrary[Block.Hash] =
     Arbitrary(arbitrary[Array[Byte]] map { new Block.Hash(_) })
 
-  implicit val blockIndepHash: Arbitrary[Block.IndepHash] =
-    Arbitrary(arbitrary[Array[Byte]] map { new Block.IndepHash(_) })
-
-  private def fixedBytes(n: Int): Gen[Array[Byte]] =
-    Gen.containerOfN[Array, Byte](n, arbitrary[Byte])
+  implicit val blockIndepHash: Arbitrary[Block.IndepHash] = Arbitrary(
+    fixedBytes(Block.IndepHash.Length) map { Block.IndepHash(_).get }
+  )
 
   implicit val transactionId: Arbitrary[Transaction.Id] = Arbitrary(
     fixedBytes(Transaction.Id.Length) map { bs =>

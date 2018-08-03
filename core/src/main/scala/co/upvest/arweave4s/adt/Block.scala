@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.adt
 
 import co.upvest.arweave4s.utils.CryptoUtils
+import scala.util.Try
 
 case class Block(nonce:         String,
                  previousBlock: Option[Block.IndepHash],
@@ -27,10 +28,18 @@ object Block {
       CryptoUtils.base64UrlDecode(s) map { new Hash(_) }
   }
 
-  class IndepHash(val bytes: Array[Byte]) extends Base64EncodedBytes
+  class IndepHash private (val bytes: Array[Byte]) extends Base64EncodedBytes {
+    require(bytes.length == IndepHash.Length)
+  }
 
   object IndepHash {
+    final val Length = 48
+
+    def apply(bs: Array[Byte]): Try[IndepHash] = Try { new IndepHash(bs) }
+
     def fromEncoded(s: String): Option[IndepHash] =
-      CryptoUtils.base64UrlDecode(s) map { new IndepHash(_) }
+      CryptoUtils.base64UrlDecode(s) flatMap { bs =>
+        Try { new IndepHash(bs) } toOption
+      }
   }
 }
