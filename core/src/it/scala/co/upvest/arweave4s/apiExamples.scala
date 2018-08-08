@@ -17,7 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class apiExamples extends WordSpec
   with Matchers with GivenWhenThen with Eventually
   with BlockchainPatience with Retries with LoneElement
-  with Inside with ScalaFutures {
+  with Inside with ScalaFutures with RandomValues {
   import ApiTestUtil._
 
   override def withFixture(test: NoArgTest) = {

@@ -17,7 +17,8 @@ import scala.util.Try
 
 class apiSpec extends WordSpec
   with Matchers with Inside with ScalaFutures
-  with Eventually with BlockchainPatience with Retries {
+  with Eventually with BlockchainPatience with Retries
+  with RandomValues {
 
   import ApiTestUtil._
   import api._
@@ -38,8 +39,7 @@ class apiSpec extends WordSpec
     MultipleHostsBackend.uniform
   )
 
-  val Some(invalidBlockHash) = Block.IndepHash.fromEncoded("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-  val invalidBlockHeight = BigInt(Long.MaxValue)
+  val Some(nonExistentBlock) = ArbitraryInstances.blockIndepHash.arbitrary.sample
 
   implicit val idRunner: Id ~> Id = FunctionK.id
 
@@ -101,11 +101,11 @@ class apiSpec extends WordSpec
         }
 
         "fail when a block does not exist (by hash)" in {
-          assertThrows[HttpFailure] { run { block.get(invalidBlockHash) } }
+          assertThrows[HttpFailure] { run { block.get(nonExistentBlock) } }
         }
 
         "fail when a block does not exist (by height)" in {
-          assertThrows[HttpFailure] { run { block.get(invalidBlockHeight) } }
+          assertThrows[HttpFailure] { run { block.get(Long.MaxValue) } }
         }
 
         "return the previousBlock in the hashList" in {
@@ -115,6 +115,7 @@ class apiSpec extends WordSpec
 
         "return the genesis block" in {
           val g = run { block.get(BigInt(0)) }
+          g.previousBlock shouldBe None
           g.isGenesisBlock shouldBe true
           g.hashList shouldBe empty
         }

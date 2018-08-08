@@ -2,12 +2,14 @@
 // Projects
 // *****************************************************************************
 
+lazy val IT = config("it") extend Test
+
 lazy val core = (project in file("core"))
   .configs(IntegrationTest)
-  .settings(commonSettings:  _*)
-  .settings(publishSettings: _*)
+  .settings(commonSettings)
+  .settings(publishSettings)
   .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
-  .settings(Defaults.itSettings: _*)
+  .settings(inConfig(IT)(Defaults.testSettings))
   .enablePlugins(BuildInfoPlugin)
   .settings(
     moduleName := "arweave4s-core",
@@ -42,7 +44,7 @@ lazy val library =
   new {
     object Version {
       val circe         = "0.10.0-M1"
-      val scalaCheck    = "1.13.5"
+      val scalaCheck    = "1.14.0"
       val scalaTest     = "3.0.5"
       val sttp          = "1.2.2"
       val spongyCastle  = "1.58.0.0"
