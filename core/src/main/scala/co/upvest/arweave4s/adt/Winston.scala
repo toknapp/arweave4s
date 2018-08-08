@@ -3,7 +3,6 @@ package co.upvest.arweave4s.adt
 import cats.Monoid
 
 case class Winston(amount: BigInt) {
-  require(amount >= 0)
 
   override def toString: String = amount.toString
 

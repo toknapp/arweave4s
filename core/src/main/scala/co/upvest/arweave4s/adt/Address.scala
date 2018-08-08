@@ -4,9 +4,7 @@ import java.security.interfaces.RSAKey
 import co.upvest.arweave4s.utils.{CryptoUtils, UnsignedBigInt}
 import scala.util.Try
 
-class Address protected (val bytes: Array[Byte]) extends Base64EncodedBytes {
-  require(bytes.length == Address.Length)
-}
+class Address protected (val bytes: Array[Byte]) extends Base64EncodedBytes
 
 object Address {
   final val Length = 32

@@ -11,9 +11,7 @@ trait Transaction extends Signable {
 
 object Transaction {
 
-  class Id protected[Transaction] (val bytes: Array[Byte]) extends Base64EncodedBytes {
-    require(bytes.length == Id.Length)
-  }
+  class Id protected[Transaction] (val bytes: Array[Byte]) extends Base64EncodedBytes
 
   object Id {
     final val Length = 32

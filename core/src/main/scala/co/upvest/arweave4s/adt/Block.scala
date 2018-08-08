@@ -28,9 +28,7 @@ object Block {
       CryptoUtils.base64UrlDecode(s) map { new Hash(_) }
   }
 
-  class IndepHash private (val bytes: Array[Byte]) extends Base64EncodedBytes {
-    require(bytes.length == IndepHash.Length)
-  }
+  class IndepHash private (val bytes: Array[Byte]) extends Base64EncodedBytes
 
   object IndepHash {
     final val Length = 48
