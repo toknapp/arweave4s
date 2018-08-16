@@ -43,7 +43,7 @@ trait Marshaller {
   )
 
   implicit lazy val peersDecoder: Decoder[Peer] =
-    _.as[String].map(Peer.apply)
+    _.as[String] map { Peer(_).toOption } orComplain
 
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
     _.as[String] map Block.Hash.fromEncoded orComplain

@@ -77,6 +77,12 @@ class apiSpec extends WordSpec
         }
       }
 
+      "the peers api" should {
+        "return a valid structure" in {
+          run { api.peers() } should not be empty
+        }
+      }
+
       "the block api" should {
         "return the current block" in {
           run { block.current() } shouldBe a[Block]
