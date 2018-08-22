@@ -4,7 +4,7 @@ case class Info(
   network: String,
   version: Int,
   height: BigInt,
-  current: Block.IndepHash,
+  current: Option[Block.IndepHash],
   blocks: BigInt,
   peers: Int,
   queueLength: Int

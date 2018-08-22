@@ -90,8 +90,8 @@ class apiSpec extends WordSpec
 
         "return the correct block reported as current in the info api" in {
           val i = run { api.info() }
-          val b = run { block.get(i.current) }
-          b.indepHash shouldBe i.current
+          val b = run { block.get(i.current.get) }
+          b.indepHash shouldBe i.current.get
           b.height shouldBe i.height
         }
 

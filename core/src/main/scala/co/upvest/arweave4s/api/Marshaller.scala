@@ -28,7 +28,15 @@ trait Marshaller {
     network   <- c.downField("network").as[String]
     version   <- c.downField("version").as[Int]
     height    <- c.downField("height").as[BigInt]
-    current   <- c.downField("current").as[Block.IndepHash]
+    current   <- {
+      val current  = c.downField("current")
+      if (current.as[String].contains("not_joined")) {
+        Right(None)
+      }
+      else {
+        current.as[Block.IndepHash] map Some.apply
+      }
+    }
     blocks    <- c.downField("blocks").as[BigInt]
     peers     <- c.downField("peers").as[Int]
     ql        <- c.downField("queue_length").as[Int]

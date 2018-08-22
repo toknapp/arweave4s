@@ -33,7 +33,10 @@ object Block {
   object IndepHash {
     final val Length = 48
 
-    def apply(bs: Array[Byte]): Try[IndepHash] = Try { new IndepHash(bs) }
+    def apply(bs: Array[Byte]): Try[IndepHash] = Try {
+      require(bs.size == Length)
+      new IndepHash(bs)
+    }
 
     def fromEncoded(s: String): Option[IndepHash] =
       CryptoUtils.base64UrlDecode(s) flatMap { bs =>
