@@ -1,6 +1,6 @@
 package co.upvest.arweave4s.adt
 
-import co.upvest.arweave4s.api.Marshaller
+import co.upvest.arweave4s.marshalling.Marshaller
 import co.upvest.arweave4s.ArbitraryInstances
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.{WordSpec, Matchers}

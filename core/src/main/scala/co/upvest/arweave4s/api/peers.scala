@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.Peer
+import co.upvest.arweave4s.marshalling.Marshaller
 import com.softwaremill.sttp.circe.asJson
 import com.softwaremill.sttp.sttp
 

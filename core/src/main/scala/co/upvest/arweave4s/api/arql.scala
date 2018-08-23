@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.{Query, Transaction}
+import co.upvest.arweave4s.marshalling.Marshaller
 import com.softwaremill.sttp.circe.{asJson, _}
 import com.softwaremill.sttp.sttp
 

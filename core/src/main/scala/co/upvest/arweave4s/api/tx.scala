@@ -4,13 +4,13 @@ import cats.Monad
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import co.upvest.arweave4s.adt._
+import co.upvest.arweave4s.adt.{Transaction, Signed}
+import co.upvest.arweave4s.marshalling.Marshaller
 import com.softwaremill.sttp.circe._
 import com.softwaremill.sttp.{asString, sttp}
 import io.circe.parser.decode
 
 object tx {
-
   import Marshaller._
   import co.upvest.arweave4s.utils.SttpExtensions.syntax._
 

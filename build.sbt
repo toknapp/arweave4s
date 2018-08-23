@@ -4,13 +4,47 @@
 
 lazy val IT = config("it") extend Test
 
-lazy val core = (project in file("core"))
-  .configs(IntegrationTest)
+lazy val types = (project in file("types"))
   .settings(commonSettings)
   .settings(publishSettings)
   .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
+  .settings(
+    moduleName := "arweave4s-types",
+    name := "Arweave4s Types",
+    buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
+    buildInfoPackage := "co.upvest.arweave4s",
+    libraryDependencies ++= Seq(
+      library.circeCore % Compile,
+      library.circeParser % Compile,
+      library.sttpCore % Compile,
+      library.spongyCastleCore % Compile,
+    )
+  )
+
+lazy val test = (project in file("test"))
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
+  .dependsOn(types)
+  .settings(
+    moduleName := "arweave4s-test",
+    name := "Arweave4s Tests",
+    buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
+    buildInfoPackage := "co.upvest.arweave4s",
+    libraryDependencies ++= Seq(
+      library.scalaTest % Test,
+      library.scalaCheck % Compile,
+    )
+  )
+
+lazy val core = (project in file("core"))
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
+  .configs(IntegrationTest)
   .settings(inConfig(IT)(Defaults.testSettings))
   .enablePlugins(BuildInfoPlugin)
+  .dependsOn(types, test % Test)
   .settings(
     moduleName := "arweave4s-core",
     name := "Arweave4s Core",
@@ -24,10 +58,9 @@ lazy val core = (project in file("core"))
       library.circeParser       % Compile,
       library.sttpCore          % Compile,
       library.sttpCirce         % Compile,
-      library.spongyCastleCore  % Compile,
       // test dependencies
-      library.scalaCheck        % "it,test",
-      library.scalaTest         % "it,test",
+      library.scalaCheck        % "it",
+      library.scalaTest         % "it",
       library.sttpAsyncBackend  % "it",
       library.logback           % "it"
     ).map(dependencies =>

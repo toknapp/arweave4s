@@ -1,4 +1,4 @@
-package co.upvest.arweave4s.api
+package co.upvest.arweave4s.marshalling
 
 import co.upvest.arweave4s.adt.{Transaction, _}
 import co.upvest.arweave4s.utils.{CirceComplaints, CryptoUtils, EmptyStringAsNone}
