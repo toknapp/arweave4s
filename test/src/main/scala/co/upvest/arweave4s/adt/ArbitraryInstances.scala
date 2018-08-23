@@ -1,4 +1,4 @@
-package co.upvest.arweave4s
+package co.upvest.arweave4s.adt
 
 import adt.{Block, Transaction, Winston, Wallet, WalletResponse, Address}
 import utils.CryptoUtils
