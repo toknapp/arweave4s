@@ -1,7 +1,6 @@
 package co.upvest.arweave4s.adt
 
-import adt.{Block, Transaction, Winston, Wallet, WalletResponse, Address}
-import utils.CryptoUtils
+import co.upvest.arweave4s.utils.CryptoUtils
 
 import org.scalacheck.{Arbitrary, Gen}
 
