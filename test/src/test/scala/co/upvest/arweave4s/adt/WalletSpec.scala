@@ -3,8 +3,6 @@ package co.upvest.arweave4s.adt
 import org.scalatest.{WordSpec, Matchers, Inside}
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
-import co.upvest.arweave4s.ArbitraryInstances
-
 import io.circe.parser.decode
 import io.circe.syntax._
 
