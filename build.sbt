@@ -2,13 +2,49 @@
 // Projects
 // *****************************************************************************
 
-lazy val core = (project in file("core"))
-  .configs(IntegrationTest)
-  .settings(commonSettings:  _*)
-  .settings(publishSettings: _*)
+lazy val IT = config("it") extend Test
+
+lazy val types = (project in file("types"))
+  .settings(commonSettings)
+  .settings(publishSettings)
   .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
-  .settings(Defaults.itSettings: _*)
+  .settings(
+    moduleName := "arweave4s-types",
+    name := "Arweave4s Types",
+    buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
+    buildInfoPackage := "co.upvest.arweave4s",
+    libraryDependencies ++= Seq(
+      library.circeCore % Compile,
+      library.circeParser % Compile,
+      library.sttpCore % Compile,
+      library.spongyCastleCore % Compile,
+    )
+  )
+
+lazy val test = (project in file("test"))
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
+  .dependsOn(types)
+  .settings(
+    moduleName := "arweave4s-test",
+    name := "Arweave4s Tests",
+    buildInfoKeys := Seq[BuildInfoKey](version, scalaVersion, sbtVersion),
+    buildInfoPackage := "co.upvest.arweave4s",
+    libraryDependencies ++= Seq(
+      library.scalaTest % Test,
+      library.scalaCheck % Compile,
+    )
+  )
+
+lazy val core = (project in file("core"))
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(licenses += ("MIT", url("http://opensource.org/licenses/MIT")))
+  .configs(IntegrationTest)
+  .settings(inConfig(IT)(Defaults.testSettings))
   .enablePlugins(BuildInfoPlugin)
+  .dependsOn(types, test % Test)
   .settings(
     moduleName := "arweave4s-core",
     name := "Arweave4s Core",
@@ -22,10 +58,9 @@ lazy val core = (project in file("core"))
       library.circeParser       % Compile,
       library.sttpCore          % Compile,
       library.sttpCirce         % Compile,
-      library.spongyCastleCore  % Compile,
       // test dependencies
-      library.scalaCheck        % "it,test",
-      library.scalaTest         % "it,test",
+      library.scalaCheck        % "it",
+      library.scalaTest         % "it",
       library.sttpAsyncBackend  % "it",
       library.logback           % "it"
     ).map(dependencies =>
@@ -33,6 +68,10 @@ lazy val core = (project in file("core"))
         module.excludeAll(rule)
     })
   )
+
+lazy val root = (project in file("."))
+  .settings(publishSettings)
+  .aggregate(core, test, types)
 
 // *****************************************************************************
 // Dependencies
@@ -42,7 +81,7 @@ lazy val library =
   new {
     object Version {
       val circe         = "0.10.0-M1"
-      val scalaCheck    = "1.13.5"
+      val scalaCheck    = "1.14.0"
       val scalaTest     = "3.0.5"
       val sttp          = "1.2.2"
       val spongyCastle  = "1.58.0.0"
@@ -124,8 +163,9 @@ def checkoutBranch(branch: String): ReleaseStep = { st: State =>
 
 lazy val releaseSettings = Seq(
   releaseTagName := tagName.value,
+  useGpg := true,
   pgpReadOnly := true,
-  pgpSigningKey := Some(5475909627322236304L),
+  usePgpKeyHex("5C90DFE428FC2B33"),
   pgpPassphrase := Some(Array.empty),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,

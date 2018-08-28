@@ -2,7 +2,7 @@
 
 import ammonite.ops._
 
-import $ivy.`co.upvest::arweave4s-core:0.10.0`
+import $ivy.`co.upvest::arweave4s-core:0.15.0`
 import co.upvest.arweave4s.adt.Wallet
 import io.circe.syntax._
 

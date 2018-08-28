@@ -16,7 +16,6 @@ import scala.language.implicitConversions
 import scala.util.Try
 
 case class Wallet(pub: RSAPublicKey, priv: RSAPrivateCrtKey) {
-  require(pub.getPublicExponent == Wallet.PublicExponentUsedByArweave)
   lazy val owner    : Owner   = Owner(pub.getModulus)
   lazy val address  : Address = Address.ofKey(pub)
 

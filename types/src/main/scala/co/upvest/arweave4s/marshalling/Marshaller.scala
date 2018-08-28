@@ -1,4 +1,4 @@
-package co.upvest.arweave4s.api
+package co.upvest.arweave4s.marshalling
 
 import co.upvest.arweave4s.adt.{Transaction, _}
 import co.upvest.arweave4s.utils.{CirceComplaints, CryptoUtils, EmptyStringAsNone}
@@ -28,7 +28,15 @@ trait Marshaller {
     network   <- c.downField("network").as[String]
     version   <- c.downField("version").as[Int]
     height    <- c.downField("height").as[BigInt]
-    current   <- c.downField("current").as[Block.IndepHash]
+    current   <- {
+      val current  = c.downField("current")
+      if (current.as[String].contains("not_joined")) {
+        Right(None)
+      }
+      else {
+        current.as[Block.IndepHash] map Some.apply
+      }
+    }
     blocks    <- c.downField("blocks").as[BigInt]
     peers     <- c.downField("peers").as[Int]
     ql        <- c.downField("queue_length").as[Int]
@@ -43,7 +51,7 @@ trait Marshaller {
   )
 
   implicit lazy val peersDecoder: Decoder[Peer] =
-    _.as[String].map(Peer.apply)
+    _.as[String] map { Peer(_).toOption } orComplain
 
   implicit lazy val blockHashDecoder: Decoder[Block.Hash] =
     _.as[String] map Block.Hash.fromEncoded orComplain
@@ -260,7 +268,7 @@ trait Marshaller {
 
   implicit lazy val blockEncoder: Encoder[Block] = b => Json.obj(
     "nonce"          := b.nonce,
-    "previous_block" := b.previousBlock,
+    "previous_block" -> b.previousBlock.noneAsEmptyString,
     "timestamp"      := b.timestamp,
     "last_retarget"  := b.lastRetarget,
     "diff"           := b.diff,

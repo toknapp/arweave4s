@@ -109,17 +109,15 @@ jobs:
 
   release:
     <<: *sbt-build
-    resource_class: large
     environment:
       IMPORT_SIGNING_KEY: "1"
-      SBT_COMMAND: "; project core; release with-defaults"
+      SBT_COMMAND: "; release with-defaults"
 
   release-snapshot:
     <<: *sbt-build
-    resource_class: large
     environment:
       IMPORT_SIGNING_KEY: "1"
-      SBT_COMMAND: "core/publishSigned"
+      SBT_COMMAND: "publishSigned"
 
 workflows:
   version: 2

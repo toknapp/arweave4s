@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.api
 
 import co.upvest.arweave4s.adt.{Address, Data, Winston}
+import co.upvest.arweave4s.marshalling.Marshaller
 import com.softwaremill.sttp.sttp
 
 object price {

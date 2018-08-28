@@ -7,6 +7,8 @@ ADD project project
 ADD build.sbt .
 RUN sbt update
 
+ADD types types
+ADD test test
 ADD core core
 RUN sbt compile it:compile
 
