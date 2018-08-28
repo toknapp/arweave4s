@@ -69,6 +69,10 @@ lazy val core = (project in file("core"))
     })
   )
 
+lazy val root = (project in file("."))
+  .settings(publishSettings)
+  .aggregate(core, test, types)
+
 // *****************************************************************************
 // Dependencies
 // *****************************************************************************
@@ -159,8 +163,9 @@ def checkoutBranch(branch: String): ReleaseStep = { st: State =>
 
 lazy val releaseSettings = Seq(
   releaseTagName := tagName.value,
+  useGpg := true,
   pgpReadOnly := true,
-  pgpSigningKey := Some(5475909627322236304L),
+  usePgpKeyHex("5C90DFE428FC2B33"),
   pgpPassphrase := Some(Array.empty),
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcsSign := true,
