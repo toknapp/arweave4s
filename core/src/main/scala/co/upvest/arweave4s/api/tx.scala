@@ -4,11 +4,12 @@ import cats.Monad
 import cats.syntax.applicative._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import co.upvest.arweave4s.adt.{Transaction, Signed}
+import co.upvest.arweave4s.adt.{Signed, Transaction}
 import co.upvest.arweave4s.marshalling.Marshaller
 import com.softwaremill.sttp.circe._
-import com.softwaremill.sttp.{asString, sttp}
+import com.softwaremill.sttp.{DeserializationError, asString, sttp}
 import io.circe.parser.decode
+import cats.syntax.either._
 
 object tx {
   import Marshaller._
@@ -24,10 +25,14 @@ object tx {
           case _ => jh(
             Monad[F] pure rsp.copy(
               rawErrorBody = rsp.rawErrorBody
-                .map (
-                  decode[Signed[Transaction]](_)
-                  map Transaction.WithStatus.Accepted.apply
-                )
+                .map { body =>
+                  decode[Signed[Transaction]](body)
+                  .leftMap {
+                    DeserializationError(
+                      body, _, "Failure in decoding Signed Transaction"
+                    )
+                  }.map { Transaction.WithStatus.Accepted }
+                }
               )
           )
         }
