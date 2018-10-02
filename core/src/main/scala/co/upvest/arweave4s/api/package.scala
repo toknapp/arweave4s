@@ -9,16 +9,17 @@ import cats.instances.future._
 import cats.{Id, MonadError, ~>}
 import co.upvest.arweave4s.utils.SttpExtensions.{PartialRequest, completeRequest}
 import co.upvest.arweave4s.utils.MultipleHostsBackend
-import com.softwaremill.sttp.{Response, SttpBackend, Uri}
+import com.softwaremill.sttp.{DeserializationError, Response, SttpBackend, Uri}
 import io.circe
 
 import scala.concurrent.{ExecutionContext, Future}
 
 package object api {
 
-  type JsonHandler[F[_]] = λ[α => F[Response[Either[circe.Error, α]]]] ~> F
+  type JsonHandler[F[_]] = λ[α => F[SttpResponse[α]]] ~> F
   type EncodedStringHandler[F[_]] = λ[α => F[Response[Option[α]]]] ~> F
   type SuccessHandler[F[_]] = F[Response[Unit]] => F[Unit]
+  type SttpResponse[A] = Response[Either[DeserializationError[circe.Error], A]]
 
   trait Backend[F[_]] {
     def apply[T](r: PartialRequest[T, Nothing]): F[Response[T]]
@@ -60,12 +61,12 @@ package object api {
   trait MonadErrorInstances {
     implicit def monadErrorJsonHandler[F[_]: MonadError[?[_], T], T](
       implicit as: Failure As T
-    ): JsonHandler[F] = new (λ[α => F[Response[Either[circe.Error, α]]]] ~> F) {
-      override def apply[A](fa: F[Response[Either[circe.Error, A]]]): F[A] =
+    ): JsonHandler[F] = new (λ[α => F[SttpResponse[α]]] ~> F) {
+      override def apply[A](fa: F[SttpResponse[A]]): F[A] =
         fa >>= { rsp =>
           rsp.body match {
             case Left(_) => as.coerce(HttpFailure(rsp)).raiseError
-            case Right(Left(e)) => as.coerce(DecodingFailure(e)).raiseError
+            case Right(Left(e)) => as.coerce(DecodingFailure(e.error)).raiseError
             case Right(Right(a)) => a.pure[F]
           }
         }
@@ -100,12 +101,13 @@ package object api {
 
   trait IdInstances {
     implicit def idJsonHandler: JsonHandler[Id] =
-      new (λ[α => Id[Response[Either[circe.Error, α]]]] ~> Id) {
-        override def apply[A](rsp: Id[Response[Either[circe.Error, A]]]): A = rsp.body match {
-          case Left(_) => throw HttpFailure(rsp)
-          case Right(Left(e)) => throw DecodingFailure(e)
-          case Right(Right(a)) => a
-        }
+      new (λ[α => Id[SttpResponse[α]]] ~> Id) {
+        override def apply[A](rsp: Id[SttpResponse[A]]): A =
+          rsp.body match {
+            case Left(_) => throw HttpFailure(rsp)
+            case Right(Left(e)) => throw DecodingFailure(e.error)
+            case Right(Right(a)) => a
+          }
       }
 
     implicit def idEncodedStringHandler: EncodedStringHandler[Id] = new (λ[α => Id[Response[Option[α]]]] ~> Id) {
@@ -126,12 +128,12 @@ package object api {
 
   trait FutureInstances {
     implicit def futureJsonHandler(implicit ec:ExecutionContext): JsonHandler[Future] =
-      new (λ[α => Future[Response[Either[circe.Error, α]]]] ~> Future){
-        override def apply[A](frsp: Future[Response[Either[circe.Error, A]]])=
+      new (λ[α => Future[SttpResponse[α]]] ~> Future){
+        override def apply[A](frsp: Future[SttpResponse[A]])=
           frsp map { rsp =>
             rsp.body match {
               case Left(_) => throw HttpFailure(rsp)
-              case Right(Left(e)) => throw DecodingFailure(e)
+              case Right(Left(e)) => throw DecodingFailure(e.error)
               case Right(Right(a)) => a
           }}
       }
