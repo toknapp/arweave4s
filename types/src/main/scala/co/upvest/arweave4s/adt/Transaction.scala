@@ -38,8 +38,8 @@ object Transaction {
   def data(
     lastTx: Option[Id],
     owner: Owner,
-    data: Base64EncodedBytes,
     reward: Winston,
+    data: Base64EncodedBytes,
     tags: Seq[Tag.Custom]
   ): Transaction = Transaction(
     lastTx,

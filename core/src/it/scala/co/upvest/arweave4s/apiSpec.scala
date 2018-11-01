@@ -205,12 +205,12 @@ class apiSpec extends WordSpec
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
           val target = Wallet.generate()
-          val stx = Transaction.Transfer(
+          val stx = Transaction.transfer(
             run { address.lastTx(owner) },
             owner,
-            target,
-            quantity = randomWinstons(upperBound = Winston("100000")),
-            reward = run { price transferTransactionTo target } + extraReward
+            reward = run { price transferTransactionTo target } + extraReward,
+            target = target,
+            quantity = randomWinstons(upperBound = Winston("100000"))
           ).sign(owner)
 
           run { tx.submit(stx) } shouldBe (())
@@ -234,13 +234,13 @@ class apiSpec extends WordSpec
           val extraReward1 = randomWinstons(upperBound = Winston("1000"))
           val extraReward2 = randomWinstons(upperBound = Winston("1000"))
 
-          val stx1 = Transaction.Transfer(
+          val stx1 = Transaction.transfer(
             run { address.lastTx(initialOwner) },
             initialOwner,
-            intermediateOwner,
-            quantity = quantity1,
             reward = run { price transferTransactionTo intermediateOwner }
-              + extraReward1
+              + extraReward1,
+            target = intermediateOwner,
+            quantity = quantity1
           ).sign(initialOwner)
           run { tx submit stx1 } shouldBe (())
 
@@ -249,13 +249,13 @@ class apiSpec extends WordSpec
               matchPattern { case Transaction.WithStatus.Accepted(_) => }
           }
 
-          val stx2 = Transaction.Transfer(
+          val stx2 = Transaction.transfer(
             run { address.lastTx(intermediateOwner) },
             intermediateOwner,
-            lastOwner,
-            quantity = quantity2,
             reward = run { price transferTransactionTo lastOwner }
-              + extraReward2
+              + extraReward2,
+            target = lastOwner,
+            quantity = quantity2
           ).sign(intermediateOwner)
           run { tx submit stx2 } shouldBe (())
 
@@ -275,11 +275,11 @@ class apiSpec extends WordSpec
           val data = randomData()
 
           val extraReward = randomWinstons(upperBound = Winston("1000"))
-          val stx = Transaction.Data(
+          val stx = Transaction.data(
             run { address.lastTx(owner) },
             owner,
+            run { price dataTransaction data } + extraReward,
             data,
-            reward = run { price dataTransaction data } + extraReward,
             tags = Nil
           ).sign(owner)
 
@@ -289,9 +289,7 @@ class apiSpec extends WordSpec
             inside(run { tx.get[F](stx.id) }) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
-                inside(t.t) {
-                  case dt: Transaction.Data => dt.data shouldBe data
-                }
+                t.data shouldBe Some(data)
             }
           }
         }

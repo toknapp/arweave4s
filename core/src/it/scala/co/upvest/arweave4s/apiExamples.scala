@@ -48,12 +48,12 @@ class apiExamples extends WordSpec
 
       When("a transfer is submitted")
       val lastTx = api.address.lastTx[Id](wallet) // TODO: why don't type-inference work here?
-      val stx = Transaction.Transfer(
+      val stx = Transaction.transfer(
         lastTx,
         wallet,
-        beneficiary,
-        quantity = quantity,
-        reward = reward
+        reward = reward,
+        target = beneficiary,
+        quantity = quantity
       ).sign(wallet)
 
       api.tx.submit(stx)
@@ -95,7 +95,7 @@ class apiExamples extends WordSpec
       val f = for {
         price    <- api.price.dataTransaction(testData)
         lastTx   <- api.address.lastTx(wallet)
-        stx = Transaction.Data(
+        stx = Transaction.data(
           lastTx = lastTx,
           owner  = wallet,
           data   = testData,
@@ -113,9 +113,7 @@ class apiExamples extends WordSpec
             inside(ts) {
               case Transaction.WithStatus.Accepted(t) =>
                 t.id shouldBe stx.id
-                inside(t.t) {
-                  case dt: Transaction.Data => dt.data shouldBe testData
-                }
+                t.data shouldBe Some(testData)
             }
           }
         }
