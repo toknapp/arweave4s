@@ -3,8 +3,6 @@ package co.upvest.arweave4s.marshalling
 import co.upvest.arweave4s.adt.{Transaction, _}
 import co.upvest.arweave4s.utils.{CirceComplaints, CryptoUtils, EmptyStringAsNone}
 import cats.syntax.option._
-import io.circe
-import io.circe.Decoder.Result
 import io.circe.syntax._
 import cats.syntax.flatMap._
 import cats.instances.either._
@@ -137,82 +135,34 @@ trait Marshaller {
       )
   }
 
-  implicit lazy val dataTransactionDecoder = new Decoder[Transaction.Data] {
-    override def apply(c: HCursor): Result[Transaction.Data] =
-      for {
-        lastTx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
-        owner  <- c.downField("owner").as[Owner]
-        data   <- c.downField("data").as[Data]
-        reward <- c.downField("reward").as[Winston]
-        tags   <- {
-          import TagsInTransaction.decoder
-          c.downField("tags").as[Seq[Tag.Custom]]
-        }
-      } yield Transaction.Data(lastTx, owner, data, reward, tags)
-  }
+  implicit lazy val transactionDecoder: Decoder[Transaction] = c => for {
+    lastTx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
+    owner  <- c.downField("owner").as[Owner]
+    reward <- c.downField("reward").as[Winston]
+    data   <- c.downField("data").as[Option[Data]]
+    tags   <- {
+      import TagsInTransaction.decoder
+      c.downField("tags").as[Option[Seq[Tag.Custom]]]
+    }
+    target   <- c.downField("target").as[Option[Address]]
+    quantity <- c.downField("quantity").as[Option[Winston]]
+  } yield Transaction(lastTx, owner, reward, data, tags, target, quantity)
 
-  implicit lazy val dataTransactionEncoder: Encoder[Signed[Transaction.Data]] =
-    tx =>
-      Json.obj(
-        "id"        := tx.id,
-        "last_tx"   -> tx.lastTx.noneAsEmptyString,
-        "target"    := "",
-        "owner"     := tx.owner,
-        "reward"    := tx.reward,
-        "quantity"  := Winston.Zero,
-        "data"      := tx.data,
-        "tags"      -> {
-          import TagsInTransaction.encoder
-          tx.tags.asJson
-        },
-        "signature" := tx.signature
-      )
-
-  implicit lazy val transferTransactionEncoder: Encoder[Signed[Transaction.Transfer]] =
-    tx =>
-      Json.obj(
-        "id"        := tx.id,
-        "last_tx"   -> tx.lastTx.noneAsEmptyString,
-        "data"      := "",
-        "owner"     := tx.owner,
-        "target"    := tx.target,
-        "quantity"  := tx.quantity,
-        "reward"    := tx.reward,
-        "signature" := tx.signature
+  implicit lazy val transactionEncoder: Encoder[Signed[Transaction]] = tx =>
+    Json.obj(
+      "id"        := tx.id,
+      "last_tx"   -> tx.lastTx.noneAsEmptyString,
+      "reward"    := tx.reward,
+      "owner"     := tx.owner,
+      "data"      := tx.data,
+      "tags"      -> {
+        import TagsInTransaction.encoder
+        tx.tags.asJson
+      },
+      "target"    := tx.target,
+      "quantity"  := tx.quantity,
+      "signature" := tx.signature
     )
-
-  implicit lazy val transactionEncoder: Encoder[Signed[Transaction]] = stx =>
-    stx.t match {
-      case t: Transaction.Transfer => stx.copy(t = t).asJson
-      case t: Transaction.Data => stx.copy(t = t).asJson
-    }
-
-  implicit lazy val transferTransactionDecoder =
-    new Decoder[Transaction.Transfer] {
-      override def apply(c: HCursor): Result[Transaction.Transfer] =
-        for {
-          lastTx   <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
-          owner    <- c.downField("owner").as[Owner]
-          target   <- c.downField("target").as[Address]
-          quantity <- c.downField("quantity").as[Winston]
-          reward   <- c.downField("reward").as[Winston]
-        } yield Transaction.Transfer(lastTx, owner, target, quantity, reward)
-    }
-
-  implicit lazy val transactionDecoder = new Decoder[Transaction] {
-    override def apply(c: HCursor): Result[Transaction] =
-      (for {
-        d <- c.downField("data").as[EmptyStringAsNone[Data]]
-        q <- c.downField("quantity").as[Option[Winston]]
-      } yield (d.toOption, q)) >>= {
-        case (None, Some(_)) => transferTransactionDecoder(c)
-        case (Some(_), Some(Winston.Zero)) => dataTransactionDecoder(c)
-        case _ => Left(circe.DecodingFailure(
-          message = s"unknown transaction type",
-          ops = Nil
-        ))
-      }
-  }
 
   implicit def signedDecoder[T <: Signable: Decoder]: Decoder[Signed[T]] =
     c =>
