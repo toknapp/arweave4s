@@ -149,19 +149,20 @@ trait Marshaller {
   } yield Transaction(lastTx, owner, reward, data, tags, target, quantity)
 
   implicit lazy val transactionEncoder: Encoder[Signed[Transaction]] = tx =>
-    Json.obj(
-      "id"        := tx.id,
-      "last_tx"   -> tx.lastTx.noneAsEmptyString,
-      "reward"    := tx.reward,
-      "owner"     := tx.owner,
-      "data"      := tx.data,
-      "tags"      -> {
+    Json.fromFields(
+      List(
+        "id"        := tx.id,
+        "last_tx"   -> tx.lastTx.noneAsEmptyString,
+        "reward"    := tx.reward,
+        "owner"     := tx.owner,
+        "signature" := tx.signature,
+        "data"      := tx.data.noneAsEmptyString,
+        "target"    := tx.target.noneAsEmptyString,
+        "quantity"  := tx.quantity getOrElse Winston.Zero,
+      ) ++ {
         import TagsInTransaction.encoder
-        tx.tags.asJson
-      },
-      "target"    := tx.target,
-      "quantity"  := tx.quantity,
-      "signature" := tx.signature
+        tx.tags map { "tags" := _ } toList
+      }
     )
 
   implicit def signedDecoder[T <: Signable: Decoder]: Decoder[Signed[T]] =

@@ -15,7 +15,7 @@ final case class Transaction(
     owner.bytes,
     target map { _.bytes } getOrElse Array.empty,
     data map { _.bytes } getOrElse Array.empty,
-    quantity.toString.getBytes,
+    (quantity getOrElse Winston.Zero).toString.getBytes,
     reward.toString.getBytes,
     lastTx map { _.bytes } getOrElse Array.empty,
     tags.toSeq.flatten.map { t => t.name ++ t.value }.flatten.toArray
