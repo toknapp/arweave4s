@@ -139,13 +139,13 @@ trait Marshaller {
     lastTx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
     owner  <- c.downField("owner").as[Owner]
     reward <- c.downField("reward").as[Winston]
-    data   <- c.downField("data").as[Option[Data]]
+    data   <- c.downField("data").as[EmptyStringAsNone[Data]]
     tags   <- {
       import TagsInTransaction.decoder
       c.downField("tags").as[Option[Seq[Tag.Custom]]]
     }
-    target   <- c.downField("target").as[Option[Address]]
-    quantity <- c.downField("quantity").as[Option[Winston]]
+    target   <- c.downField("target").as[EmptyStringAsNone[Address]]
+    quantity <- c.downField("quantity").as[Winston]
   } yield Transaction(lastTx, owner, reward, data, tags, target, quantity)
 
   implicit lazy val transactionEncoder: Encoder[Signed[Transaction]] = tx =>
@@ -158,11 +158,12 @@ trait Marshaller {
         "signature" := tx.signature,
         "data"      := tx.data.noneAsEmptyString,
         "target"    := tx.target.noneAsEmptyString,
-        "quantity"  := tx.quantity getOrElse Winston.Zero,
-      ) ++ {
-        import TagsInTransaction.encoder
-        tx.tags map { "tags" := _ } toList
-      }
+        "quantity"  := tx.quantity,
+        "tags"      -> {
+          import TagsInTransaction.encoder
+          tx.tags.toSeq.flatten.asJson
+        }
+      )
     )
 
   implicit def signedDecoder[T <: Signable: Decoder]: Decoder[Signed[T]] =

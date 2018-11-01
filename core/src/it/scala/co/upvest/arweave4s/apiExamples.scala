@@ -63,14 +63,15 @@ class apiExamples extends WordSpec
         api.address.balance(beneficiary) shouldBe quantity
       }
 
-      And("the transaction id should be in their transaction histories")
-      api.arql(
-        Query.transactionHistory(wallet)
-      ).toList should contain (stx.id)
+      // TODO: has this been deprecated?
+      // And("the transaction id should be in their transaction histories")
+      // api.arql(
+      //   Query.transactionHistory(wallet)
+      // ).toList should contain (stx.id)
 
-      api.arql(
-        Query.transactionHistory(beneficiary)
-      ).toList.loneElement shouldBe stx.id
+      // api.arql(
+      //   Query.transactionHistory(beneficiary)
+      // ).toList.loneElement shouldBe stx.id
     }
 
     "be able to use for-comprehensions" taggedAs(Retryable) in {
@@ -118,10 +119,11 @@ class apiExamples extends WordSpec
           }
         }
 
-        Then("it should be findable with the tag")
-        whenReady(api.arql(Query.transactionsWithTag(tag))) { txs =>
-          txs.toList.loneElement shouldBe stx.id
-        }
+        // TODO: has this been deprecated?
+        // Then("it should be findable with the tag")
+        // whenReady(api.arql(Query.transactionsWithTag(tag))) { txs =>
+        //   txs.toList.loneElement shouldBe stx.id
+        // }
       }
     }
   }

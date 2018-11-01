@@ -9,13 +9,13 @@ final case class Transaction(
   data: Option[Base64EncodedBytes],
   tags: Option[Seq[Tag.Custom]],
   target: Option[Address],
-  quantity: Option[Winston],
+  quantity: Winston,
 ) extends Signable {
   lazy val signingData = Array.concat(
     owner.bytes,
     target map { _.bytes } getOrElse Array.empty,
     data map { _.bytes } getOrElse Array.empty,
-    (quantity getOrElse Winston.Zero).toString.getBytes,
+    quantity.toString.getBytes,
     reward.toString.getBytes,
     lastTx map { _.bytes } getOrElse Array.empty,
     tags.toSeq.flatten.map { t => t.name ++ t.value }.flatten.toArray
@@ -48,7 +48,7 @@ object Transaction {
     Some(data),
     Some(tags),
     None,
-    None
+    Winston.Zero
   )
 
   def transfer(
@@ -64,7 +64,7 @@ object Transaction {
     None,
     None,
     Some(target),
-    Some(quantity)
+    quantity
   )
 
   sealed trait WithStatus
