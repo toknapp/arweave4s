@@ -2,11 +2,26 @@ package co.upvest.arweave4s.adt
 
 import co.upvest.arweave4s.utils.CryptoUtils
 
-trait Transaction extends Signable {
-  def lastTx: Option[Transaction.Id]
-  def owner: Owner
-  def reward: Winston
-  def tpe: Transaction.Type
+final case class Transaction(
+  lastTx: Option[Transaction.Id],
+  owner: Owner,
+  reward: Winston,
+  data: Option[Base64EncodedBytes],
+  tags: Option[Seq[Tag.Custom]],
+  target: Option[Address],
+  quantity: Winston,
+) extends Signable {
+  lazy val signingData = Array.concat(
+    owner.bytes,
+    target map { _.bytes } getOrElse Array.empty,
+    data map { _.bytes } getOrElse Array.empty,
+    quantity.toString.getBytes,
+    reward.toString.getBytes,
+    lastTx map { _.bytes } getOrElse Array.empty,
+    tags.toSeq.flatten.map { t => t.name ++ t.value }.flatten.toArray
+  )
+
+  def withData(d: Array[Byte]) = this.copy(data = Some(Data(d)))
 }
 
 object Transaction {
@@ -20,53 +35,37 @@ object Transaction {
       CryptoUtils.base64UrlDecode(s) map { new Id(_) }
   }
 
-  sealed trait Type
-  object Type {
-    case object Transfer extends Type
-    case object Data extends Type
-  }
+  def data(
+    lastTx: Option[Id],
+    owner: Owner,
+    reward: Winston,
+    data: Base64EncodedBytes,
+    tags: Seq[Tag.Custom]
+  ): Transaction = Transaction(
+    lastTx,
+    owner,
+    reward,
+    Some(data),
+    Some(tags),
+    None,
+    Winston.Zero
+  )
 
-  /**
-    * Signing the transaction according to the documentation.
-    *
-    * unencode  <- Takes input X and returns the completely unencoded form
-    * sign      <- Takes data D and key K returns a signature of D signed with K
-    *
-    * owner     <- unencode(owner)
-    * target    <- unencode(target)
-    * data      <- unencode(data)
-    * quantity  <- unencode(quantity)
-    * reward    <- unencode(reward)
-    * last_tx   <- unencode(last_tx)
-    *
-    * sig_data <- owner + target + data + quantity + reward + last_tx
-    * signature <- sign(sig_data, key)
-    *
-    */
-  case class Data(lastTx: Option[Id], owner: Owner, data: Base64EncodedBytes, reward: Winston, tags: Seq[Tag.Custom]) extends Transaction {
-    val tpe: Type = Type.Data
-    lazy val signingData = Array.concat(
-      owner.bytes,
-      Array.empty,
-      data.bytes,
-      Winston.Zero.toString.getBytes,
-      reward.toString.getBytes,
-      lastTx map { _.bytes } getOrElse Array.empty,
-      tags.map{ t => t.name ++ t.value }.flatten.toArray
-    )
-  }
-
-  case class Transfer(lastTx: Option[Id], owner: Owner, target: Address, quantity: Winston, reward: Winston) extends Transaction {
-    val tpe: Type = Type.Transfer
-    lazy val signingData = Array.concat(
-      owner.bytes,
-      target.bytes,
-      Array.empty,
-      quantity.toString.getBytes,
-      reward.toString.getBytes,
-      lastTx map { _.bytes } getOrElse Array.empty
-    )
-  }
+  def transfer(
+    lastTx: Option[Id],
+    owner: Owner,
+    reward: Winston,
+    target: Address,
+    quantity: Winston,
+  ): Transaction = Transaction(
+    lastTx,
+    owner,
+    reward,
+    None,
+    None,
+    Some(target),
+    quantity
+  )
 
   sealed trait WithStatus
   object WithStatus {
@@ -76,7 +75,7 @@ object Transaction {
     case class Accepted(stx: Signed[Transaction]) extends WithStatus
   }
 
-  implicit class SignedTransaction[T <: Transaction](stx: Signed[T]) {
+  implicit class SignedTransaction(stx: Signed[Transaction]) {
     def id: Id = new Id(CryptoUtils.sha256(stx.signature.bytes))
   }
 }

@@ -7,6 +7,6 @@ trait BlockchainPatience extends AbstractPatienceConfiguration {
   import SpanSugar._
   implicit override val patienceConfig = PatienceConfig(
     timeout = scaled(1 minute),
-    interval = scaled(1 second)
+    interval = scaled(4 seconds)
   )
 }

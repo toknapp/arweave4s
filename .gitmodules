@@ -3,4 +3,4 @@
     ;url = https://github.com/ArweaveTeam/arweave
     ;branch = master
     url = https://github.com/toknapp/arweave-1
-    branch = fixed-diff-should-set-min-diff
+    branch = upvest-flavor-develop
