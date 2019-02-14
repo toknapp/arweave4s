@@ -98,9 +98,6 @@ jobs:
       - *collect-docker-compose-logs
       - *collect-arweave-logs
       - run:
-          name: Set scale factor of ScalaTest's spans
-          command: echo "SPAN_SCALE_FACTOR=20.0" >> .env
-      - run:
           name: Run integration tests
           command: docker-compose run it
           no_output_timeout: 30m

@@ -29,7 +29,7 @@ services:
     build:
       context: .
       dockerfile: docker/sbt.dockerfile
-    command: ["it:testOnly -- -F $SPAN_SCALE_FACTOR"]
+    command: ["it:testOnly -- -F 20"]
     depends_on:
       - arweave
       - arweave-peer
