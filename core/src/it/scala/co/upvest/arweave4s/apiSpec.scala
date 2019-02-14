@@ -7,12 +7,13 @@ import cats.{Id, Monad, ~>}
 import co.upvest.arweave4s.adt._
 import co.upvest.arweave4s.utils.{BlockchainPatience, MultipleHostsBackend}
 import com.softwaremill.sttp.asynchttpclient.future.AsyncHttpClientFutureBackend
-import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend}
+import com.softwaremill.sttp.{HttpURLConnectionBackend, TryHttpURLConnectionBackend, SttpBackendOptions}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.tagobjects.{Retryable, Slow}
 import org.scalatest.{Inside, Matchers, Retries, WordSpec}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.util.Try
 
 class apiSpec extends WordSpec
@@ -30,7 +31,14 @@ class apiSpec extends WordSpec
 
   val idConfig = Config(host = TestHost, HttpURLConnectionBackend())
   val tryConfig = Config(host = TestHost, TryHttpURLConnectionBackend())
-  val futConfig = Config(host = TestHost, AsyncHttpClientFutureBackend())
+  val futConfig = Config(
+    host = TestHost,
+    AsyncHttpClientFutureBackend(
+      SttpBackendOptions.connectionTimeout(
+        scaled(10 seconds)
+      )
+    )
+  )
   val eitherTConfig = Backend.lift(futConfig, lift)
 
   val multiHostBackend = MultipleHostsBackend[EitherT[Future, Failure, ?], Future](
