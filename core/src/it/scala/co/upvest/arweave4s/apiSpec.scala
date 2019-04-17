@@ -127,6 +127,23 @@ class apiSpec extends WordSpec
           g.previousBlock shouldBe None
           g.isGenesisBlock shouldBe true
         }
+
+        "return a hash list" in {
+          val c = run { block.current() }
+          val g = run { block.get(BigInt(0)) }
+
+          inside(run { block.hashList[F](c.indepHash) }) { case bs =>
+            bs.headOption shouldBe c.previousBlock
+            bs.last shouldBe g.indepHash
+          }
+        }
+
+        "return a map of wallets" in {
+          val b = run { block.current() }
+          inside(run { block.wallets[F](b.indepHash) }) { case ws =>
+            ws should contain key TestAccount.address
+          }
+        }
       }
 
       "the wallet api" should {

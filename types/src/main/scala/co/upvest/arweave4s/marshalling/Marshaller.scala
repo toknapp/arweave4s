@@ -173,6 +173,18 @@ trait Marshaller {
         t   <- c.as[T]
       } yield Signed[T](t, sig)
 
+  implicit lazy val walletDecoder: Decoder[WalletResponse] = c => for {
+    addr    <- c.downField("address").as[Address]
+    balance <- c.downField("balance").as[Winston]
+    last_tx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
+  } yield WalletResponse(addr, balance, last_tx)
+
+  implicit lazy val walletEncoder: Encoder[WalletResponse] = w => Json.obj(
+    "address"   := w.address,
+    "balance" := w.balance,
+    "last_tx"  -> w.last_tx.noneAsEmptyString
+  )
+
   implicit lazy val blockDecoder: Decoder[Block] = c =>
     for {
       nonce         <- c.downField("nonce").as[String]
