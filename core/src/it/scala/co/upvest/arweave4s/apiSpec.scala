@@ -122,26 +122,11 @@ class apiSpec extends WordSpec
           assertThrows[HttpFailure] { run { block.get(Long.MaxValue) } }
         }
 
-        "return the previousBlock in the hashList" in {
-          val b = run { block.get(BigInt(2)) }
-          b.hashList.headOption shouldBe b.previousBlock
-        }
-
         "return the genesis block" in {
           val g = run { block.get(BigInt(0)) }
           g.previousBlock shouldBe None
           g.isGenesisBlock shouldBe true
-          g.hashList shouldBe empty
         }
-
-        "return the genesis block in the hashList (of a regular block)" in {
-          val g = run { block.get(BigInt(0)) } indepHash
-          val b = run { block.current() }
-          b.isGenesisBlock shouldBe false
-          b.genesisBlock shouldBe g
-          b.hashList.lastOption should matchPattern { case Some(`g`) => }
-        }
-
       }
 
       "the wallet api" should {

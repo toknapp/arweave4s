@@ -37,14 +37,6 @@ trait ArbitraryInstances {
     fixedBytes(Address.Length) map { Address(_).get }
   )
 
-  implicit val walletResponse: Arbitrary[WalletResponse] = Arbitrary(
-    for {
-      a <- arbitrary[Address]
-      q <- arbitrary[Winston]
-      ltx <- arbitrary[Option[Transaction.Id]]
-    } yield WalletResponse(a, q, ltx)
-  )
-
   implicit val block: Arbitrary[Block] = Arbitrary(
     for {
       n <- arbitrary[String]
@@ -56,10 +48,8 @@ trait ArbitraryInstances {
       hash <- arbitrary[Block.Hash]
       ih <- arbitrary[Block.IndepHash]
       txs <- arbitrary[Seq[Transaction.Id]]
-      hl <- arbitrary[Seq[Block.IndepHash]]
-      wrs <- arbitrary[Seq[WalletResponse]]
       ra <- arbitrary[Option[Address]]
-    } yield Block(n, pb, ts, lr, d, h, hash, ih, txs, hl, wrs, ra)
+    } yield Block(n, pb, ts, lr, d, h, hash, ih, txs, ra)
   )
 }
 

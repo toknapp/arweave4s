@@ -173,18 +173,6 @@ trait Marshaller {
         t   <- c.as[T]
       } yield Signed[T](t, sig)
 
-  implicit lazy val walletDecoder: Decoder[WalletResponse] = c => for {
-    addr    <- c.downField("wallet").as[Address]
-    quant   <- c.downField("quantity").as[Winston]
-    last_tx <- c.downField("last_tx").as[EmptyStringAsNone[Transaction.Id]]
-  } yield WalletResponse(addr, quant, last_tx)
-
-  implicit lazy val walletEncoder: Encoder[WalletResponse] = w => Json.obj(
-    "wallet"   := w.address,
-    "quantity" := w.quantity,
-    "last_tx"  -> w.last_tx.noneAsEmptyString
-  )
-
   implicit lazy val blockDecoder: Decoder[Block] = c =>
     for {
       nonce         <- c.downField("nonce").as[String]
@@ -196,8 +184,6 @@ trait Marshaller {
       hash          <- c.downField("hash").as[Block.Hash]
       indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]
       txs           <- c.downField("txs").as[Seq[Transaction.Id]]
-      hash_list     <- c.downField("hash_list").as[Seq[Block.IndepHash]]
-      wallet_list   <- c.downField("wallet_list").as[Seq[WalletResponse]]
       rewaddr       =  c.downField("reward_addr")
       reward_addr   <- rewaddr.as[String] >>= {
         case "unclaimed" => Right(None)
@@ -213,8 +199,6 @@ trait Marshaller {
       hash = hash,
       indepHash = indep_hash,
       txs = txs,
-      hashList = hash_list,
-      walletList = wallet_list,
       rewardAddr = reward_addr
     )
 
@@ -228,8 +212,6 @@ trait Marshaller {
     "hash"           := b.hash,
     "indep_hash"     := b.indepHash,
     "txs"            := b.txs,
-    "hash_list"      := b.hashList,
-    "wallet_list"    := b.walletList,
     "reward_addr"    -> (b.rewardAddr map {_.asJson} getOrElse "unclaimed".asJson)
   )
 }

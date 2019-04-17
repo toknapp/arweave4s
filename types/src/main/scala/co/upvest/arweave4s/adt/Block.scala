@@ -12,12 +12,8 @@ case class Block(nonce:         String,
                  hash:          Block.Hash,
                  indepHash:     Block.IndepHash, // also referred to as the "ID associated with the block"
                  txs:           Seq[Transaction.Id],
-                 hashList:      Seq[Block.IndepHash],
-                 walletList:    Seq[WalletResponse],
                  rewardAddr:    Option[Address]) {
-  lazy val isGenesisBlock = height == BigInt(0)
-  lazy val genesisBlock: Block.IndepHash =
-    hashList.lastOption getOrElse indepHash
+  def isGenesisBlock = height == BigInt(0)
 }
 
 object Block {
