@@ -56,10 +56,8 @@ trait ArbitraryInstances {
       hash <- arbitrary[Block.Hash]
       ih <- arbitrary[Block.IndepHash]
       txs <- arbitrary[Seq[Transaction.Id]]
-      hl <- arbitrary[Seq[Block.IndepHash]]
-      wrs <- arbitrary[Seq[WalletResponse]]
       ra <- arbitrary[Option[Address]]
-    } yield Block(n, pb, ts, lr, d, h, hash, ih, txs, hl, wrs, ra)
+    } yield Block(n, pb, ts, lr, d, h, hash, ih, txs, ra)
   )
 }
 
