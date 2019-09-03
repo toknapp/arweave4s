@@ -191,7 +191,7 @@ trait Marshaller {
       prev_block    <- c.downField("previous_block").as[EmptyStringAsNone[Block.IndepHash]]
       timestamp     <- c.downField("timestamp").as[Long]
       last_retarget <- c.downField("last_retarget").as[Long]
-      diff          <- c.downField("diff").as[Int]
+      diff          <- c.downField("diff").as[Json]
       height        <- c.downField("height").as[BigInt]
       hash          <- c.downField("hash").as[Block.Hash]
       indep_hash    <- c.downField("indep_hash").as[Block.IndepHash]

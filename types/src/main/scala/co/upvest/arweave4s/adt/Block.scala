@@ -1,13 +1,14 @@
 package co.upvest.arweave4s.adt
 
 import co.upvest.arweave4s.utils.CryptoUtils
+import io.circe.Json
 import scala.util.Try
 
 case class Block(nonce:         String,
                  previousBlock: Option[Block.IndepHash],
                  timestamp:     Long,
                  lastRetarget:  Long,
-                 diff:          Int,
+                 diff:          Json,
                  height:        BigInt,
                  hash:          Block.Hash,
                  indepHash:     Block.IndepHash, // also referred to as the "ID associated with the block"
