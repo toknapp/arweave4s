@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.adt
 
 import co.upvest.arweave4s.utils.CryptoUtils
+import io.circe.syntax._
 
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -57,7 +58,7 @@ trait ArbitraryInstances {
       ih <- arbitrary[Block.IndepHash]
       txs <- arbitrary[Seq[Transaction.Id]]
       ra <- arbitrary[Option[Address]]
-    } yield Block(n, pb, ts, lr, d, h, hash, ih, txs, ra)
+    } yield Block(n, pb, ts, lr, d.asJson, h, hash, ih, txs, ra)
   )
 }
 
