@@ -119,7 +119,7 @@ package object api {
     }
 
     implicit def idSuccessHandler: SuccessHandler[Id] = { rsp =>
-      rsp.body.right getOrElse { throw HttpFailure(rsp) }
+      rsp.body getOrElse { throw HttpFailure(rsp) }
     }
   }
 

@@ -1,9 +1,11 @@
 package co.upvest.arweave4s.adt
 
-import org.scalatest.prop.{Checkers, GeneratorDrivenPropertyChecks}
-import org.scalatest.{WordSpec, Matchers}
 
-class Base64EncodedBytesSpec extends WordSpec with Matchers with Checkers with GeneratorDrivenPropertyChecks {
+import org.scalatestplus.scalacheck.{Checkers, ScalaCheckDrivenPropertyChecks}
+import org.scalatest.{Matchers, WordSpec}
+
+class Base64EncodedBytesSpec extends WordSpec with Matchers with Checkers with ScalaCheckDrivenPropertyChecks {
+
   class Foo(val bytes: Array[Byte]) extends Base64EncodedBytes
 
   "Base64EncodedBytes" should {
@@ -15,7 +17,7 @@ class Base64EncodedBytesSpec extends WordSpec with Matchers with Checkers with G
 
     "support inequality" in {
       forAll { (a: Array[Byte], b: Array[Byte]) =>
-        whenever(a.deep != b.deep) {
+        whenever(!a.sameElements(b)) {
           new Foo(a) should not be (new Foo(b))
         }
       }
