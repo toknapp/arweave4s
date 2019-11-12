@@ -82,7 +82,7 @@ lazy val library =
     object Version {
       val circe           = "0.12.3"
       val scalaCheck      = "1.14.0"
-      val scalaTest       = "3.2.0-M1"
+      val scalaTest       = "3.0.8"
       val sttp            = "1.7.2"
       val spongyCastle    = "1.58.0.0"
       val logback         = "1.2.3"

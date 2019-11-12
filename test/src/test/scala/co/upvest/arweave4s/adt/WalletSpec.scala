@@ -1,7 +1,7 @@
 package co.upvest.arweave4s.adt
 
 import org.scalatest.{WordSpec, Matchers, Inside}
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import io.circe.parser.decode
 import io.circe.syntax._
@@ -10,7 +10,7 @@ import scala.util.Success
 import scala.io.Source
 
 class WalletSpec extends WordSpec
-  with Matchers with Inside with GeneratorDrivenPropertyChecks
+  with Matchers with Inside with ScalaCheckDrivenPropertyChecks
   with ArbitraryInstances {
   "Wallet" should {
     "be able to read a keyfile" in {

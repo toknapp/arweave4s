@@ -1,6 +1,7 @@
 package co.upvest.arweave4s.utils
 
-import org.scalatest.prop.Checkers
+
+import org.scalatestplus.scalacheck.Checkers
 import org.scalatest.{WordSpec, Matchers, LoneElement}
 import org.scalacheck.Prop.BooleanOperators
 
