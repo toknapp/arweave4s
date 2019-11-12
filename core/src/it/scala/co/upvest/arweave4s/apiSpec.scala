@@ -77,7 +77,7 @@ class apiSpec extends WordSpec
     run: F ~> Id
   ): Unit = {
 
-      implicit val _ = backend
+      implicit val iBackend: Backend[F] = backend
 
       "the info api" should {
         "return a valid structure" in {
@@ -97,10 +97,10 @@ class apiSpec extends WordSpec
         }
 
         "return the correct block reported as current in the info api" in {
-          val i = run { api.info() }
-          val b = run { block.get(i.current.get) }
-          b.indepHash shouldBe i.current.get
-          b.height shouldBe i.height
+          val i = run { api.info()  }
+          val bl = run { block.get(i.current.get) }
+          bl.indepHash shouldBe i.current.get
+          bl.height shouldBe i.height
         }
 
         "return a valid block by hash" in {
