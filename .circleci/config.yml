@@ -79,7 +79,7 @@ jobs:
   test:
     <<: *sbt-build
     environment:
-      SBT_COMMAND: "; compile; clean; coverage; test; coverageReport; coverageAggregate; doc"
+      SBT_COMMAND: "; compile; clean; test; doc"
 
   integration-test:
     docker:
